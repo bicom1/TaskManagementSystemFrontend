@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #024ad8;
+  --color-primary-bright: #296ef9;
+  --color-primary-deep: #0e3191;
+  --color-primary-soft: #c9e0fc;
+  --color-canvas: #ffffff;
+  --color-paper: #ffffff;
+  --color-cloud: #f7f7f7;
+  --color-fog: #e8e8e8;
+  --color-steel: #c2c2c2;
+  --color-hairline: #e8e8e8;
+  --color-ink: #1a1a1a;
+  --color-ink-deep: #000000;
+  --color-on-ink: #ffffff;
+  --color-charcoal: #3d3d3d;
+  --color-graphite: #636363;
+  --color-bloom-coral: #ff5050;
+  --color-bloom-deep: #b3262b;
+  --color-background: #ffffff;
+  --color-foreground: #1a1a1a;
+  --color-border: #e8e8e8;
+  --color-muted: #f7f7f7;
+  --color-muted-foreground: #636363;
+  --color-destructive: #ff5050;
+  --color-destructive-foreground: #ffffff;
+  --color-primary-foreground: #ffffff;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 16px;
+  --shadow-soft-lift: 0 2px 8px rgba(26, 26, 26, 0.08);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.4;
+  @apply bg-canvas text-ink antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.page-title {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--color-ink);
+}
+
+.page-subtitle {
+  margin-top: 0.375rem;
+  font-size: 0.9375rem;
+  color: var(--color-graphite);
+}
+
+.brand-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-ink-deep);
+}
+
+.nav-link-active {
+  position: relative;
+  color: var(--color-ink);
+}
+
+.nav-link-active::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  height: 2px;
+  background: var(--color-primary);
+}
+
+@media (max-width: 640px) {
+  .page-title {
+    font-size: 1.5rem;
+  }
+}

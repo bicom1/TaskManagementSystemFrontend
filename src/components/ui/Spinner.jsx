@@ -46,11 +46,11 @@ export function ListSkeleton({ rows = 5 }) {
 
 export function CardGridSkeleton({ cards = 4 }) {
   return (
-    <div className="grid animate-pulse gap-4 md:grid-cols-2">
+    <div className="grid animate-pulse gap-4 lg:grid-cols-2">
       {Array.from({ length: cards }).map((_, i) => (
-        <div key={i} className="rounded-xl border border-hairline bg-paper p-4">
+        <div key={i} className="min-h-[280px] rounded-xl border border-hairline bg-paper p-4">
           <div className="mb-4 h-4 w-1/3 rounded bg-cloud" />
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="h-3 w-full rounded bg-cloud" />
             <div className="h-3 w-5/6 rounded bg-cloud" />
             <div className="h-3 w-2/3 rounded bg-cloud" />

@@ -45,11 +45,30 @@ export function useLiveNotifications() {
     const handleNew = (notification) => {
       queryClient.invalidateQueries({ queryKey: [LIST_KEY] });
       queryClient.invalidateQueries({ queryKey: [COUNT_KEY] });
+
+      // Assignment emails/notifications should refresh "Assigned to me" immediately
+      if (
+        notification?.type === 'task_assigned' ||
+        /assigned/i.test(notification?.message || '')
+      ) {
+        queryClient.invalidateQueries({ queryKey: ['home'] });
+      }
+
       // Chat toasts are handled by useLiveChatNotifications
       if (notification?.type === 'message_received' && /chat/i.test(notification.message || '')) {
         return;
       }
-      toast(notification.message);
+      toast(notification.message, {
+        action:
+          notification?.type === 'task_assigned'
+            ? {
+                label: 'View',
+                onClick: () => {
+                  window.location.href = '/home/my-tasks?view=assigned';
+                },
+              }
+            : undefined,
+      });
     };
 
     socket.on('notification:new', handleNew);

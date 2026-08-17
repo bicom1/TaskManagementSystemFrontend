@@ -6,6 +6,7 @@ import {
   useHomeOverview,
   useUpdateHomePreferences,
   useTrackRecent,
+  useLiveMyTasks,
 } from '@/features/home/hooks/useHome';
 import { HOME_CARD_LABELS } from '@/features/home/api/homeApi';
 import {
@@ -16,7 +17,7 @@ import {
 } from '@/features/home/components/HomeCards';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { LoadingScreen } from '@/components/ui/Spinner';
+import { CardGridSkeleton } from '@/components/ui/Spinner';
 import { formatDistanceToNow } from 'date-fns';
 import { getDashboardMeta } from '@/lib/permissions';
 import { getRoleLabel } from '@/lib/roles';
@@ -35,7 +36,8 @@ function timeGreeting() {
 export default function HomePage() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
-  const { data, isLoading } = useHomeOverview();
+  const { data, isLoading, isFetching } = useHomeOverview();
+  useLiveMyTasks();
   const updatePrefs = useUpdateHomePreferences();
   const trackRecent = useTrackRecent();
   const [manageOpen, setManageOpen] = useState(false);
@@ -43,6 +45,8 @@ export default function HomePage() {
 
   const cards = data?.cards;
   const prefs = data?.preferences;
+  const dashMeta = getDashboardMeta(user?.role);
+  const assignedCount = cards?.assigned_to_me?.length ?? 0;
 
   const visibleCards = useMemo(() => {
     const configured = prefs?.homeCards?.length
@@ -69,7 +73,6 @@ export default function HomePage() {
     const list = prefs?.homeCards?.length
       ? [...prefs.homeCards].sort((a, b) => a.order - b.order)
       : Object.keys(HOME_CARD_LABELS).map((id, order) => ({ id, enabled: true, order }));
-    // ensure all known cards present
     const ids = new Set(list.map((c) => c.id));
     Object.keys(HOME_CARD_LABELS).forEach((id, i) => {
       if (!ids.has(id)) list.push({ id, enabled: false, order: list.length + i });
@@ -88,16 +91,6 @@ export default function HomePage() {
   const setCalendar = (provider) => {
     updatePrefs.mutate({ calendarProvider: provider });
   };
-
-  if (isLoading) {
-    return (
-      <div className="p-8">
-        <LoadingScreen />
-      </div>
-    );
-  }
-
-  const dashMeta = getDashboardMeta(user?.role);
 
   const renderCard = (id) => {
     switch (id) {
@@ -134,85 +127,17 @@ export default function HomePage() {
                   Connect your calendar preference — task due dates from MongoDB still show below.
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCalendar('google')}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setCalendar('google')}>
                     Connect Google Calendar
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCalendar('outlook')}
-                  >
-                    Connect Microsoft Outlook
+                  <Button variant="outline" size="sm" onClick={() => setCalendar('outlook')}>
+                    Connect Outlook
+                  </Button>
+                  <Button size="sm" onClick={() => setCalendar('none')}>
+                    Use due dates only
                   </Button>
                 </div>
-                {(cards?.agenda || []).length > 0 && (
-                  <div className="mt-4 border-t border-hairline pt-3 text-left">
-                    <p className="mb-2 px-2 text-xs font-semibold uppercase text-graphite">
-                      From your tasks
-                    </p>
-                    {cards.agenda.slice(0, 4).map((t) => (
-                      <TaskRow key={t._id} task={t} onOpen={openTask} />
-                    ))}
-                  </div>
-                )}
               </div>
-            )}
-          </HomeCard>
-        );
-      case 'meetings':
-        return (
-          <HomeCard
-            title="Meetings"
-            action={
-              <button
-                type="button"
-                className="text-xs font-medium text-primary hover:underline"
-                onClick={() => navigate('/home/meetings')}
-              >
-                View
-              </button>
-            }
-          >
-            {(cards?.meetings || []).length === 0 ? (
-              <EmptyCardLine>No upcoming team meetings. Schedule one from a team.</EmptyCardLine>
-            ) : (
-              <ul className="space-y-2">
-                {cards.meetings.slice(0, 6).map((m) => (
-                  <li key={m._id} className="rounded-lg px-2 py-2 hover:bg-cloud">
-                    <p className="text-sm font-medium text-ink">{m.title}</p>
-                    <p className="text-xs text-graphite">
-                      {new Date(m.startsAt).toLocaleString()}
-                      {m.team?.name ? ` · ${m.team.name}` : ''}
-                      {m.location?.name || m.locationLabel
-                        ? ` · ${m.location?.name || m.locationLabel}`
-                        : ''}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </HomeCard>
-        );
-      case 'locations':
-        return (
-          <HomeCard title="Locations">
-            {(cards?.locations || []).length === 0 ? (
-              <EmptyCardLine>No locations for your teams yet.</EmptyCardLine>
-            ) : (
-              <ul className="space-y-2">
-                {cards.locations.map((loc) => (
-                  <li key={loc._id} className="rounded-lg px-2 py-2 hover:bg-cloud">
-                    <p className="text-sm font-medium text-ink">{loc.name}</p>
-                    <p className="text-xs text-graphite">
-                      {[loc.city, loc.address, loc.team?.name].filter(Boolean).join(' · ')}
-                    </p>
-                  </li>
-                ))}
-              </ul>
             )}
           </HomeCard>
         );
@@ -229,7 +154,7 @@ export default function HomePage() {
       case 'assigned_to_me':
         return (
           <HomeCard
-            title="Assigned to me"
+            title={`Assigned to me${assignedCount ? ` (${assignedCount})` : ''}`}
             action={
               <button
                 type="button"
@@ -241,7 +166,9 @@ export default function HomePage() {
             }
           >
             {(cards?.assigned_to_me || []).length === 0 ? (
-              <EmptyCardLine>Nothing assigned to you.</EmptyCardLine>
+              <EmptyCardLine>
+                When someone assigns you a task, it appears here instantly.
+              </EmptyCardLine>
             ) : (
               cards.assigned_to_me.slice(0, 6).map((t) => (
                 <TaskRow key={t._id} task={t} onOpen={openTask} />
@@ -342,15 +269,27 @@ export default function HomePage() {
             {dashMeta.badge || getRoleLabel(user?.role)}
           </span>
           <p className="text-sm font-medium text-ink">{dashMeta.title}</p>
+          {isFetching && data ? <span className="text-xs text-graphite">Updating…</span> : null}
         </div>
         <p className="mt-1 text-sm text-graphite">{dashMeta.subtitle}</p>
       </div>
+
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-medium text-graphite">My Tasks</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">
             {timeGreeting()}, {greetingName(user?.name)}
           </h1>
+          {assignedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => navigate('/home/my-tasks?view=assigned')}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary-soft/40 px-3 py-1.5 text-sm font-medium text-primary-deep hover:bg-primary-soft"
+            >
+              {assignedCount} task{assignedCount === 1 ? '' : 's'} assigned to you
+              <span className="text-xs opacity-70">→ Open list</span>
+            </button>
+          )}
         </div>
         <div className="flex gap-2">
           <Button className="bg-ink text-on-ink hover:bg-ink/90" onClick={openManage}>
@@ -362,11 +301,15 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {visibleCards.map((card) => (
-          <div key={card.id}>{renderCard(card.id)}</div>
-        ))}
-      </div>
+      {isLoading && !data ? (
+        <CardGridSkeleton cards={4} />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {visibleCards.map((card) => (
+            <div key={card.id}>{renderCard(card.id)}</div>
+          ))}
+        </div>
+      )}
 
       <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage home cards">
         <p className="mb-4 text-sm text-graphite">

@@ -8,6 +8,7 @@ import {
   usePersonalListMutations,
   useTrackRecent,
   useHomeOverview,
+  useLiveMyTasks,
 } from '@/features/home/hooks/useHome';
 import { useCreateTask } from '@/features/tasks/hooks/useTasks';
 import { taskApi, STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
@@ -24,7 +25,7 @@ import { useUsers } from '@/features/users/hooks/useUsers';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { LoadingScreen, EmptyState } from '@/components/ui/Spinner';
+import { ListSkeleton, EmptyState } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
 
 const VIEWS = [
@@ -79,7 +80,8 @@ export default function MyTasksPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
-  const { data: tasks = [], isLoading } = useMyTasks(view);
+  const { data: tasks = [], isLoading, isFetching } = useMyTasks(view);
+  useLiveMyTasks();
   const { data: home } = useHomeOverview();
   const { data: usersRes } = useUsers({ limit: 200 });
   const { add, remove } = usePersonalListMutations();
@@ -109,8 +111,14 @@ export default function MyTasksPage() {
   }, [projects, projectId]);
 
   useEffect(() => {
-    if (addMode) setForm({ ...EMPTY_TASK_FORM, status: 'todo' });
-  }, [addMode]);
+    if (addMode) {
+      setForm({
+        ...EMPTY_TASK_FORM,
+        status: 'todo',
+        assignees: user?._id ? [String(user._id)] : [],
+      });
+    }
+  }, [addMode, user?._id]);
 
   const closeAdd = () => {
     const next = new URLSearchParams(params);
@@ -168,6 +176,10 @@ export default function MyTasksPage() {
     }
     const payload = buildTaskPayload(form);
     if (!payload.title || payload.title.length < 2) return;
+    // Ensure creator stays on Assigned to me when they forget to pick an assignee
+    if (!payload.assignees?.length && user?._id) {
+      payload.assignees = [String(user._id)];
+    }
     createTask.mutate(
       { ...payload, project: projectId },
       {
@@ -199,15 +211,29 @@ export default function MyTasksPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 lg:px-8">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-ink">My Tasks</h1>
-        <Button
-          size="sm"
-          className="normal-case tracking-normal"
-          onClick={() => setParams({ view, add: '1' })}
-        >
-          <Plus className="h-4 w-4" />
-          Add task
-        </Button>
+        <div>
+          <h1 className="text-2xl font-semibold text-ink">My Tasks</h1>
+          <p className="mt-1 text-sm text-graphite">
+            {view === 'assigned'
+              ? 'Tasks where you are an assignee — updates live when someone assigns you.'
+              : view === 'today'
+                ? 'Due today or overdue.'
+                : 'Your starred personal list.'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isFetching && !isLoading ? (
+            <span className="text-xs text-graphite">Updating…</span>
+          ) : null}
+          <Button
+            size="sm"
+            className="normal-case tracking-normal"
+            onClick={() => setParams({ view, add: '1' })}
+          >
+            <Plus className="h-4 w-4" />
+            Add task
+          </Button>
+        </div>
       </div>
 
       <div className="mb-5 flex flex-wrap gap-1 rounded-lg border border-hairline bg-cloud p-1">
@@ -224,23 +250,35 @@ export default function MyTasksPage() {
             )}
           >
             {v.label}
+            {v.id === 'assigned' && tasks.length > 0 && view === 'assigned' ? (
+              <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                {tasks.length}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
 
-      {isLoading ? (
-        <LoadingScreen />
+      {isLoading && tasks.length === 0 ? (
+        <ListSkeleton rows={6} />
       ) : tasks.length === 0 ? (
         <EmptyState
-          title="No tasks here"
+          title={view === 'assigned' ? 'Nothing assigned to you yet' : 'No tasks here'}
           description={
             view === 'personal'
               ? 'Add tasks to your Personal List from a project board.'
-              : 'Tasks assigned to you will show up here from MongoDB.'
+              : view === 'assigned'
+                ? 'When a teammate assigns you a task (you’ll also get an email), it shows up here automatically.'
+                : 'No tasks due today or overdue.'
           }
         />
       ) : (
         <div className="rounded-xl border border-hairline bg-paper">
+          {view === 'assigned' && (
+            <div className="border-b border-hairline bg-primary-soft/25 px-4 py-2 text-xs font-medium text-primary-deep">
+              Showing {tasks.length} open task{tasks.length === 1 ? '' : 's'} assigned to you
+            </div>
+          )}
           {tasks.map((task) => (
             <div key={task._id} className="border-b border-hairline last:border-0">
               <StatusStepper status={task.status} />

@@ -30,7 +30,7 @@ import { useAuthStore } from '@/store/authStore';
 import { getSocket } from '@/api/socketClient';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { LoadingScreen } from '@/components/ui/Spinner';
+import { ListSkeleton } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
 import { canApproveTasks } from '@/lib/roles';
 
@@ -186,10 +186,10 @@ export default function AllTasksPage() {
     if (projectId) navigate(`/projects/${projectId}?view=list`);
   };
 
-  if (isLoading) {
+  if (isLoading && tasks.length === 0) {
     return (
       <div className="px-4 py-8">
-        <LoadingScreen />
+        <ListSkeleton rows={8} />
       </div>
     );
   }

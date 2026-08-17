@@ -23,7 +23,7 @@ import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { getAvatarColor, getInitials } from '@/lib/avatar';
+import { UserAvatar } from '@/components/UserAvatar';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
@@ -344,12 +344,12 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
                       {item.icon === 'plus' ? (
                         <Plus className="h-4 w-4 text-primary" />
                       ) : item.tint ? (
-                        <span
-                          className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold text-white"
-                          style={{ backgroundColor: getAvatarColor(user?._id || 'me') }}
-                        >
-                          {getInitials(user?.name || 'Me').slice(0, 1)}
-                        </span>
+                        <UserAvatar
+                          user={user}
+                          size="xs"
+                          rounded="md"
+                          className="h-5 w-5 text-[10px]"
+                        />
                       ) : (
                         <span className="h-5 w-5" />
                       )}

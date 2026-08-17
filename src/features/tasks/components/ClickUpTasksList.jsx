@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { CalendarPlus, ChevronRight, Flag, GitBranch, Plus, UserPlus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar';
+import { UserAvatar } from '@/components/UserAvatar';
 import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
 
 function priorityFlagClass(priority) {
@@ -47,15 +47,16 @@ function AssigneeStack({ assignees = [], onClick, buttonRef }) {
     >
       {assignees.slice(0, 3).map((a) => {
         const id = a._id || a;
-        const name = a.name || '?';
         return (
-          <span
+          <UserAvatar
             key={String(id)}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-paper text-[10px] font-bold text-white"
-            style={{ backgroundColor: getAvatarColor(id || name) }}
-          >
-            {getInitials(name)}
-          </span>
+            user={typeof a === 'object' ? a : null}
+            name={a.name || '?'}
+            avatarUrl={a.avatarUrl}
+            seed={id}
+            size="sm"
+            className="border-2 border-paper"
+          />
         );
       })}
       {assignees.length > 3 ? (
@@ -180,12 +181,7 @@ function AssigneePickerList({ people, selectedIds, onToggle }) {
               )}
               onClick={() => onToggle(id, active)}
             >
-              <span
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                style={{ backgroundColor: getAvatarColor(id) }}
-              >
-                {getInitials(p.name)}
-              </span>
+              <UserAvatar user={p} size="sm" />
               <span className="min-w-0 flex-1 truncate font-medium text-ink">{p.name}</span>
               {active ? (
                 <span className="text-[10px] font-semibold uppercase text-primary">On</span>

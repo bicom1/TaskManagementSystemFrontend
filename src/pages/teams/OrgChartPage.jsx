@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { getAvatarColor, getInitials } from '@/lib/avatar';
 import { getRoleLabel } from '@/lib/roles';
+import { UserAvatar } from '@/components/UserAvatar';
 
 function Node({ person, subtitle, onClick }) {
   if (!person) {
@@ -17,12 +17,7 @@ function Node({ person, subtitle, onClick }) {
       onClick={() => onClick?.(person)}
       className="flex min-w-[160px] items-center gap-3 rounded-xl border border-hairline bg-paper px-3 py-2.5 text-left shadow-sm transition hover:border-steel hover:shadow-md"
     >
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white"
-        style={{ backgroundColor: getAvatarColor(person._id || person.name) }}
-      >
-        {getInitials(person.name)}
-      </div>
+      <UserAvatar user={person} size="lg" rounded="md" />
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-ink">{person.name}</p>
         <p className="truncate text-[11px] text-graphite">

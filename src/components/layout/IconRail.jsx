@@ -11,7 +11,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar';
+import { UserAvatar } from '@/components/UserAvatar';
 import { useAuthStore } from '@/store/authStore';
 
 const railItems = [
@@ -25,17 +25,16 @@ const railItems = [
 
 export function IconRail({ pathname }) {
   const user = useAuthStore((s) => s.user);
-  const color = getAvatarColor(user?._id || user?.name);
 
   return (
     <aside className="flex h-full w-[56px] shrink-0 flex-col items-center border-r border-hairline bg-primary py-3 text-on-ink">
-      <div
-        className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg text-xs font-bold text-white"
-        style={{ backgroundColor: color }}
+      <UserAvatar
+        user={user}
+        size="md"
+        rounded="lg"
+        className="mb-4"
         title={user?.name}
-      >
-        {getInitials(user?.name || 'BW')}
-      </div>
+      />
 
       <nav className="flex flex-1 flex-col items-center gap-1">
         {railItems.map((item) => {

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
+import { UserAvatar } from '@/components/UserAvatar';
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -81,6 +82,18 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={profileForm.handleSubmit(onSaveProfile)} className="space-y-4">
+              <div className="flex items-center gap-4">
+                <UserAvatar
+                  user={user}
+                  avatarUrl={profileForm.watch('avatarUrl') || user?.avatarUrl}
+                  name={profileForm.watch('name') || user?.name}
+                  size="xl"
+                  rounded="xl"
+                />
+                <p className="text-sm text-graphite">
+                  Google Sign-In fills this photo automatically. You can also paste an image URL.
+                </p>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
                 <Input id="name" {...profileForm.register('name', { required: true, minLength: 2 })} />

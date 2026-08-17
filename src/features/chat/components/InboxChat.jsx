@@ -15,9 +15,9 @@ import {
 import { format, isToday, isYesterday } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
-import { getAvatarColor, getInitials } from '@/lib/avatar';
 import { getRoleLabel } from '@/lib/roles';
 import { cn } from '@/lib/utils';
+import { UserAvatar } from '@/components/UserAvatar';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingScreen } from '@/components/ui/Spinner';
@@ -358,7 +358,6 @@ export function InboxChat() {
               )}
               <ul className="space-y-0.5">
                 {people.map((person) => {
-                  const color = getAvatarColor(person._id || person.email);
                   return (
                     <li key={person._id}>
                       <button
@@ -366,12 +365,7 @@ export function InboxChat() {
                         onClick={() => handleStartDm(person)}
                         className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-paper"
                       >
-                        <span
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                          style={{ backgroundColor: color }}
-                        >
-                          {getInitials(person.name)}
-                        </span>
+                        <UserAvatar user={person} size="md" className="h-8 w-8 text-[11px]" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium text-ink">
                             {person.name}
@@ -444,7 +438,6 @@ export function InboxChat() {
                   c.type === 'dm'
                     ? (c.participants || []).find((p) => String(p._id) !== String(userId))
                     : null;
-                const color = getAvatarColor(other?._id || c._id);
                 const active = String(c._id) === String(activeId);
                 return (
                   <li key={c._id}>
@@ -457,12 +450,18 @@ export function InboxChat() {
                         c.unread && !active && 'bg-primary-soft/20'
                       )}
                     >
-                      <span
-                        className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                        style={{ backgroundColor: color }}
-                      >
-                        {c.type === 'dm' ? getInitials(title) : <Hash className="h-4 w-4" />}
-                      </span>
+                      {c.type === 'dm' ? (
+                        <UserAvatar
+                          user={other}
+                          name={title}
+                          size="md"
+                          className="mt-0.5 h-9 w-9"
+                        />
+                      ) : (
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cloud text-graphite">
+                          <Hash className="h-4 w-4" />
+                        </span>
+                      )}
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-2">
                           <span className="truncate text-sm font-medium text-ink">{title}</span>
@@ -555,18 +554,16 @@ export function InboxChat() {
                 ) : null}
                 {messages.map((m) => {
                   const mine = String(m.from?._id || m.from) === String(userId);
-                  const color = getAvatarColor(m.from?._id || m.from?.email || 'x');
                   return (
                     <div
                       key={m._id}
                       className={cn('flex gap-2', mine ? 'flex-row-reverse' : 'flex-row')}
                     >
-                      <span
-                        className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                        style={{ backgroundColor: color }}
-                      >
-                        {getInitials(m.from?.name || '?')}
-                      </span>
+                      <UserAvatar
+                        user={m.from}
+                        size="md"
+                        className="mt-1 h-8 w-8 text-[10px]"
+                      />
                       <div
                         className={cn(
                           'max-w-[75%] rounded-2xl px-3 py-2 text-sm',

@@ -2,11 +2,12 @@ import { formatDistanceToNow } from 'date-fns';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { getAvatarColor, getInitials, getPersonStatus, PERSON_STATUS_LABELS } from '@/lib/avatar';
+import { getPersonStatus, PERSON_STATUS_LABELS } from '@/lib/avatar';
 import { getRoleLabel, ROLES } from '@/lib/roles';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { useAuthStore } from '@/store/authStore';
 import { useDeactivateUser, useUpdateUser } from '@/features/users/hooks/useUsers';
+import { UserAvatar } from '@/components/UserAvatar';
 
 export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTeam }) {
   const user = useAuthStore((s) => s.user);
@@ -15,7 +16,6 @@ export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTea
 
   if (!person) return null;
 
-  const color = getAvatarColor(person._id || person.email || person.name);
   const status = getPersonStatus(person);
   const memberOf = teams.filter((team) => {
     const uid = String(person._id);
@@ -32,12 +32,7 @@ export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTea
     <Modal open={open} onClose={onClose} title="Member profile" size="md">
       <div className="space-y-5">
         <div className="flex items-start gap-4">
-          <div
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white"
-            style={{ backgroundColor: color }}
-          >
-            {getInitials(person.name)}
-          </div>
+          <UserAvatar user={person} size="xl" rounded="xl" />
           <div className="min-w-0">
             <h3 className="text-lg font-semibold text-ink">{person.name}</h3>
             <p className="text-sm text-graphite">{person.email}</p>

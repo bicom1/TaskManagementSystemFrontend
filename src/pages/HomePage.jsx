@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings2 } from 'lucide-react';
+import { ArrowRight, Settings2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import {
   useHomeOverview,
@@ -11,6 +11,7 @@ import {
 import { HOME_CARD_LABELS } from '@/features/home/api/homeApi';
 import {
   HomeCard,
+  HomeStat,
   TaskRow,
   EmptyCardLine,
   RecentRow,
@@ -18,9 +19,11 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { CardGridSkeleton } from '@/components/ui/Spinner';
+import { UserAvatar } from '@/components/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
 import { getDashboardMeta } from '@/lib/permissions';
 import { getRoleLabel } from '@/lib/roles';
+import { cn } from '@/lib/utils';
 
 function greetingName(name) {
   return name?.split(' ')[0] || 'there';
@@ -47,6 +50,7 @@ export default function HomePage() {
   const prefs = data?.preferences;
   const dashMeta = getDashboardMeta(user?.role);
   const assignedCount = cards?.assigned_to_me?.length ?? 0;
+  const counts = cards?.ai_standup?.counts;
 
   const visibleCards = useMemo(() => {
     const configured = prefs?.homeCards?.length
@@ -54,6 +58,16 @@ export default function HomePage() {
       : Object.keys(HOME_CARD_LABELS).map((id, order) => ({ id, enabled: true, order }));
     return configured.filter((c) => c.enabled !== false);
   }, [prefs]);
+
+  const featuredIds = useMemo(() => {
+    const preferred = ['assigned_to_me', 'my_work', 'ai_standup'];
+    return preferred.filter((id) => visibleCards.some((c) => c.id === id));
+  }, [visibleCards]);
+
+  const secondaryCards = useMemo(
+    () => visibleCards.filter((c) => !featuredIds.includes(c.id)),
+    [visibleCards, featuredIds]
+  );
 
   const openTask = (task) => {
     if (task?.project?._id || task?.project) {
@@ -122,19 +136,19 @@ export default function HomePage() {
                 </div>
               )
             ) : (
-              <div className="px-2 py-4 text-center">
-                <p className="mb-4 text-sm text-graphite">
-                  Connect your calendar preference — task due dates from MongoDB still show below.
+              <div className="px-3 py-6 text-center">
+                <p className="mb-4 text-sm leading-relaxed text-graphite">
+                  Prefer due dates from your calendar, or stick with task deadlines only.
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => setCalendar('google')}>
-                    Connect Google Calendar
+                    Google Calendar
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setCalendar('outlook')}>
-                    Connect Outlook
+                    Outlook
                   </Button>
                   <Button size="sm" onClick={() => setCalendar('none')}>
-                    Use due dates only
+                    Due dates only
                   </Button>
                 </div>
               </div>
@@ -143,9 +157,9 @@ export default function HomePage() {
         );
       case 'my_work':
         return (
-          <HomeCard title="My Work">
+          <HomeCard title="In progress">
             {(cards?.my_work || []).length === 0 ? (
-              <EmptyCardLine>No in-progress tasks.</EmptyCardLine>
+              <EmptyCardLine>No in-progress tasks right now.</EmptyCardLine>
             ) : (
               cards.my_work.map((t) => <TaskRow key={t._id} task={t} onOpen={openTask} />)
             )}
@@ -154,20 +168,22 @@ export default function HomePage() {
       case 'assigned_to_me':
         return (
           <HomeCard
-            title={`Assigned to me${assignedCount ? ` (${assignedCount})` : ''}`}
+            accent={assignedCount > 0}
+            title={`Assigned to me${assignedCount ? ` · ${assignedCount}` : ''}`}
             action={
               <button
                 type="button"
-                className="text-xs font-medium text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-deep"
                 onClick={() => navigate('/home/my-tasks?view=assigned')}
               >
                 View all
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
             }
           >
             {(cards?.assigned_to_me || []).length === 0 ? (
               <EmptyCardLine>
-                When someone assigns you a task, it appears here instantly.
+                When someone assigns you a task, it shows up here instantly.
               </EmptyCardLine>
             ) : (
               cards.assigned_to_me.slice(0, 6).map((t) => (
@@ -179,14 +195,15 @@ export default function HomePage() {
       case 'personal_list':
         return (
           <HomeCard
-            title="Personal List"
+            title="Personal list"
             action={
               <button
                 type="button"
-                className="text-xs font-medium text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-deep"
                 onClick={() => navigate('/home/my-tasks?view=personal')}
               >
                 Open
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
             }
           >
@@ -199,13 +216,13 @@ export default function HomePage() {
         );
       case 'assigned_comments':
         return (
-          <HomeCard title="Assigned Comments">
+          <HomeCard title="Comments & mentions">
             {(cards?.assigned_comments || []).length === 0 ? (
               <EmptyCardLine>No comments or mentions yet.</EmptyCardLine>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {cards.assigned_comments.map((n) => (
-                  <li key={n._id} className="rounded-lg px-2 py-2 hover:bg-cloud">
+                  <li key={n._id} className="rounded-xl px-2.5 py-2.5 hover:bg-cloud">
                     <p className="text-sm text-ink">{n.message}</p>
                     <p className="mt-1 text-xs text-graphite">
                       {n.sender?.name || 'Someone'} ·{' '}
@@ -221,7 +238,7 @@ export default function HomePage() {
         return (
           <HomeCard title="Priorities">
             {(cards?.priorities || []).length === 0 ? (
-              <EmptyCardLine>No high/urgent tasks.</EmptyCardLine>
+              <EmptyCardLine>No high or urgent tasks.</EmptyCardLine>
             ) : (
               cards.priorities.map((t) => <TaskRow key={t._id} task={t} onOpen={openTask} />)
             )}
@@ -229,30 +246,31 @@ export default function HomePage() {
         );
       case 'ai_standup':
         return (
-          <HomeCard title="AI Standup">
-            <div className="rounded-lg bg-cloud px-3 py-4">
-              <p className="text-sm font-medium text-ink">
+          <HomeCard title="Today’s briefing">
+            <div className="rounded-xl bg-gradient-to-br from-primary-soft/40 via-cloud to-paper px-4 py-4">
+              <p className="text-sm font-semibold text-ink">
                 {cards?.ai_standup?.greeting || timeGreeting()}, {greetingName(user?.name)}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-charcoal">
-                {cards?.ai_standup?.summary}
+                {cards?.ai_standup?.summary || 'Your workspace summary will appear here.'}
               </p>
-              {cards?.ai_standup?.counts && (
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-graphite">
-                  <span className="rounded bg-paper px-2 py-1">
-                    {cards.ai_standup.counts.assigned} assigned
-                  </span>
-                  <span className="rounded bg-paper px-2 py-1">
-                    {cards.ai_standup.counts.inProgress} in progress
-                  </span>
-                  <span className="rounded bg-paper px-2 py-1">
-                    {cards.ai_standup.counts.dueToday} due today
-                  </span>
-                  <span className="rounded bg-paper px-2 py-1">
-                    {cards.ai_standup.counts.overdue} overdue
-                  </span>
+              {counts ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[
+                    ['Assigned', counts.assigned],
+                    ['In progress', counts.inProgress],
+                    ['Due today', counts.dueToday],
+                    ['Overdue', counts.overdue],
+                  ].map(([label, value]) => (
+                    <span
+                      key={label}
+                      className="rounded-lg border border-hairline bg-paper/90 px-2.5 py-1 text-xs font-medium text-charcoal"
+                    >
+                      {value} {label.toLowerCase()}
+                    </span>
+                  ))}
                 </div>
-              )}
+              ) : null}
             </div>
           </HomeCard>
         );
@@ -262,65 +280,134 @@ export default function HomePage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 py-6 lg:px-8">
-      <div className="mb-4 rounded-xl border border-hairline bg-cloud/80 px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-md bg-paper px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
-            {dashMeta.badge || getRoleLabel(user?.role)}
-          </span>
-          <p className="text-sm font-medium text-ink">{dashMeta.title}</p>
-          {isFetching && data ? <span className="text-xs text-graphite">Updating…</span> : null}
-        </div>
-        <p className="mt-1 text-sm text-graphite">{dashMeta.subtitle}</p>
-      </div>
+    <div className="relative min-h-full">
+      {/* Soft brand atmosphere — not flat white */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[280px] bg-[radial-gradient(120%_80%_at_0%_0%,rgba(201,224,252,0.55)_0%,transparent_55%),radial-gradient(90%_60%_at_100%_0%,rgba(2,74,216,0.08)_0%,transparent_50%)]"
+      />
 
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-graphite">My Tasks</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">
-            {timeGreeting()}, {greetingName(user?.name)}
-          </h1>
-          {assignedCount > 0 && (
-            <button
-              type="button"
+      <div className="relative mx-auto max-w-[1180px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        {/* Hero */}
+        <header className="mb-6 overflow-hidden rounded-3xl border border-hairline bg-paper/90 shadow-[var(--shadow-soft-lift)] backdrop-blur-sm sm:mb-8">
+          <div className="flex flex-col gap-5 border-b border-hairline bg-gradient-to-r from-primary-soft/35 via-paper to-paper px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 sm:py-6">
+            <div className="flex min-w-0 items-start gap-4">
+              <UserAvatar user={user} size="xl" rounded="xl" className="shadow-sm ring-2 ring-paper" />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-md bg-ink px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-on-ink">
+                    {dashMeta.badge || getRoleLabel(user?.role)}
+                  </span>
+                  {isFetching && data ? (
+                    <span className="text-[11px] text-graphite">Updating…</span>
+                  ) : null}
+                </div>
+                <h1 className="mt-2 text-[1.75rem] font-semibold tracking-tight text-ink sm:text-[2rem]">
+                  {timeGreeting()}, {greetingName(user?.name)}
+                </h1>
+                <p className="mt-1 max-w-xl text-sm leading-relaxed text-graphite">
+                  {dashMeta.subtitle}
+                </p>
+                {assignedCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/home/my-tasks?view=assigned')}
+                    className={cn(
+                      'mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2 text-sm font-semibold text-on-ink',
+                      'transition hover:bg-primary-bright'
+                    )}
+                  >
+                    {assignedCount} assigned to you
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+              <Button
+                variant="outline"
+                className="border-hairline bg-paper"
+                onClick={openManage}
+              >
+                <Settings2 className="h-4 w-4" />
+                Customize
+              </Button>
+            </div>
+          </div>
+
+          {/* Snapshot strip */}
+          <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 sm:gap-4 sm:px-6 sm:py-5">
+            <HomeStat
+              label="Assigned"
+              value={counts?.assigned ?? assignedCount}
+              tone="primary"
               onClick={() => navigate('/home/my-tasks?view=assigned')}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary-soft/40 px-3 py-1.5 text-sm font-medium text-primary-deep hover:bg-primary-soft"
-            >
-              {assignedCount} task{assignedCount === 1 ? '' : 's'} assigned to you
-              <span className="text-xs opacity-70">→ Open list</span>
-            </button>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Button className="bg-ink text-on-ink hover:bg-ink/90" onClick={openManage}>
-            Manage cards
-          </Button>
-          <Button variant="outline" size="icon" onClick={openManage} aria-label="Home settings">
-            <Settings2 className="h-4 w-4" />
-          </Button>
-        </div>
+            />
+            <HomeStat
+              label="In progress"
+              value={counts?.inProgress ?? cards?.my_work?.length ?? 0}
+              tone="muted"
+            />
+            <HomeStat
+              label="Due today"
+              value={counts?.dueToday ?? 0}
+              tone="default"
+              onClick={() => navigate('/home/my-tasks?view=today')}
+            />
+            <HomeStat
+              label="Overdue"
+              value={counts?.overdue ?? 0}
+              tone={(counts?.overdue ?? 0) > 0 ? 'warn' : 'muted'}
+              onClick={() => navigate('/home/my-tasks?view=today')}
+            />
+          </div>
+        </header>
+
+        {isLoading && !data ? (
+          <CardGridSkeleton cards={4} />
+        ) : (
+          <div className="space-y-5">
+            {featuredIds.length > 0 ? (
+              <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                {featuredIds.map((id) => (
+                  <div
+                    key={id}
+                    className={cn(id === 'assigned_to_me' && 'lg:col-span-1 xl:col-span-1')}
+                  >
+                    {renderCard(id)}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {secondaryCards.length > 0 ? (
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-graphite">
+                    More from your workspace
+                  </h2>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {secondaryCards.map((card) => (
+                    <div key={card.id}>{renderCard(card.id)}</div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
-      {isLoading && !data ? (
-        <CardGridSkeleton cards={4} />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {visibleCards.map((card) => (
-            <div key={card.id}>{renderCard(card.id)}</div>
-          ))}
-        </div>
-      )}
-
-      <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage home cards">
+      <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Customize home">
         <p className="mb-4 text-sm text-graphite">
-          Toggle which cards appear on Home. Order is top-to-bottom in this list (left-right on the
-          grid).
+          Choose which panels appear on Home. Reorder to control what you see first.
         </p>
         <ul className="space-y-2">
           {draftCards.map((card, index) => (
             <li
               key={card.id}
-              className="flex items-center justify-between rounded-lg border border-hairline px-3 py-2"
+              className="flex items-center justify-between rounded-xl border border-hairline px-3 py-2.5"
             >
               <label className="flex items-center gap-3 text-sm text-ink">
                 <input

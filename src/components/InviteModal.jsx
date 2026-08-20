@@ -13,10 +13,8 @@ import { useDepartments } from '@/features/departments/hooks/useDepartments';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useAuthStore } from '@/store/authStore';
 import {
-  getDefaultJobTitle,
   getInviteRoleLabel,
   getInvitableRolesForDepartment,
-  getJobTitleSuggestions,
   getMainDepartments,
   resolveDepartmentCode,
   ROLES,
@@ -67,7 +65,6 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       teamName: '',
       teamLead: '',
       setAsTeamLead: false,
-      jobTitle: '',
     },
   });
 
@@ -99,12 +96,15 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
   );
 
   const rolesForDepartment = useMemo(() => {
-    if (!hasDepartment) return [];
-    // Super Admin assigns any role allowed for that department
     if (isSuperAdmin) {
-      if (!selectedDeptCode || isCustomDepartment) return invitableByActor;
-      return getInvitableRolesForDepartment(ROLES.SUPER_ADMIN, selectedDeptCode, invitableByActor);
+      const withoutSa = invitableByActor.filter((r) => r !== ROLES.SUPER_ADMIN);
+      const deptRoles =
+        hasDepartment && selectedDeptCode && !isCustomDepartment
+          ? getInvitableRolesForDepartment(ROLES.SUPER_ADMIN, selectedDeptCode, withoutSa)
+          : withoutSa;
+      return [ROLES.SUPER_ADMIN, ...deptRoles];
     }
+    if (!hasDepartment) return [];
     if (!selectedDeptCode || isCustomDepartment) return invitableByActor;
     return getInvitableRolesForDepartment(role, selectedDeptCode, invitableByActor);
   }, [
@@ -115,11 +115,6 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
     role,
     invitableByActor,
   ]);
-
-  const jobTitleOptions = useMemo(
-    () => getJobTitleSuggestions(selectedDeptCode, selectedRole),
-    [selectedDeptCode, selectedRole]
-  );
 
   const teamsInDepartment = useMemo(() => {
     if (isCustomDepartment || !selectedDepartment || selectedDepartment === CUSTOM_VALUE) return [];
@@ -162,7 +157,6 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       teamName: '',
       teamLead: '',
       setAsTeamLead: false,
-      jobTitle: '',
     });
     setResult(null);
   }, [open, defaultTeamId, defaultDepartmentId, reset, invitableByActor]);
@@ -179,18 +173,12 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
   }, [selectedDepartment, selectedTeam, teams, setValue]);
 
   useEffect(() => {
-    if (!hasDepartment) return;
+    if (!hasDepartment && selectedRole !== ROLES.SUPER_ADMIN) return;
     if (!rolesForDepartment.length) return;
     if (!rolesForDepartment.includes(selectedRole)) {
       setValue('role', rolesForDepartment[0]);
     }
   }, [hasDepartment, rolesForDepartment, selectedRole, setValue]);
-
-  // Suggest job title when dept/role changes, but keep it editable
-  useEffect(() => {
-    const next = getDefaultJobTitle(selectedDeptCode, selectedRole);
-    if (next) setValue('jobTitle', next);
-  }, [selectedDeptCode, selectedRole, setValue]);
 
   useEffect(() => {
     if (!selectedTeam || selectedTeam === CUSTOM_VALUE) return;
@@ -212,7 +200,6 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       teamName: '',
       teamLead: '',
       setAsTeamLead: false,
-      jobTitle: '',
     });
     setResult(null);
     setCopied(false);
@@ -231,7 +218,7 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       toast.error('Type a department name, or pick one from the list');
       return;
     }
-    if (!usingCustomDept && !values.department) {
+    if (values.role !== ROLES.SUPER_ADMIN && !usingCustomDept && !values.department) {
       toast.error('Select a department so you can assign the correct role');
       return;
     }
@@ -248,13 +235,28 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       email: values.email,
       name: values.name || undefined,
       role: values.role,
-      jobTitle: values.jobTitle?.trim() || undefined,
-      department: usingCustomDept ? undefined : values.department || undefined,
-      departmentName: usingCustomDept ? values.departmentName.trim() : undefined,
-      team: usingCustomTeam ? undefined : values.team || undefined,
-      teamName: usingCustomTeam ? values.teamName.trim() : undefined,
-      teamLead: values.teamLead || undefined,
-      setAsTeamLead: Boolean(values.setAsTeamLead),
+      department:
+        values.role === ROLES.SUPER_ADMIN || usingCustomDept
+          ? undefined
+          : values.department || undefined,
+      departmentName:
+        values.role === ROLES.SUPER_ADMIN
+          ? undefined
+          : usingCustomDept
+            ? values.departmentName.trim()
+            : undefined,
+      team:
+        values.role === ROLES.SUPER_ADMIN || usingCustomTeam
+          ? undefined
+          : values.team || undefined,
+      teamName:
+        values.role === ROLES.SUPER_ADMIN
+          ? undefined
+          : usingCustomTeam
+            ? values.teamName.trim()
+            : undefined,
+      teamLead: values.role === ROLES.SUPER_ADMIN ? undefined : values.teamLead || undefined,
+      setAsTeamLead: values.role === ROLES.SUPER_ADMIN ? false : Boolean(values.setAsTeamLead),
     };
 
     invite.mutate(payload, {
@@ -470,13 +472,18 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
             <Input id="invite-name" placeholder="Alex Rivera" {...register('name')} />
           </div>
 
-          {/* 1. Department */}
+          {/* 1. Department (optional when inviting Super Admin) */}
           <div className="space-y-2">
-            <Label htmlFor="invite-department">1. Department *</Label>
+            <Label htmlFor="invite-department">
+              1. Department{selectedRole === ROLES.SUPER_ADMIN ? '' : ' *'}
+            </Label>
             <Select
               id="invite-department"
               {...register('department', {
-                required: !isCustomDepartment ? 'Department is required' : false,
+                required:
+                  selectedRole !== ROLES.SUPER_ADMIN && !isCustomDepartment
+                    ? 'Department is required'
+                    : false,
                 onChange: (e) => {
                   const v = e.target.value;
                   if (v !== CUSTOM_VALUE) setValue('departmentName', '');
@@ -485,7 +492,11 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
                 },
               })}
             >
-              <option value="">Select department</option>
+              <option value="">
+                {selectedRole === ROLES.SUPER_ADMIN
+                  ? 'Not required for Super Admin'
+                  : 'Select department'}
+              </option>
               {mainDepartments.map((dept) => (
                 <option key={dept._id} value={dept._id}>
                   {dept.name}
@@ -502,7 +513,7 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
               )}
               {isSuperAdmin ? <option value={CUSTOM_VALUE}>Add your own…</option> : null}
             </Select>
-            {isCustomDepartment && (
+            {isCustomDepartment && selectedRole !== ROLES.SUPER_ADMIN && (
               <>
                 <Input
                   id="invite-departmentName"
@@ -520,33 +531,43 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
                 </datalist>
               </>
             )}
-            <p className="text-xs text-graphite">SEO · Development · UI/UX Designing</p>
+            <p className="text-xs text-graphite">
+              {selectedRole === ROLES.SUPER_ADMIN
+                ? 'Super Admin has org-wide access — department is optional'
+                : 'SEO · Development · UI/UX Designing'}
+            </p>
             {errors.departmentName && (
               <p className="text-sm text-bloom-coral">{errors.departmentName.message}</p>
             )}
           </div>
 
-          {/* 2. Role — Super Admin assigns based on department */}
+          {/* 2. Role — Super Admin can also grant Super Admin */}
           <div className="space-y-2">
             <Label htmlFor="invite-role">2. Assign role *</Label>
             <Select
               id="invite-role"
               {...register('role', { required: 'Select a role' })}
-              disabled={!hasDepartment}
+              disabled={!isSuperAdmin && !hasDepartment}
             >
-              {!hasDepartment ? (
+              {!isSuperAdmin && !hasDepartment ? (
                 <option value="">Select a department first</option>
               ) : rolesForDepartment.length === 0 ? (
                 <option value="">No roles available for your account</option>
               ) : (
                 rolesForDepartment.map((r) => (
                   <option key={r} value={r}>
-                    {getInviteRoleLabel(selectedDeptCode, r)}
+                    {r === ROLES.SUPER_ADMIN
+                      ? 'Super Admin'
+                      : getInviteRoleLabel(selectedDeptCode, r)}
                   </option>
                 ))
               )}
             </Select>
-            {selectedDeptCode === 'seo' ? (
+            {isSuperAdmin ? (
+              <p className="text-xs text-graphite">
+                You can grant Super Admin access, or assign department roles
+              </p>
+            ) : selectedDeptCode === 'seo' ? (
               <p className="text-xs text-graphite">
                 SEO roles: SEO Head, Team Lead, Executive, Employee
               </p>
@@ -559,6 +580,8 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
             ) : null}
           </div>
 
+          {selectedRole !== ROLES.SUPER_ADMIN && (
+          <>
           {/* 3. Team */}
           <div className="space-y-2">
             <Label htmlFor="invite-team">
@@ -604,7 +627,7 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
                 />
                 <datalist id="invite-team-suggestions">
                   {teamsInDepartment.map((t) => (
-                    <option key={t._id} value={t.name} />
+                    <option key={t.name} value={t.name} />
                   ))}
                 </datalist>
               </>
@@ -637,23 +660,8 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
               </label>
             )}
           </div>
-
-          {/* 5. Job title — suggestions + free type */}
-          <div className="space-y-2">
-            <Label htmlFor="invite-jobTitle">5. Job title</Label>
-            <Input
-              id="invite-jobTitle"
-              list="invite-job-title-suggestions"
-              placeholder="Pick a suggestion or type your own"
-              {...register('jobTitle')}
-            />
-            <datalist id="invite-job-title-suggestions">
-              {jobTitleOptions.map((title) => (
-                <option key={title} value={title} />
-              ))}
-            </datalist>
-            <p className="text-xs text-graphite">Suggestions appear as you type — you can enter any title</p>
-          </div>
+          </>
+          )}
 
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={handleClose}>

@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Inbox,
   MessageSquareReply,
@@ -18,6 +18,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  FolderKanban,
+  Bell,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -26,13 +28,25 @@ import { Input } from '@/components/ui/Input';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
+import { useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
+import {
+  useNotifications,
+  useUnreadCount,
+} from '@/features/notifications/hooks/useNotifications';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
-import { format } from 'date-fns';
+import {
+  isProjectKind,
+  isSpaceKind,
+  projectPath,
+  spacePath,
+} from '@/features/spaces/spaceKinds';
+import { format, formatDistanceToNow } from 'date-fns';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'nav', label: 'Navigation' },
   { id: 'tasks', label: 'My Tasks' },
+  { id: 'spaces', label: 'Spaces & Projects' },
   { id: 'teams', label: 'Teams' },
   { id: 'channels', label: 'Channels' },
   { id: 'upcoming', label: 'Meetings & Locations' },
@@ -48,8 +62,20 @@ function locationSearchHasAdd() {
   return new URLSearchParams(window.location.search).get('add') === '1';
 }
 
+function sortByName(items) {
+  return [...items].sort((a, b) =>
+    String(a.name || '').localeCompare(String(b.name || ''), undefined, {
+      sensitivity: 'base',
+      numeric: true,
+    })
+  );
+}
+
 export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCollapse }) {
   const [tasksOpen, setTasksOpen] = useState(true);
+  const [spacesOpen, setSpacesOpen] = useState(true);
+  const [projectsOpen, setProjectsOpen] = useState(true);
+  const [inboxPreviewOpen, setInboxPreviewOpen] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -57,26 +83,46 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
 
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: home } = useHomeOverview();
-  const showInvite = hasPermission(user, PERMISSIONS.USER_INVITE);
+  const { data: projectsData } = useProjects({ limit: 100 });
+  const { data: unreadCount = 0 } = useUnreadCount();
+  const { data: notifRes } = useNotifications({ limit: 8 });
+  useLiveSpaces();
 
-  const projects = home?.workspace?.projects ?? [];
+  const showInvite = hasPermission(user, PERMISSIONS.USER_INVITE);
+  const canViewProjects = hasPermission(user, PERMISSIONS.PROJECT_VIEW);
+
+  const catalogProjects = projectsData?.data ?? [];
+  const overviewProjects = home?.workspace?.projects ?? [];
   const teams = home?.workspace?.teams ?? [];
   const meetings = home?.cards?.meetings ?? [];
   const locations = home?.cards?.locations ?? [];
+  const recentNotifications = notifRes?.data ?? notifRes ?? [];
 
   const q = query.trim().toLowerCase();
+
+  const spaces = useMemo(() => {
+    const list = catalogProjects.filter((p) => isSpaceKind(p.kind));
+    return sortByName(list).filter((p) => matchesQuery(p.name, q));
+  }, [catalogProjects, q]);
+
+  const orderedProjects = useMemo(() => {
+    const list = catalogProjects.filter((p) => isProjectKind(p.kind));
+    return sortByName(list).filter((p) => matchesQuery(p.name, q));
+  }, [catalogProjects, q]);
 
   const homeLinks = useMemo(
     () =>
       [
-        { to: '/inbox', label: 'Inbox', icon: Inbox },
+        { to: '/inbox', label: 'Inbox', icon: Inbox, badge: unreadCount },
+        { to: '/inbox?tab=notifications', label: 'Notifications', icon: Bell, badge: unreadCount },
         { to: '/inbox', label: 'Replies', icon: MessageSquareReply },
         { to: '/home/assigned-comments', label: 'Assigned Comments', icon: MessageSquareText },
         { to: '/home/meetings', label: 'Meetings', icon: Video },
         { to: '/home/meetings', label: 'Locations', icon: MapPin },
       ].filter((item) => matchesQuery(item.label, q)),
-    [q]
+    [q, unreadCount]
   );
 
   const myTaskLinks = useMemo(
@@ -96,8 +142,8 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
   );
 
   const filteredProjects = useMemo(
-    () => projects.filter((p) => matchesQuery(p.name, q)),
-    [projects, q]
+    () => overviewProjects.filter((p) => matchesQuery(p.name, q)),
+    [overviewProjects, q]
   );
 
   const filteredMeetings = useMemo(
@@ -113,9 +159,15 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
     [locations, q]
   );
 
+  const activeEntityId = useMemo(() => {
+    const m = location.pathname.match(/^\/(?:spaces|projects)\/([a-f0-9]{24})/i);
+    return m?.[1] || null;
+  }, [location.pathname]);
+
   const showNav = filter === 'all' || filter === 'nav';
   const showTasks = filter === 'all' || filter === 'tasks';
   const showTeams = filter === 'all' || filter === 'teams';
+  const showSpacesProjects = (filter === 'all' || filter === 'spaces') && canViewProjects;
   const showChannels = filter === 'all' || filter === 'channels';
   const showUpcoming = filter === 'all' || filter === 'upcoming';
 
@@ -130,6 +182,21 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
           aria-label="Open sidebar"
         >
           <PanelLeftOpen className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            onToggleCollapse?.();
+            navigate('/inbox');
+          }}
+          className="relative mb-2 flex h-9 w-9 items-center justify-center rounded-md text-graphite hover:bg-cloud hover:text-ink"
+          title="Inbox"
+          aria-label="Inbox"
+        >
+          <Inbox className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+          )}
         </button>
         <button
           type="button"
@@ -280,29 +347,126 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2">
+        {/* Inbox + live notification previews (chat-app style) */}
+        {showNav && (
+          <div className="mb-3 overflow-hidden rounded-lg border border-hairline bg-cloud/40">
+            <button
+              type="button"
+              onClick={() => setInboxPreviewOpen((v) => !v)}
+              className="flex w-full items-center gap-2 px-2.5 py-2 text-left hover:bg-cloud"
+            >
+              {inboxPreviewOpen ? (
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-graphite" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-graphite" />
+              )}
+              <Bell className="h-3.5 w-3.5 shrink-0 text-graphite" />
+              <span className="flex-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+                Notifications
+              </span>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-on-ink">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {inboxPreviewOpen && (
+              <div className="border-t border-hairline bg-paper">
+                {Array.isArray(recentNotifications) && recentNotifications.length > 0 ? (
+                  <div className="max-h-[168px] overflow-y-auto">
+                    {recentNotifications.slice(0, 6).map((n) => (
+                      <button
+                        key={n._id}
+                        type="button"
+                        onClick={() => navigate('/inbox?tab=notifications')}
+                        className={cn(
+                          'flex w-full gap-2 border-b border-hairline/70 px-2.5 py-2 text-left last:border-b-0 hover:bg-cloud/60',
+                          !n.isRead && 'bg-primary/5'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                            n.isRead ? 'bg-transparent' : 'bg-primary'
+                          )}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={cn(
+                              'line-clamp-2 text-[11px] leading-snug',
+                              n.isRead ? 'text-charcoal' : 'font-medium text-ink'
+                            )}
+                          >
+                            {n.message}
+                          </p>
+                          {n.createdAt && (
+                            <p className="mt-0.5 text-[10px] text-graphite">
+                              {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="px-2.5 py-2.5 text-[11px] text-graphite">
+                    You&apos;re all caught up
+                  </p>
+                )}
+              </div>
+            )}
+
+            <NavLink
+              to="/inbox"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-2.5 border-t border-hairline px-2.5 py-2.5 text-sm font-semibold',
+                  isActive ? 'bg-cloud text-ink' : 'text-ink hover:bg-cloud/70'
+                )
+              }
+            >
+              <Inbox className="h-4 w-4 shrink-0" />
+              <span className="flex-1 truncate">Inbox</span>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-cloud px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-charcoal">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </NavLink>
+          </div>
+        )}
+
         {showNav && (
           <nav className="space-y-0.5">
             {homeLinks.length === 0 && q ? (
               <p className="px-2 py-1 text-xs text-graphite">No matching links</p>
             ) : (
-              homeLinks.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={`${item.to}-${item.label}`}
-                    to={item.to}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium',
-                        isActive ? 'bg-cloud text-ink' : 'text-charcoal hover:bg-cloud/70'
-                      )
-                    }
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                  </NavLink>
-                );
-              })
+              homeLinks
+                .filter((item) => item.label !== 'Inbox')
+                .map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={`${item.to}-${item.label}`}
+                      to={item.to}
+                      className={({ isActive }) =>
+                        cn(
+                          'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium',
+                          isActive ? 'bg-cloud text-ink' : 'text-charcoal hover:bg-cloud/70'
+                        )
+                      }
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      {item.badge > 0 && (
+                        <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-primary">
+                          {item.badge > 99 ? '99+' : item.badge}
+                        </span>
+                      )}
+                    </NavLink>
+                  );
+                })
             )}
           </nav>
         )}
@@ -369,6 +533,162 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
               </div>
             )}
           </div>
+        )}
+
+        {showSpacesProjects && (
+          <>
+            <div className="mt-4">
+              <div className="mb-0.5 flex items-center gap-1 px-1">
+                <button
+                  type="button"
+                  onClick={() => setSpacesOpen((v) => !v)}
+                  className="rounded p-1 text-graphite hover:bg-cloud hover:text-ink"
+                  title={spacesOpen ? 'Collapse spaces' : 'Expand spaces'}
+                  aria-expanded={spacesOpen}
+                >
+                  <ChevronDown
+                    className={cn(
+                      'h-3.5 w-3.5 transition-transform',
+                      !spacesOpen && '-rotate-90'
+                    )}
+                  />
+                </button>
+                <NavLink
+                  to="/spaces"
+                  className={({ isActive }) =>
+                    cn(
+                      'min-w-0 flex-1 truncate rounded-md px-1.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em]',
+                      isActive && !activeEntityId
+                        ? 'bg-cloud text-ink'
+                        : 'text-graphite hover:bg-cloud/80'
+                    )
+                  }
+                >
+                  Spaces
+                  <span className="ml-1.5 tabular-nums font-semibold normal-case tracking-normal">
+                    {spaces.length}
+                  </span>
+                </NavLink>
+                <button
+                  type="button"
+                  onClick={onCreate}
+                  className="rounded p-0.5 text-graphite hover:bg-cloud hover:text-ink"
+                  title="Create"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {spacesOpen && (
+                <div className="ml-2 space-y-0.5 border-l border-hairline pl-2">
+                  {spaces.length === 0 ? (
+                    <p className="px-2 py-2 text-xs text-graphite">
+                      {q ? 'No matching spaces' : 'No spaces yet'}
+                    </p>
+                  ) : (
+                    spaces.map((space) => (
+                      <NavLink
+                        key={space._id}
+                        to={spacePath(space._id)}
+                        className={cn(
+                          'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+                          activeEntityId === String(space._id)
+                            ? 'bg-cloud font-medium text-ink'
+                            : 'text-charcoal hover:bg-cloud/80'
+                        )}
+                      >
+                        <span
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
+                          style={{ backgroundColor: space.color || '#292524' }}
+                        >
+                          {(space.icon || space.name?.[0] || 'S').toString().slice(0, 1)}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{space.name}</span>
+                      </NavLink>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3">
+              <div className="mb-0.5 flex items-center gap-1 px-1">
+                <button
+                  type="button"
+                  onClick={() => setProjectsOpen((v) => !v)}
+                  className="rounded p-1 text-graphite hover:bg-cloud hover:text-ink"
+                  title={projectsOpen ? 'Collapse projects' : 'Expand projects'}
+                  aria-expanded={projectsOpen}
+                >
+                  <ChevronDown
+                    className={cn(
+                      'h-3.5 w-3.5 transition-transform',
+                      !projectsOpen && '-rotate-90'
+                    )}
+                  />
+                </button>
+                <NavLink
+                  to="/projects"
+                  className={({ isActive }) =>
+                    cn(
+                      'flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-md px-1.5 py-1.5 text-sm font-medium',
+                      isActive && !activeEntityId
+                        ? 'bg-cloud text-ink'
+                        : 'text-charcoal hover:bg-cloud/80'
+                    )
+                  }
+                >
+                  <FolderKanban className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Projects</span>
+                  <span className="ml-auto tabular-nums text-[10px] font-semibold text-graphite">
+                    {orderedProjects.length}
+                  </span>
+                </NavLink>
+                <button
+                  type="button"
+                  onClick={onCreate}
+                  className="rounded p-0.5 text-graphite hover:bg-cloud hover:text-ink"
+                  title="Create"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {projectsOpen && (
+                <div className="ml-2 space-y-0.5 border-l border-hairline pl-2">
+                  {orderedProjects.length === 0 ? (
+                    <p className="px-2 py-2 text-xs text-graphite">
+                      {q ? 'No matching projects' : 'No projects yet'}
+                    </p>
+                  ) : (
+                    orderedProjects.map((project) => (
+                      <NavLink
+                        key={project._id}
+                        to={projectPath(project._id)}
+                        className={cn(
+                          'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+                          activeEntityId === String(project._id)
+                            ? 'bg-cloud font-medium text-ink'
+                            : 'text-charcoal hover:bg-cloud/80'
+                        )}
+                      >
+                        <span
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
+                          style={{ backgroundColor: project.color || '#292524' }}
+                        >
+                          {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{project.name}</span>
+                        {project.openTaskCount > 0 && (
+                          <span className="shrink-0 tabular-nums text-[10px] font-semibold text-graphite">
+                            {project.openTaskCount}
+                          </span>
+                        )}
+                      </NavLink>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         {showTeams && (

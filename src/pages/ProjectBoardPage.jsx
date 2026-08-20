@@ -57,6 +57,10 @@ import {
 } from '@/features/tasks/components/TaskFormFields';
 import { useTaskComments, useCreateComment } from '@/features/comments/hooks/useComments';
 import {
+  CommentAttachments,
+  CommentText,
+} from '@/features/comments/components/CommentRichContent';
+import {
   TASK_STATUSES,
   STATUS_LABELS,
   PRIORITY_LABELS,
@@ -654,7 +658,11 @@ function TaskDrawer({
                   {comments.map((comment) => (
                     <li key={comment._id} className="rounded-xl bg-cloud p-3">
                       <p className="text-sm font-medium text-ink">{comment.author?.name}</p>
-                      <p className="mt-1 text-sm text-charcoal">{comment.content}</p>
+                      <CommentText content={comment.content} className="mt-1 !text-sm" />
+                      <CommentAttachments
+                        attachments={comment.attachments}
+                        links={comment.links}
+                      />
                       <p className="mt-2 text-xs text-graphite">
                         {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                       </p>

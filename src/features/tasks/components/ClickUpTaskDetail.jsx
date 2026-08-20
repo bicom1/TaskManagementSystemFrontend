@@ -8,7 +8,12 @@ import {
   ChevronDown,
   Flag,
   Hourglass,
+  Link2,
+  MessageSquareText,
   MoreHorizontal,
+  Paperclip,
+  PanelRightClose,
+  PanelRightOpen,
   Play,
   Send,
   Star,
@@ -33,6 +38,10 @@ import {
   useUpdateTask,
 } from '@/features/tasks/hooks/useTasks';
 import { useCreateComment, useTaskComments } from '@/features/comments/hooks/useComments';
+import {
+  CommentAttachments,
+  CommentText,
+} from '@/features/comments/components/CommentRichContent';
 import {
   PRIORITY_LABELS,
   STATUS_LABELS,
@@ -111,7 +120,8 @@ export function ClickUpTaskDetail({
   const updateTask = useUpdateTask(projectId, { silent: true });
   const deleteTask = useDeleteTask(projectId);
   const createComment = useCreateComment(taskId);
-  const { register, handleSubmit, reset } = useForm({ defaultValues: { content: '' } });
+  const { register, handleSubmit, reset, watch } = useForm({ defaultValues: { content: '' } });
+  const commentDraft = watch('content');
 
   const [menu, setMenu] = useState(null);
   const [title, setTitle] = useState('');
@@ -119,6 +129,13 @@ export function ClickUpTaskDetail({
   const [tagDraft, setTagDraft] = useState('');
   const [moreOpen, setMoreOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [sidePanelOpen, setSidePanelOpen] = useState(true);
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [pendingLinks, setPendingLinks] = useState([]);
+  const [linkDraft, setLinkDraft] = useState('');
+  const [linkTitleDraft, setLinkTitleDraft] = useState('');
+  const [linkPickerOpen, setLinkPickerOpen] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!task) return;
@@ -163,8 +180,87 @@ export function ClickUpTaskDetail({
   };
 
   const onComment = (values) => {
-    createComment.mutate(values, { onSuccess: () => reset() });
+    const content = String(values.content || '').trim();
+    if (!content && pendingFiles.length === 0 && pendingLinks.length === 0) return;
+
+    createComment.mutate(
+      {
+        content,
+        links: pendingLinks,
+        files: pendingFiles.map((p) => p.file),
+      },
+      {
+        onSuccess: () => {
+          reset({ content: '' });
+          setPendingFiles((prev) => {
+            prev.forEach((p) => {
+              if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+            });
+            return [];
+          });
+          setPendingLinks([]);
+          setLinkDraft('');
+          setLinkTitleDraft('');
+          setLinkPickerOpen(false);
+        },
+      }
+    );
   };
+
+  const addPendingFiles = (fileList) => {
+    const incoming = Array.from(fileList || []);
+    if (!incoming.length) return;
+    setPendingFiles((prev) => {
+      const next = [...prev];
+      for (const file of incoming) {
+        if (next.length >= 5) break;
+        const previewUrl = file.type?.startsWith('image/')
+          ? URL.createObjectURL(file)
+          : null;
+        next.push({
+          id: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
+          file,
+          previewUrl,
+        });
+      }
+      return next;
+    });
+  };
+
+  const removePendingFile = (id) => {
+    setPendingFiles((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((p) => p.id !== id);
+    });
+  };
+
+  const addPendingLink = () => {
+    const raw = linkDraft.trim();
+    if (!raw) return;
+    let url = raw;
+    if (!/^https?:\/\//i.test(url) && /^www\./i.test(url)) url = `https://${url}`;
+    if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+    try {
+      // eslint-disable-next-line no-new
+      new URL(url);
+    } catch {
+      return;
+    }
+    setPendingLinks((prev) => {
+      if (prev.some((l) => l.url === url)) return prev;
+      if (prev.length >= 10) return prev;
+      return [...prev, { url, title: linkTitleDraft.trim() }];
+    });
+    setLinkDraft('');
+    setLinkTitleDraft('');
+    setLinkPickerOpen(false);
+  };
+
+  const canPostComment =
+    Boolean(String(commentDraft || '').trim()) ||
+    pendingFiles.length > 0 ||
+    pendingLinks.length > 0;
 
   const onDelete = () => {
     deleteTask.mutate(taskId, {
@@ -286,6 +382,31 @@ export function ClickUpTaskDetail({
                 Created {format(new Date(task.createdAt), 'MMM d')}
               </span>
             ) : null}
+            <button
+              type="button"
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium hover:bg-cloud',
+                sidePanelOpen ? 'bg-cloud text-ink' : 'text-graphite'
+              )}
+              onClick={() => setSidePanelOpen((v) => !v)}
+              title={sidePanelOpen ? 'Hide comments' : 'Show comments'}
+              aria-pressed={sidePanelOpen}
+            >
+              {sidePanelOpen ? (
+                <PanelRightClose className="h-3.5 w-3.5" />
+              ) : (
+                <PanelRightOpen className="h-3.5 w-3.5" />
+              )}
+              <MessageSquareText className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">
+                {sidePanelOpen ? 'Hide comments' : 'Comments'}
+              </span>
+              {(commentItems?.length ?? 0) > 0 && (
+                <span className="rounded-full bg-paper px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-charcoal">
+                  {commentItems.length}
+                </span>
+              )}
+            </button>
             <div className="relative">
               <button
                 type="button"
@@ -679,7 +800,8 @@ export function ClickUpTaskDetail({
           )}
         </div>
 
-        {/* Right: bounded activity + comments */}
+        {/* Right: bounded activity + comments (toggleable) */}
+        {sidePanelOpen && (
         <aside className="flex w-full shrink-0 flex-col border-t border-hairline bg-cloud/20 lg:w-[300px] lg:border-l lg:border-t-0">
           {/* Activity — fixed height, does not fill the whole side */}
           <div className="shrink-0 border-b border-hairline bg-paper">
@@ -735,7 +857,7 @@ export function ClickUpTaskDetail({
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-2">
               {commentItems.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-hairline bg-paper px-3 py-3 text-center text-xs text-graphite">
-                  No comments yet
+                  No comments yet — share notes, links, or files
                 </p>
               ) : (
                 commentItems.map((c) => (
@@ -762,9 +884,11 @@ export function ClickUpTaskDetail({
                         </p>
                       </div>
                     </div>
-                    <p className="whitespace-pre-wrap text-xs leading-relaxed text-charcoal">
-                      {c.content}
-                    </p>
+                    <CommentText content={c.content} />
+                    <CommentAttachments
+                      attachments={c.attachments}
+                      links={c.links}
+                    />
                   </div>
                 ))
               )}
@@ -776,16 +900,140 @@ export function ClickUpTaskDetail({
             >
               <div className="rounded-xl border border-hairline bg-cloud/30 focus-within:border-ink/20 focus-within:bg-paper">
                 <textarea
-                  placeholder="Write a comment…"
+                  placeholder="Write a comment, paste a link, or attach a file…"
                   rows={2}
                   className="w-full resize-none bg-transparent px-2.5 py-2 text-sm text-ink outline-none placeholder:text-graphite"
-                  {...register('content', { required: true })}
+                  {...register('content')}
                 />
-                <div className="flex items-center justify-end gap-2 border-t border-hairline/70 px-2 py-1.5">
+
+                {(pendingFiles.length > 0 || pendingLinks.length > 0) && (
+                  <div className="space-y-2 border-t border-hairline/70 px-2.5 py-2">
+                    {pendingFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {pendingFiles.map((item) => (
+                          <div
+                            key={item.id}
+                            className="relative overflow-hidden rounded-lg border border-hairline bg-paper"
+                          >
+                            {item.previewUrl ? (
+                              <img
+                                src={item.previewUrl}
+                                alt={item.file.name}
+                                className="h-16 w-20 object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-16 w-28 items-center gap-1.5 px-2 text-[10px] text-charcoal">
+                                <Paperclip className="h-3 w-3 shrink-0" />
+                                <span className="line-clamp-2">{item.file.name}</span>
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removePendingFile(item.id)}
+                              className="absolute right-0.5 top-0.5 rounded bg-ink/70 p-0.5 text-white hover:bg-ink"
+                              aria-label="Remove file"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {pendingLinks.length > 0 && (
+                      <div className="space-y-1">
+                        {pendingLinks.map((link) => (
+                          <div
+                            key={link.url}
+                            className="flex items-center gap-2 rounded-md border border-hairline bg-paper px-2 py-1.5 text-[11px]"
+                          >
+                            <Link2 className="h-3 w-3 shrink-0 text-graphite" />
+                            <span className="min-w-0 flex-1 truncate text-ink">
+                              {link.title || link.url}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPendingLinks((prev) => prev.filter((l) => l.url !== link.url))
+                              }
+                              className="text-graphite hover:text-ink"
+                              aria-label="Remove link"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {linkPickerOpen && (
+                  <div className="space-y-2 border-t border-hairline/70 px-2.5 py-2">
+                    <input
+                      value={linkDraft}
+                      onChange={(e) => setLinkDraft(e.target.value)}
+                      placeholder="https://…"
+                      className="w-full rounded-md border border-hairline bg-paper px-2 py-1.5 text-xs outline-none focus:border-ink/30"
+                    />
+                    <input
+                      value={linkTitleDraft}
+                      onChange={(e) => setLinkTitleDraft(e.target.value)}
+                      placeholder="Optional title"
+                      className="w-full rounded-md border border-hairline bg-paper px-2 py-1.5 text-xs outline-none focus:border-ink/30"
+                    />
+                    <div className="flex justify-end gap-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setLinkPickerOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="button" size="sm" onClick={addPendingLink}>
+                        Add link
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-2 border-t border-hairline/70 px-2 py-1.5">
+                  <div className="flex items-center gap-0.5">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                      className="hidden"
+                      onChange={(e) => {
+                        addPendingFiles(e.target.files);
+                        e.target.value = '';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="rounded-md p-1.5 text-graphite hover:bg-cloud hover:text-ink"
+                      title="Attach image or document"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLinkPickerOpen((v) => !v)}
+                      className={cn(
+                        'rounded-md p-1.5 hover:bg-cloud',
+                        linkPickerOpen ? 'bg-cloud text-ink' : 'text-graphite hover:text-ink'
+                      )}
+                      title="Share a link"
+                    >
+                      <Link2 className="h-4 w-4" />
+                    </button>
+                  </div>
                   <Button
                     type="submit"
                     size="sm"
-                    disabled={createComment.isPending}
+                    disabled={createComment.isPending || !canPostComment}
                     className="gap-1.5"
                   >
                     <Send className="h-3.5 w-3.5" />
@@ -796,6 +1044,7 @@ export function ClickUpTaskDetail({
             </form>
           </div>
         </aside>
+        )}
         </div>
       </div>
 

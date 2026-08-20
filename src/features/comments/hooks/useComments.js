@@ -19,7 +19,8 @@ export function useCreateComment(taskId) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [KEY, taskId] });
     },
-    onError: () => toast.error('Failed to post comment'),
+    onError: (err) =>
+      toast.error(err?.response?.data?.message || 'Failed to post comment'),
   });
 }
 

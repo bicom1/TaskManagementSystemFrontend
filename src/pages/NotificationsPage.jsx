@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bell, CheckCheck, Mail, Plus, Send, ListTodo, MessageSquare } from 'lucide-react';
@@ -242,8 +242,20 @@ function MessageDetail({ message, onClose, isIncoming, startCreateTask = false }
 
 export default function NotificationsPage() {
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('chat') ? 'chat' : 'chat';
+  const tabParam = searchParams.get('tab');
+  const defaultTab =
+    tabParam === 'notifications' || tabParam === 'messages' || tabParam === 'chat'
+      ? tabParam
+      : searchParams.get('chat')
+        ? 'chat'
+        : 'chat';
   const [tab, setTab] = useState(defaultTab);
+
+  useEffect(() => {
+    if (tabParam === 'notifications' || tabParam === 'messages' || tabParam === 'chat') {
+      setTab(tabParam);
+    }
+  }, [tabParam]);
   const [composeOpen, setComposeOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [openCreateTask, setOpenCreateTask] = useState(false);

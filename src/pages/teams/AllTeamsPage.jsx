@@ -102,15 +102,20 @@ export default function AllTeamsPage() {
               team.department?.name ||
               DEPARTMENT_CODE_LABELS[team.department?.code] ||
               'Department';
-            const memberCount = (team.members?.length ?? 0) + (team.lead ? 1 : 0);
-            const preview = [
+            const people = [
               team.lead,
-              ...(team.members || []).filter(
-                (m) => String(m._id) !== String(team.lead?._id ?? team.lead)
-              ),
-            ]
-              .filter(Boolean)
-              .slice(0, 4);
+              ...(team.members || []),
+            ].filter(Boolean);
+            const uniquePeople = [];
+            const seen = new Set();
+            for (const person of people) {
+              const id = String(person._id || person);
+              if (seen.has(id)) continue;
+              seen.add(id);
+              uniquePeople.push(person);
+            }
+            const memberCount = uniquePeople.length;
+            const preview = uniquePeople.slice(0, 6);
 
             return (
               <button
@@ -143,14 +148,10 @@ export default function AllTeamsPage() {
                           {getInitials(member.name)}
                         </div>
                       ))}
-                      {memberCount > preview.length && (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md border-2 border-paper bg-fog text-[10px] font-semibold text-graphite">
-                          +{memberCount - preview.length}
-                        </div>
-                      )}
                     </div>
                     <p className="text-xs text-graphite">
-                      Lead: {team.lead?.name ?? '—'} · {memberCount} people
+                      Lead: {team.lead?.name ?? '—'} · {memberCount}{' '}
+                      {memberCount === 1 ? 'person' : 'people'}
                     </p>
                   </CardContent>
                 </Card>

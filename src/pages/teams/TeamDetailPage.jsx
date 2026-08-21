@@ -111,6 +111,7 @@ export default function TeamDetailPage() {
                   openInvite({
                     teamId: team._id,
                     departmentId: team.department?._id || team.department,
+                    teamLeadId: team.lead?._id || team.lead,
                   })
                 }
                 className="bg-ink text-on-ink hover:bg-ink/90"

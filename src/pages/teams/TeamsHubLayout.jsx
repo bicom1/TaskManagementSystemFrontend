@@ -30,6 +30,7 @@ export default function TeamsHubLayout() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteTeamId, setInviteTeamId] = useState('');
   const [inviteDepartmentId, setInviteDepartmentId] = useState('');
+  const [inviteTeamLeadId, setInviteTeamLeadId] = useState('');
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [deptModalOpen, setDeptModalOpen] = useState(false);
 
@@ -66,6 +67,7 @@ export default function TeamsHubLayout() {
       openInvite: (opts = {}) => {
         setInviteTeamId(opts.teamId || '');
         setInviteDepartmentId(opts.departmentId || '');
+        setInviteTeamLeadId(opts.teamLeadId || '');
         setInviteOpen(true);
       },
       openCreateTeam: () => canCreateTeam && setTeamModalOpen(true),
@@ -139,9 +141,11 @@ export default function TeamsHubLayout() {
           setInviteOpen(false);
           setInviteTeamId('');
           setInviteDepartmentId('');
+          setInviteTeamLeadId('');
         }}
         defaultTeamId={inviteTeamId}
         defaultDepartmentId={inviteDepartmentId}
+        defaultTeamLeadId={inviteTeamLeadId}
       />
 
       <Modal open={teamModalOpen} onClose={() => setTeamModalOpen(false)} title="Create team">

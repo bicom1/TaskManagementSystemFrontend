@@ -28,7 +28,13 @@ function buildWhatsAppUrl(text) {
 
 const CUSTOM_VALUE = '__custom__';
 
-export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartmentId = '' }) {
+export function InviteModal({
+  open,
+  onClose,
+  defaultTeamId = '',
+  defaultDepartmentId = '',
+  defaultTeamLeadId = '',
+}) {
   const invite = useInviteUser();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
@@ -54,16 +60,41 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
 
   const invitableByActor = useMemo(() => getInvitableRoles(role), [role]);
 
+  /** Inviting from a specific team page — department / team / lead are fixed */
+  const isTeamScoped = Boolean(defaultTeamId);
+  /** Inviting into a department only — department is fixed */
+  const isDeptScoped = Boolean(defaultDepartmentId) && !isTeamScoped;
+  const contextLocked = isTeamScoped || isDeptScoped;
+
+  const scopedTeam = useMemo(
+    () => (defaultTeamId ? teams.find((t) => String(t._id) === String(defaultTeamId)) : null),
+    [teams, defaultTeamId]
+  );
+
+  const resolvedDepartmentId = useMemo(() => {
+    if (defaultDepartmentId) return String(defaultDepartmentId);
+    if (scopedTeam?.department) {
+      return String(scopedTeam.department?._id || scopedTeam.department);
+    }
+    return '';
+  }, [defaultDepartmentId, scopedTeam]);
+
+  const resolvedTeamLeadId = useMemo(() => {
+    if (defaultTeamLeadId) return String(defaultTeamLeadId);
+    if (scopedTeam?.lead?._id) return String(scopedTeam.lead._id);
+    return '';
+  }, [defaultTeamLeadId, scopedTeam]);
+
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
       email: '',
       name: '',
-      department: defaultDepartmentId || '',
+      department: resolvedDepartmentId || '',
       departmentName: '',
       role: ROLES.EMPLOYEE,
       team: defaultTeamId || '',
       teamName: '',
-      teamLead: '',
+      teamLead: resolvedTeamLeadId || '',
       setAsTeamLead: false,
     },
   });
@@ -102,6 +133,8 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
         hasDepartment && selectedDeptCode && !isCustomDepartment
           ? getInvitableRolesForDepartment(ROLES.SUPER_ADMIN, selectedDeptCode, withoutSa)
           : withoutSa;
+      // Team-scoped invites stay on that team — Super Admin is org-wide, not a team member
+      if (isTeamScoped) return deptRoles;
       return [ROLES.SUPER_ADMIN, ...deptRoles];
     }
     if (!hasDepartment) return [];
@@ -112,6 +145,7 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
     selectedDeptCode,
     isCustomDepartment,
     isSuperAdmin,
+    isTeamScoped,
     role,
     invitableByActor,
   ]);
@@ -134,8 +168,14 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       seen.add(id);
       leads.push(lead);
     }
+    if (scopedTeam?.lead?._id) {
+      const id = String(scopedTeam.lead._id);
+      if (!seen.has(id)) {
+        leads.unshift(scopedTeam.lead);
+      }
+    }
     return leads;
-  }, [teamsInDepartment]);
+  }, [teamsInDepartment, scopedTeam]);
 
   const selectedTeamDoc = useMemo(
     () => teams.find((t) => t._id === selectedTeam),
@@ -150,18 +190,42 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
     reset({
       email: '',
       name: '',
-      department: defaultDepartmentId || '',
+      department: resolvedDepartmentId || '',
       departmentName: '',
       role: defaultRole,
       team: defaultTeamId || '',
       teamName: '',
-      teamLead: '',
+      teamLead: resolvedTeamLeadId || '',
       setAsTeamLead: false,
     });
     setResult(null);
-  }, [open, defaultTeamId, defaultDepartmentId, reset, invitableByActor]);
+  }, [
+    open,
+    defaultTeamId,
+    resolvedDepartmentId,
+    resolvedTeamLeadId,
+    reset,
+    invitableByActor,
+  ]);
+
+  // Keep scoped values locked even after teams finish loading
+  useEffect(() => {
+    if (!open || !contextLocked) return;
+    if (resolvedDepartmentId) setValue('department', resolvedDepartmentId);
+    if (defaultTeamId) setValue('team', String(defaultTeamId));
+    if (resolvedTeamLeadId) setValue('teamLead', resolvedTeamLeadId);
+  }, [
+    open,
+    contextLocked,
+    resolvedDepartmentId,
+    defaultTeamId,
+    resolvedTeamLeadId,
+    setValue,
+    teams,
+  ]);
 
   useEffect(() => {
+    if (contextLocked) return;
     if (!selectedDepartment || selectedDepartment === CUSTOM_VALUE) return;
     const team = teams.find((t) => t._id === selectedTeam);
     const teamDept = team?.department?._id || team?.department;
@@ -170,7 +234,7 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       setValue('teamName', '');
       setValue('teamLead', '');
     }
-  }, [selectedDepartment, selectedTeam, teams, setValue]);
+  }, [contextLocked, selectedDepartment, selectedTeam, teams, setValue]);
 
   useEffect(() => {
     if (!hasDepartment && selectedRole !== ROLES.SUPER_ADMIN) return;
@@ -181,24 +245,25 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
   }, [hasDepartment, rolesForDepartment, selectedRole, setValue]);
 
   useEffect(() => {
+    if (contextLocked) return;
     if (!selectedTeam || selectedTeam === CUSTOM_VALUE) return;
     const team = teams.find((t) => t._id === selectedTeam);
     if (!team) return;
     const deptId = team.department?._id || team.department;
     if (deptId) setValue('department', String(deptId));
     if (team.lead?._id) setValue('teamLead', String(team.lead._id));
-  }, [selectedTeam, teams, setValue]);
+  }, [contextLocked, selectedTeam, teams, setValue]);
 
   const resetAll = () => {
     reset({
       email: '',
       name: '',
-      department: defaultDepartmentId || '',
+      department: resolvedDepartmentId || '',
       departmentName: '',
       role: ROLES.EMPLOYEE,
       team: defaultTeamId || '',
       teamName: '',
-      teamLead: '',
+      teamLead: resolvedTeamLeadId || '',
       setAsTeamLead: false,
     });
     setResult(null);
@@ -238,7 +303,9 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       department:
         values.role === ROLES.SUPER_ADMIN || usingCustomDept
           ? undefined
-          : values.department || undefined,
+          : (isTeamScoped || isDeptScoped
+              ? resolvedDepartmentId || values.department
+              : values.department) || undefined,
       departmentName:
         values.role === ROLES.SUPER_ADMIN
           ? undefined
@@ -248,15 +315,22 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       team:
         values.role === ROLES.SUPER_ADMIN || usingCustomTeam
           ? undefined
-          : values.team || undefined,
+          : (isTeamScoped ? defaultTeamId || values.team : values.team) || undefined,
       teamName:
         values.role === ROLES.SUPER_ADMIN
           ? undefined
           : usingCustomTeam
             ? values.teamName.trim()
             : undefined,
-      teamLead: values.role === ROLES.SUPER_ADMIN ? undefined : values.teamLead || undefined,
-      setAsTeamLead: values.role === ROLES.SUPER_ADMIN ? false : Boolean(values.setAsTeamLead),
+      teamLead:
+        values.role === ROLES.SUPER_ADMIN
+          ? undefined
+          : (isTeamScoped ? resolvedTeamLeadId || values.teamLead : values.teamLead) ||
+            undefined,
+      setAsTeamLead:
+        values.role === ROLES.SUPER_ADMIN || isTeamScoped
+          ? false
+          : Boolean(values.setAsTeamLead),
     };
 
     invite.mutate(payload, {
@@ -448,9 +522,13 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <p className="text-sm text-graphite">
-            {isSuperAdmin
-              ? 'As Super Admin, pick the department and the role this person should have. An invite email from BIWORKSPACE is required for them to log in.'
-              : 'Pick department and role, then send. The invite email is required for login.'}
+            {isTeamScoped
+              ? `Inviting into ${scopedTeam?.name || 'this team'}. Department, team, and team lead are set and can’t be changed.`
+              : isDeptScoped
+                ? 'Inviting into this department. Department is set and can’t be changed.'
+                : isSuperAdmin
+                  ? 'As Super Admin, pick the department and the role this person should have. An invite email from BIWORKSPACE is required for them to log in.'
+                  : 'Pick department and role, then send. The invite email is required for login.'}
           </p>
 
           <div className="space-y-2">
@@ -493,12 +571,14 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
                     ? 'Department is required'
                     : false,
                 onChange: (e) => {
+                  if (contextLocked) return;
                   const v = e.target.value;
                   if (v !== CUSTOM_VALUE) setValue('departmentName', '');
                   setValue('team', '');
                   setValue('teamName', '');
                 },
               })}
+              disabled={isTeamScoped || isDeptScoped}
             >
               <option value="">
                 {selectedRole === ROLES.SUPER_ADMIN
@@ -519,7 +599,9 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
                   ))}
                 </optgroup>
               )}
-              {isSuperAdmin ? <option value={CUSTOM_VALUE}>Add your own…</option> : null}
+              {isSuperAdmin && !contextLocked ? (
+                <option value={CUSTOM_VALUE}>Add your own…</option>
+              ) : null}
             </Select>
             {isCustomDepartment && selectedRole !== ROLES.SUPER_ADMIN && (
               <>
@@ -540,9 +622,11 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
               </>
             )}
             <p className="text-xs text-graphite">
-              {selectedRole === ROLES.SUPER_ADMIN
-                ? 'Super Admin has org-wide access — department is optional'
-                : 'SEO · Development · UI/UX Designing'}
+              {isTeamScoped || isDeptScoped
+                ? 'Locked to this team’s department'
+                : selectedRole === ROLES.SUPER_ADMIN
+                  ? 'Super Admin has org-wide access — department is optional'
+                  : 'SEO · Development · UI/UX Designing'}
             </p>
             {errors.departmentName && (
               <p className="text-sm text-bloom-coral">{errors.departmentName.message}</p>
@@ -603,10 +687,11 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
                     ? 'Team is required for this role'
                     : false,
                 onChange: (e) => {
+                  if (isTeamScoped) return;
                   if (e.target.value !== CUSTOM_VALUE) setValue('teamName', '');
                 },
               })}
-              disabled={!hasDepartment}
+              disabled={!hasDepartment || isTeamScoped}
             >
               <option value="">
                 {selectedRole === ROLES.DEPT_HEAD ? 'Optional team' : 'Select team'}
@@ -617,7 +702,7 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
                   {team.lead?.name ? ` · Lead: ${team.lead.name}` : ''}
                 </option>
               ))}
-              <option value={CUSTOM_VALUE}>Add your own…</option>
+              {!isTeamScoped ? <option value={CUSTOM_VALUE}>Add your own…</option> : null}
             </Select>
             {isCustomTeam && (
               <>
@@ -640,6 +725,9 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
                 </datalist>
               </>
             )}
+            {isTeamScoped ? (
+              <p className="text-xs text-graphite">Locked to this team</p>
+            ) : null}
           </div>
 
           {/* 4. Team Lead */}
@@ -648,7 +736,10 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
             <Select
               id="invite-teamLead"
               {...register('teamLead')}
-              disabled={(!selectedTeam || selectedTeam === CUSTOM_VALUE) && selectedRole !== ROLES.TEAM_LEAD}
+              disabled={
+                isTeamScoped ||
+                ((!selectedTeam || selectedTeam === CUSTOM_VALUE) && selectedRole !== ROLES.TEAM_LEAD)
+              }
             >
               <option value="">
                 {selectedTeamDoc?.lead?.name
@@ -661,7 +752,14 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
                 </option>
               ))}
             </Select>
-            {selectedRole === ROLES.TEAM_LEAD && (selectedTeam || isCustomTeam) && (
+            {isTeamScoped ? (
+              <p className="text-xs text-graphite">
+                {scopedTeam?.lead?.name
+                  ? `Locked to ${scopedTeam.lead.name}`
+                  : 'Locked to this team’s lead'}
+              </p>
+            ) : null}
+            {!isTeamScoped && selectedRole === ROLES.TEAM_LEAD && (selectedTeam || isCustomTeam) && (
               <label className="mt-2 flex items-center gap-2 text-sm text-graphite">
                 <input type="checkbox" {...register('setAsTeamLead')} className="rounded border-hairline" />
                 Set invitee as Team Lead of this team

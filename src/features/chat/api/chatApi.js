@@ -37,10 +37,34 @@ export const chatApi = {
   startTaskChat: (taskId) =>
     axiosClient.post('/chat/task', { taskId }).then((r) => r.data.data),
 
-  sendMessage: (conversationId, payload) =>
-    axiosClient
-      .post(`/chat/conversations/${conversationId}/messages`, payload)
-      .then((r) => r.data.data),
+  /**
+   * Send chat message. Pass `files` (File[]) for multipart; otherwise JSON.
+   */
+  sendMessage: (conversationId, payload = {}) => {
+    const { files, body, mentions, shareLinks } = payload;
+    const hasFiles = Array.isArray(files) && files.length > 0;
+
+    if (hasFiles) {
+      const form = new FormData();
+      form.append('body', body || '');
+      form.append('mentions', JSON.stringify(mentions || []));
+      form.append('shareLinks', JSON.stringify(shareLinks || []));
+      for (const file of files) {
+        form.append('files', file);
+      }
+      return axiosClient
+        .post(`/chat/conversations/${conversationId}/messages`, form)
+        .then((r) => r.data.data);
+    }
+
+    return axiosClient
+      .post(`/chat/conversations/${conversationId}/messages`, {
+        body: body || '',
+        mentions: mentions || [],
+        shareLinks: shareLinks || [],
+      })
+      .then((r) => r.data.data);
+  },
 
   markRead: (conversationId) =>
     axiosClient

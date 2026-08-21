@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
-import { ArrowLeft, FolderKanban, Plus, UserMinus, UserPlus } from 'lucide-react';
+import { ArrowLeft, FolderKanban, MessageSquare, Plus, UserMinus, UserPlus } from 'lucide-react';
 import {
   useTeam,
   useAddTeamMember,
   useRemoveTeamMember,
 } from '@/features/teams/hooks/useTeams';
 import { useProjects, useLiveSpaces } from '@/features/projects/hooks/useProjects';
+import { useStartTeamChat } from '@/features/chat/hooks/useChat';
 import { CreateSpaceWizard } from '@/features/spaces/components/CreateSpaceWizard';
 import { entityPath, isSpaceKind } from '@/features/spaces/spaceKinds';
 import { PersonCard } from '@/features/teams/components/PersonCard';
@@ -31,6 +32,7 @@ export default function TeamDetailPage() {
   useLiveSpaces();
   const addMember = useAddTeamMember();
   const removeMember = useRemoveTeamMember();
+  const startTeamChat = useStartTeamChat();
 
   const [selected, setSelected] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -112,6 +114,18 @@ export default function TeamDetailPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() =>
+              startTeamChat.mutate(team._id, {
+                onSuccess: (c) => navigate(`/inbox?chat=${c._id}`),
+              })
+            }
+            disabled={startTeamChat.isPending}
+          >
+            <MessageSquare className="h-4 w-4" />
+            {startTeamChat.isPending ? 'Opening…' : 'Team chat'}
+          </Button>
           <Button variant="outline" onClick={() => setSpaceWizardOpen(true)}>
             <Plus className="h-4 w-4" />
             Create Space for team

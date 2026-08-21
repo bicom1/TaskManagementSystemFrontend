@@ -11,6 +11,11 @@ import {
   Copy,
   Check,
   Hash,
+  Paperclip,
+  X,
+  Image as ImageIcon,
+  FileText,
+  ExternalLink,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { toast } from 'sonner';
@@ -35,6 +40,16 @@ import {
   useLiveChat,
   emitChatTyping,
 } from '../hooks/useChat';
+import { ImageCropModal } from './ImageCropModal';
+import {
+  CHAT_LIMITS,
+  formatBytes,
+  isImageFile,
+  validateChatFile,
+} from '../chatLimits';
+
+const URL_REGEX =
+  /((https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?"')\]])/gi;
 
 function formatMsgTime(dateStr) {
   if (!dateStr) return '';
@@ -71,43 +86,142 @@ function conversationSubtitle(conversation, currentUserId) {
       (p) => String(p._id) !== String(currentUserId)
     );
     if (!other) return '';
-    const bits = [
-      getRoleLabel(other.role),
-      other.jobTitle,
-      other.department?.name,
-      other.email,
-    ].filter(Boolean);
-    return bits.join(' · ');
+    return [getRoleLabel(other.role), other.jobTitle, other.department?.name]
+      .filter(Boolean)
+      .join(' · ');
   }
-  if (conversation?.type === 'team') return 'Team channel';
+  if (conversation?.type === 'team') {
+    const n = conversation.participants?.length || 0;
+    return `Team channel · ${n} member${n === 1 ? '' : 's'}`;
+  }
   if (conversation?.type === 'department') return 'Department channel';
   if (conversation?.type === 'task') return 'Task discussion';
   return '';
 }
 
-function renderBodyWithMentions(body, mentions = []) {
+function normalizeHref(raw) {
+  const url = String(raw || '').trim();
+  if (!url) return '#';
+  if (/^https?:\/\//i.test(url)) return url;
+  if (/^www\./i.test(url)) return `https://${url}`;
+  return url;
+}
+
+function renderBodyWithMentions(body, mentions = [], mine = false) {
   if (!body) return null;
   const names = (mentions || [])
     .map((m) => m.name)
     .filter(Boolean)
     .sort((a, b) => b.length - a.length);
 
-  if (!names.length) return body;
+  const linkClass = mine
+    ? 'underline underline-offset-2 opacity-90'
+    : 'font-medium text-primary underline-offset-2 hover:underline';
 
-  const pattern = new RegExp(`@(${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
-  const parts = String(body).split(pattern);
+  const renderSegment = (segment, keyPrefix) => {
+    const parts = [];
+    let last = 0;
+    let match;
+    const re = new RegExp(URL_REGEX);
+    while ((match = re.exec(segment)) !== null) {
+      if (match.index > last) {
+        parts.push(
+          <span key={`${keyPrefix}-t-${last}`}>{segment.slice(last, match.index)}</span>
+        );
+      }
+      parts.push(
+        <a
+          key={`${keyPrefix}-l-${match.index}`}
+          href={normalizeHref(match[0])}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn('break-all', linkClass)}
+        >
+          {match[0]}
+        </a>
+      );
+      last = match.index + match[0].length;
+    }
+    if (last < segment.length) {
+      parts.push(<span key={`${keyPrefix}-t-end`}>{segment.slice(last)}</span>);
+    }
+    return parts.length ? parts : segment;
+  };
 
-  return parts.map((part, i) => {
+  if (!names.length) {
+    return renderSegment(String(body), 'b');
+  }
+
+  const pattern = new RegExp(
+    `@(${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+    'gi'
+  );
+  const chunks = String(body).split(pattern);
+
+  return chunks.map((part, i) => {
     const isMention = names.some((n) => n.toLowerCase() === String(part).toLowerCase());
     if (isMention) {
       return (
-        <span key={i} className="rounded bg-primary/10 px-1 font-medium text-primary">
+        <span
+          key={i}
+          className={cn(
+            'rounded px-1 font-medium',
+            mine ? 'bg-white/15' : 'bg-primary/10 text-primary'
+          )}
+        >
           @{part}
         </span>
       );
     }
-    return <span key={i}>{part}</span>;
+    return <span key={i}>{renderSegment(part, `p${i}`)}</span>;
   });
+}
+
+function MessageAttachments({ attachments = [], mine = false }) {
+  if (!attachments.length) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {attachments.map((file) => {
+        const key = `${file.url}-${file.fileName}`;
+        const image = isImageFile({ type: file.fileType, name: file.fileName });
+        if (image) {
+          return (
+            <a
+              key={key}
+              href={file.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block overflow-hidden rounded-lg border border-white/20"
+            >
+              <img
+                src={file.url}
+                alt={file.fileName || 'Image'}
+                className="max-h-48 max-w-[220px] object-cover"
+              />
+            </a>
+          );
+        }
+        return (
+          <a
+            key={key}
+            href={file.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              'inline-flex max-w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium',
+              mine ? 'bg-white/10' : 'bg-paper'
+            )}
+          >
+            <FileText className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{file.fileName || 'Document'}</span>
+            {file.size ? (
+              <span className="shrink-0 opacity-70">{formatBytes(file.size)}</span>
+            ) : null}
+          </a>
+        );
+      })}
+    </div>
+  );
 }
 
 export function InboxChat() {
@@ -124,10 +238,18 @@ export function InboxChat() {
   const [pendingMentions, setPendingMentions] = useState([]);
   const [typingUser, setTypingUser] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [sidebarMode, setSidebarMode] = useState('chats'); // chats | people
+  const [sidebarMode, setSidebarMode] = useState('chats'); // chats | teams | people
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [pendingLinks, setPendingLinks] = useState([]);
+  const [linkDraft, setLinkDraft] = useState('');
+  const [linkLabel, setLinkLabel] = useState('');
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [cropSrc, setCropSrc] = useState(null);
+  const [cropName, setCropName] = useState('image.jpg');
 
   const bottomRef = useRef(null);
   const typingTimer = useRef(null);
+  const fileInputRef = useRef(null);
 
   const { data: conversationsData, isLoading: convLoading } = useConversations();
   const conversations = conversationsData?.data ?? [];
@@ -144,16 +266,30 @@ export function InboxChat() {
     sidebarMode === 'people' || Boolean(peopleQuery.trim())
   );
 
-  // Open directory (no role gates) — any logged-in user sees everyone
   const { data: directory } = useChatDirectory(true);
-  const teams = directory?.teams ?? [];
+  const myTeams = directory?.myTeams ?? directory?.teams ?? [];
   const departments = directory?.departments ?? [];
+  const limits = directory?.limits || {
+    maxFiles: CHAT_LIMITS.MAX_FILES,
+    maxLinks: CHAT_LIMITS.MAX_LINKS,
+    imageMaxBytes: CHAT_LIMITS.IMAGE_MAX_BYTES,
+    documentMaxBytes: CHAT_LIMITS.DOCUMENT_MAX_BYTES,
+  };
 
   const startDm = useStartDm();
   const startTeam = useStartTeamChat();
   const startDept = useStartDepartmentChat();
   const sendMessage = useSendChatMessage(activeId);
   const markRead = useMarkConversationRead();
+
+  const teamChats = useMemo(
+    () => conversations.filter((c) => c.type === 'team'),
+    [conversations]
+  );
+  const dmChats = useMemo(
+    () => conversations.filter((c) => c.type === 'dm'),
+    [conversations]
+  );
 
   const onTyping = useCallback(
     (payload) => {
@@ -203,6 +339,9 @@ export function InboxChat() {
     setSearchParams(id ? { chat: id } : {});
     setSidebarMode('chats');
     setPeopleQuery('');
+    setPendingFiles([]);
+    setPendingLinks([]);
+    setLinkOpen(false);
   };
 
   const handleStartDm = (person) => {
@@ -239,10 +378,65 @@ export function InboxChat() {
     setMentionQuery('');
   };
 
+  const addPendingFile = (file) => {
+    const err = validateChatFile(file);
+    if (err) {
+      toast.error(err);
+      return;
+    }
+    setPendingFiles((prev) => {
+      if (prev.length >= limits.maxFiles) {
+        toast.error(`Maximum ${limits.maxFiles} files per message`);
+        return prev;
+      }
+      return [...prev, file];
+    });
+  };
+
+  const onPickFiles = (e) => {
+    const list = Array.from(e.target.files || []);
+    e.target.value = '';
+    for (const file of list) {
+      if (isImageFile(file)) {
+        const url = URL.createObjectURL(file);
+        setCropSrc(url);
+        setCropName(file.name || 'image.jpg');
+        return;
+      }
+      addPendingFile(file);
+    }
+  };
+
+  const onCropped = (file) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    addPendingFile(file);
+  };
+
+  const addPendingLink = () => {
+    const url = linkDraft.trim();
+    if (!url) return;
+    if (pendingLinks.length >= limits.maxLinks) {
+      toast.error(`Maximum ${limits.maxLinks} links per message`);
+      return;
+    }
+    setPendingLinks((prev) => [
+      ...prev,
+      {
+        url: normalizeHref(url),
+        label: linkLabel.trim() || url,
+        kind: 'external',
+      },
+    ]);
+    setLinkDraft('');
+    setLinkLabel('');
+    setLinkOpen(false);
+  };
+
   const handleSend = () => {
     if (!activeId) return;
     const text = draft.trim();
-    if (!text) return;
+    if (!text && !pendingFiles.length && !pendingLinks.length) return;
 
     const mentionIds = pendingMentions.filter((id) =>
       text.toLowerCase().includes(
@@ -250,7 +444,6 @@ export function InboxChat() {
       )
     );
 
-    // Also detect mentions by name in body
     for (const p of activeConversation?.participants || []) {
       if (String(p._id) === String(userId)) continue;
       if (text.includes(`@${p.name}`) && !mentionIds.includes(p._id)) {
@@ -259,17 +452,25 @@ export function InboxChat() {
     }
 
     sendMessage.mutate(
-      { body: text, mentions: mentionIds },
+      {
+        body: text,
+        mentions: mentionIds,
+        shareLinks: pendingLinks,
+        files: pendingFiles,
+      },
       {
         onSuccess: () => {
           setDraft('');
           setPendingMentions([]);
+          setPendingFiles([]);
+          setPendingLinks([]);
         },
       }
     );
   };
 
-  const shareLink = activeConversation?.shareUrl ||
+  const shareLink =
+    activeConversation?.shareUrl ||
     (activeId ? `${window.location.origin}/inbox?chat=${activeId}` : '');
 
   const copyShareLink = async () => {
@@ -284,46 +485,52 @@ export function InboxChat() {
     }
   };
 
-  const shareCurrentPageAsLink = () => {
-    if (!activeId) return;
-    const url = window.location.href;
-    sendMessage.mutate({
-      body: `Shared a link`,
-      shareLinks: [{ url, label: 'Open this chat', kind: 'conversation', refId: activeId }],
-    });
-  };
+  const canSend =
+    Boolean(draft.trim()) || pendingFiles.length > 0 || pendingLinks.length > 0;
+
+  const listForSidebar =
+    sidebarMode === 'chats'
+      ? conversations
+      : sidebarMode === 'teams'
+        ? teamChats
+        : [];
 
   return (
-    <div className="flex h-[calc(100vh-11rem)] min-h-[480px] overflow-hidden rounded-xl border border-hairline bg-paper">
-      {/* Left rail */}
-      <aside className="flex w-full max-w-[320px] flex-col border-r border-hairline bg-cloud/40">
-        <div className="space-y-2 border-b border-hairline p-3">
+    <div className="flex h-[calc(100vh-11rem)] min-h-[520px] overflow-hidden rounded-xl border border-hairline bg-paper shadow-sm">
+      <aside className="flex w-full max-w-[340px] flex-col border-r border-hairline bg-gradient-to-b from-cloud/80 to-paper">
+        <div className="space-y-2.5 border-b border-hairline p-3">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Inbox chat</h2>
+            <p className="text-[11px] text-graphite">
+              Direct messages · team channels · media &amp; links
+            </p>
+          </div>
           <div className="flex gap-1 rounded-lg bg-cloud p-1">
-            <button
-              type="button"
-              onClick={() => setSidebarMode('chats')}
-              className={cn(
-                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium',
-                sidebarMode === 'chats' ? 'bg-paper text-ink shadow-sm' : 'text-graphite'
-              )}
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              Chats
-              {chatUnread > 0 && (
-                <span className="rounded bg-primary px-1 text-[10px] text-on-ink">{chatUnread}</span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSidebarMode('people')}
-              className={cn(
-                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium',
-                sidebarMode === 'people' ? 'bg-paper text-ink shadow-sm' : 'text-graphite'
-              )}
-            >
-              <Users className="h-3.5 w-3.5" />
-              People
-            </button>
+            {[
+              { id: 'chats', label: 'Chats', icon: MessageSquare },
+              { id: 'teams', label: 'Teams', icon: Hash },
+              { id: 'people', label: 'People', icon: Users },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSidebarMode(tab.id)}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold',
+                  sidebarMode === tab.id
+                    ? 'bg-paper text-ink shadow-sm'
+                    : 'text-graphite hover:text-ink'
+                )}
+              >
+                <tab.icon className="h-3.5 w-3.5" />
+                {tab.label}
+                {tab.id === 'chats' && chatUnread > 0 ? (
+                  <span className="rounded bg-primary px-1 text-[10px] text-on-ink">
+                    {chatUnread}
+                  </span>
+                ) : null}
+              </button>
+            ))}
           </div>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-graphite" />
@@ -333,7 +540,7 @@ export function InboxChat() {
                 setPeopleQuery(e.target.value);
                 if (e.target.value.trim()) setSidebarMode('people');
               }}
-              placeholder="Search name, email, dept, role…"
+              placeholder="Search people…"
               className="h-9 pl-8 text-sm"
             />
           </div>
@@ -343,7 +550,7 @@ export function InboxChat() {
           {sidebarMode === 'people' || peopleQuery.trim() ? (
             <div className="p-2">
               <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
-                Start a chat
+                Message anyone
               </p>
               {peopleLoading && (
                 <p className="px-2 py-3 text-xs text-graphite">Searching…</p>
@@ -351,88 +558,117 @@ export function InboxChat() {
               {!peopleLoading && people.length === 0 && (
                 <p className="px-2 py-3 text-xs text-graphite">No people matched.</p>
               )}
-              {!peopleQuery.trim() && people.length > 0 && (
-                <p className="px-2 py-2 text-xs text-graphite">
-                  All employees — filter by name, email, job title, or department.
-                </p>
-              )}
               <ul className="space-y-0.5">
-                {people.map((person) => {
-                  return (
-                    <li key={person._id}>
-                      <button
-                        type="button"
-                        onClick={() => handleStartDm(person)}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-paper"
-                      >
-                        <UserAvatar user={person} size="md" className="h-8 w-8 text-[11px]" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-ink">
-                            {person.name}
-                          </span>
-                          <span className="block truncate text-[11px] text-graphite">
-                            {[
-                              getRoleLabel(person.role),
-                              person.jobTitle,
-                              person.department?.name,
-                            ]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </span>
+                {people.map((person) => (
+                  <li key={person._id}>
+                    <button
+                      type="button"
+                      onClick={() => handleStartDm(person)}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-paper"
+                    >
+                      <UserAvatar user={person} size="md" className="h-8 w-8 text-[11px]" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-ink">
+                          {person.name}
                         </span>
-                      </button>
-                    </li>
-                  );
-                })}
+                        <span className="block truncate text-[11px] text-graphite">
+                          {[getRoleLabel(person.role), person.jobTitle, person.department?.name]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
               </ul>
-
-              <div className="mt-4 space-y-2 px-1">
-                <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
-                  Channels
+            </div>
+          ) : sidebarMode === 'teams' ? (
+            <div className="space-y-3 p-2">
+              <div>
+                <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+                  Your teams
                 </p>
-                {departments.slice(0, 6).map((dept) => (
-                  <button
-                    key={dept._id}
-                    type="button"
-                    onClick={() =>
-                      startDept.mutate(dept._id, {
-                        onSuccess: (c) => openConversation(c._id),
-                      })
-                    }
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-paper"
-                  >
-                    <Building2 className="h-4 w-4 text-graphite" />
-                    <span className="truncate">{dept.name}</span>
-                  </button>
-                ))}
-                {teams.slice(0, 8).map((team) => (
-                  <button
-                    key={team._id}
-                    type="button"
-                    onClick={() =>
-                      startTeam.mutate(team._id, {
-                        onSuccess: (c) => openConversation(c._id),
-                      })
-                    }
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-paper"
-                  >
-                    <Hash className="h-4 w-4 text-graphite" />
-                    <span className="truncate">{team.name}</span>
-                  </button>
-                ))}
+                {myTeams.length === 0 ? (
+                  <p className="px-2 py-3 text-xs text-graphite">
+                    Join a team to get a shared team channel for leads and employees.
+                  </p>
+                ) : (
+                  <ul className="space-y-0.5">
+                    {myTeams.map((team) => (
+                      <li key={team._id}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            startTeam.mutate(team._id, {
+                              onSuccess: (c) => openConversation(c._id),
+                            })
+                          }
+                          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-paper"
+                        >
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-on-ink">
+                            <Hash className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-ink">
+                              {team.name}
+                            </span>
+                            <span className="block truncate text-[11px] text-graphite">
+                              {team.department?.name || 'Team channel'} · lead &amp; members
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
+              {departments.length > 0 && (
+                <div>
+                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+                    Departments
+                  </p>
+                  <ul className="space-y-0.5">
+                    {departments.slice(0, 8).map((dept) => (
+                      <li key={dept._id}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            startDept.mutate(dept._id, {
+                              onSuccess: (c) => openConversation(c._id),
+                              onError: (err) =>
+                                toast.error(
+                                  err?.response?.data?.message || 'Could not open channel'
+                                ),
+                            })
+                          }
+                          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-paper"
+                        >
+                          <Building2 className="h-4 w-4 text-graphite" />
+                          <span className="truncate">{dept.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ) : convLoading ? (
             <div className="p-6">
               <LoadingScreen />
             </div>
-          ) : conversations.length === 0 ? (
-            <div className="p-6 text-center text-sm text-graphite">
-              No chats yet. Search a person to start messaging.
+          ) : listForSidebar.length === 0 ? (
+            <div className="space-y-3 p-6 text-center text-sm text-graphite">
+              <p>No chats yet.</p>
+              <Button type="button" variant="outline" size="sm" onClick={() => setSidebarMode('people')}>
+                Message a person
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setSidebarMode('teams')}>
+                Open team chat
+              </Button>
             </div>
           ) : (
             <ul className="p-1.5">
-              {conversations.map((c) => {
+              {(sidebarMode === 'chats' ? conversations : listForSidebar).map((c) => {
                 const title = conversationTitle(c, userId);
                 const other =
                   c.type === 'dm'
@@ -445,8 +681,8 @@ export function InboxChat() {
                       type="button"
                       onClick={() => openConversation(c._id)}
                       className={cn(
-                        'flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left',
-                        active ? 'bg-paper shadow-sm' : 'hover:bg-paper/70',
+                        'flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left transition',
+                        active ? 'bg-paper shadow-sm ring-1 ring-hairline' : 'hover:bg-paper/70',
                         c.unread && !active && 'bg-primary-soft/20'
                       )}
                     >
@@ -458,7 +694,7 @@ export function InboxChat() {
                           className="mt-0.5 h-9 w-9"
                         />
                       ) : (
-                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cloud text-graphite">
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/90 text-on-ink">
                           <Hash className="h-4 w-4" />
                         </span>
                       )}
@@ -474,6 +710,11 @@ export function InboxChat() {
                         <span className="mt-0.5 line-clamp-1 text-xs text-graphite">
                           {c.lastMessagePreview || conversationSubtitle(c, userId)}
                         </span>
+                        {c.type === 'team' || c.type === 'department' ? (
+                          <span className="mt-0.5 inline-block text-[10px] font-medium uppercase tracking-wide text-graphite/80">
+                            {c.type}
+                          </span>
+                        ) : null}
                       </span>
                       {c.unread && (
                         <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
@@ -485,28 +726,44 @@ export function InboxChat() {
             </ul>
           )}
         </div>
+
+        <div className="border-t border-hairline px-3 py-2 text-[10px] text-graphite">
+          Images ≤ {Math.round((limits.imageMaxBytes || CHAT_LIMITS.IMAGE_MAX_BYTES) / 1e6)} MB ·
+          Docs ≤ {Math.round((limits.documentMaxBytes || CHAT_LIMITS.DOCUMENT_MAX_BYTES) / 1e6)} MB ·
+          Max {limits.maxFiles || CHAT_LIMITS.MAX_FILES} files
+        </div>
       </aside>
 
-      {/* Thread */}
-      <section className="flex min-w-0 flex-1 flex-col">
+      <section className="flex min-w-0 flex-1 flex-col bg-paper">
         {!activeId ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-            <MessageSquare className="h-10 w-10 text-graphite/50" />
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cloud">
+              <MessageSquare className="h-7 w-7 text-graphite" />
+            </div>
             <div>
-              <p className="text-base font-medium text-ink">Workplace chat</p>
-              <p className="mt-1 max-w-sm text-sm text-graphite">
-                Always-on workplace chat — message anytime, reopen old threads, and keep talking
-                through the day. Search anyone by name, email, department, or position.
+              <p className="text-base font-semibold text-ink">Professional workplace chat</p>
+              <p className="mt-1 max-w-md text-sm text-graphite">
+                Message colleagues one-to-one, or open a team channel where the lead and all
+                employees on that team can talk, share media, documents, and links.
               </p>
             </div>
-            <Button type="button" variant="outline" onClick={() => setSidebarMode('people')}>
-              <Search className="h-4 w-4" />
-              Find people
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button type="button" variant="outline" onClick={() => setSidebarMode('people')}>
+                <Users className="h-4 w-4" />
+                Direct message
+              </Button>
+              <Button type="button" onClick={() => setSidebarMode('teams')}>
+                <Hash className="h-4 w-4" />
+                Team chat
+              </Button>
+            </div>
+            <p className="max-w-sm text-[11px] text-graphite">
+              Recent DMs: {dmChats.length} · Team channels open: {teamChats.length}
+            </p>
           </div>
         ) : (
           <>
-            <header className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3">
+            <header className="flex items-center justify-between gap-3 border-b border-hairline bg-cloud/30 px-4 py-3">
               <div className="min-w-0">
                 <h2 className="truncate text-sm font-semibold text-ink">
                   {conversationTitle(activeConversation, userId)}
@@ -516,104 +773,103 @@ export function InboxChat() {
                   {typingUser ? ' · typing…' : ''}
                 </p>
               </div>
-              <div className="flex shrink-0 gap-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={copyShareLink}
-                  title="Copy direct chat link"
-                >
-                  {copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
-                  Share
-                </Button>
-              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={copyShareLink}
+                title="Copy chat link"
+              >
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+                Share
+              </Button>
             </header>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cloud/40 via-paper to-paper px-4 py-4">
               {messagesLoading ? (
                 <LoadingScreen />
               ) : messages.length === 0 ? (
                 <p className="py-10 text-center text-sm text-graphite">
-                  No messages yet — say hello or share a task link. This chat stays open forever.
+                  No messages yet — say hello, attach a file, or share a link.
                 </p>
               ) : (
                 <>
-                {hasMoreMessages && oldestMessageId ? (
-                  <div className="flex justify-center pb-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={loadOlder.isPending}
-                      onClick={() => loadOlder.mutate(oldestMessageId)}
-                    >
-                      {loadOlder.isPending ? 'Loading…' : 'Load earlier messages'}
-                    </Button>
-                  </div>
-                ) : null}
-                {messages.map((m) => {
-                  const mine = String(m.from?._id || m.from) === String(userId);
-                  return (
-                    <div
-                      key={m._id}
-                      className={cn('flex gap-2', mine ? 'flex-row-reverse' : 'flex-row')}
-                    >
-                      <UserAvatar
-                        user={m.from}
-                        size="md"
-                        className="mt-1 h-8 w-8 text-[10px]"
-                      />
-                      <div
-                        className={cn(
-                          'max-w-[75%] rounded-2xl px-3 py-2 text-sm',
-                          mine
-                            ? 'rounded-tr-md bg-ink text-on-ink'
-                            : 'rounded-tl-md bg-cloud text-ink'
-                        )}
+                  {hasMoreMessages && oldestMessageId ? (
+                    <div className="flex justify-center pb-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={loadOlder.isPending}
+                        onClick={() => loadOlder.mutate(oldestMessageId)}
                       >
-                        {!mine && (
-                          <p className="mb-0.5 text-[11px] font-semibold opacity-80">
-                            {m.from?.name}
-                            {m.from?.jobTitle ? ` · ${m.from.jobTitle}` : ''}
-                          </p>
-                        )}
-                        <p className="whitespace-pre-wrap break-words">
-                          {renderBodyWithMentions(m.body, m.mentions)}
-                        </p>
-                        {(m.shareLinks || []).map((link, idx) => (
-                          <a
-                            key={idx}
-                            href={link.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={cn(
-                              'mt-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs underline-offset-2 hover:underline',
-                              mine ? 'bg-white/10' : 'bg-paper'
-                            )}
-                          >
-                            <Link2 className="h-3 w-3" />
-                            {link.label || link.url}
-                          </a>
-                        ))}
-                        <p
+                        {loadOlder.isPending ? 'Loading…' : 'Load earlier messages'}
+                      </Button>
+                    </div>
+                  ) : null}
+                  {messages.map((m) => {
+                    const mine = String(m.from?._id || m.from) === String(userId);
+                    return (
+                      <div
+                        key={m._id}
+                        className={cn('flex gap-2', mine ? 'flex-row-reverse' : 'flex-row')}
+                      >
+                        <UserAvatar
+                          user={m.from}
+                          size="md"
+                          className="mt-1 h-8 w-8 text-[10px]"
+                        />
+                        <div
                           className={cn(
-                            'mt-1 text-[10px]',
-                            mine ? 'text-on-ink/60' : 'text-graphite'
+                            'max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm',
+                            mine
+                              ? 'rounded-tr-md bg-ink text-on-ink'
+                              : 'rounded-tl-md border border-hairline bg-paper text-ink'
                           )}
                         >
-                          {formatMsgTime(m.createdAt)}
-                        </p>
+                          {!mine && (
+                            <p className="mb-0.5 text-[11px] font-semibold opacity-80">
+                              {m.from?.name}
+                              {m.from?.jobTitle ? ` · ${m.from.jobTitle}` : ''}
+                            </p>
+                          )}
+                          <p className="whitespace-pre-wrap break-words">
+                            {renderBodyWithMentions(m.body, m.mentions, mine)}
+                          </p>
+                          <MessageAttachments attachments={m.attachments || []} mine={mine} />
+                          {(m.shareLinks || []).map((link, idx) => (
+                            <a
+                              key={idx}
+                              href={normalizeHref(link.url)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={cn(
+                                'mt-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs underline-offset-2 hover:underline',
+                                mine ? 'bg-white/10' : 'bg-cloud'
+                              )}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              {link.label || link.url}
+                            </a>
+                          ))}
+                          <p
+                            className={cn(
+                              'mt-1 text-[10px]',
+                              mine ? 'text-on-ink/60' : 'text-graphite'
+                            )}
+                          >
+                            {formatMsgTime(m.createdAt)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
                 </>
               )}
               <div ref={bottomRef} />
             </div>
 
-            <footer className="relative border-t border-hairline p-3">
+            <footer className="relative border-t border-hairline bg-paper p-3">
               {mentionOpen && mentionCandidates.length > 0 && (
                 <div className="absolute bottom-full left-3 right-3 mb-1 max-h-48 overflow-y-auto rounded-lg border border-hairline bg-paper shadow-lg">
                   {mentionCandidates.map((p) => (
@@ -632,7 +888,101 @@ export function InboxChat() {
                   ))}
                 </div>
               )}
+
+              {(pendingFiles.length > 0 || pendingLinks.length > 0) && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {pendingFiles.map((file, idx) => (
+                    <span
+                      key={`${file.name}-${idx}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-cloud px-2 py-1 text-[11px]"
+                    >
+                      {isImageFile(file) ? (
+                        <ImageIcon className="h-3 w-3" />
+                      ) : (
+                        <FileText className="h-3 w-3" />
+                      )}
+                      <span className="max-w-[120px] truncate">{file.name}</span>
+                      <span className="text-graphite">{formatBytes(file.size)}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPendingFiles((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        className="text-graphite hover:text-ink"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {pendingLinks.map((link, idx) => (
+                    <span
+                      key={`${link.url}-${idx}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-cloud px-2 py-1 text-[11px]"
+                    >
+                      <Link2 className="h-3 w-3" />
+                      <span className="max-w-[140px] truncate">{link.label}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPendingLinks((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        className="text-graphite hover:text-ink"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {linkOpen && (
+                <div className="mb-2 flex flex-wrap gap-2 rounded-lg border border-hairline bg-cloud/50 p-2">
+                  <Input
+                    value={linkDraft}
+                    onChange={(e) => setLinkDraft(e.target.value)}
+                    placeholder="https://…"
+                    className="h-8 min-w-[180px] flex-1 text-sm"
+                  />
+                  <Input
+                    value={linkLabel}
+                    onChange={(e) => setLinkLabel(e.target.value)}
+                    placeholder="Label (optional)"
+                    className="h-8 w-40 text-sm"
+                  />
+                  <Button type="button" size="sm" onClick={addPendingLink}>
+                    Add link
+                  </Button>
+                </div>
+              )}
+
               <div className="flex items-end gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  multiple
+                  accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                  onChange={onPickFiles}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  title="Attach image or document"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={sendMessage.isPending}
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  title="Add link"
+                  onClick={() => setLinkOpen((v) => !v)}
+                >
+                  <Link2 className="h-4 w-4" />
+                </Button>
                 <div className="min-w-0 flex-1">
                   <textarea
                     value={draft}
@@ -644,16 +994,29 @@ export function InboxChat() {
                       }
                     }}
                     rows={2}
-                    placeholder="Message… use @ to mention · Enter to send"
-                    className="w-full resize-none rounded-xl border border-hairline bg-cloud px-3 py-2 text-sm text-ink outline-none focus:border-primary"
+                    placeholder="Write a message… @mention · attach files · share links"
+                    className="w-full resize-none rounded-xl border border-hairline bg-cloud px-3 py-2 text-sm text-ink outline-none focus:border-ink/30"
                   />
                 </div>
                 <Button
                   type="button"
                   size="icon"
                   variant="outline"
-                  title="Share chat link in thread"
-                  onClick={shareCurrentPageAsLink}
+                  title="Copy chat URL into thread"
+                  onClick={() => {
+                    if (!activeId) return;
+                    sendMessage.mutate({
+                      body: 'Shared a chat link',
+                      shareLinks: [
+                        {
+                          url: shareLink,
+                          label: 'Open this chat',
+                          kind: 'conversation',
+                          refId: activeId,
+                        },
+                      ],
+                    });
+                  }}
                   disabled={sendMessage.isPending}
                 >
                   <Copy className="h-4 w-4" />
@@ -661,7 +1024,7 @@ export function InboxChat() {
                 <Button
                   type="button"
                   onClick={handleSend}
-                  disabled={!draft.trim() || sendMessage.isPending}
+                  disabled={!canSend || sendMessage.isPending}
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -670,6 +1033,17 @@ export function InboxChat() {
           </>
         )}
       </section>
+
+      <ImageCropModal
+        open={Boolean(cropSrc)}
+        imageSrc={cropSrc}
+        fileName={cropName}
+        onClose={() => {
+          if (cropSrc) URL.revokeObjectURL(cropSrc);
+          setCropSrc(null);
+        }}
+        onCropped={onCropped}
+      />
     </div>
   );
 }

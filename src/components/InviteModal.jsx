@@ -233,7 +233,7 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
 
     const payload = {
       email: values.email,
-      name: values.name || undefined,
+      name: values.name.trim(),
       role: values.role,
       department:
         values.role === ROLES.SUPER_ADMIN || usingCustomDept
@@ -468,8 +468,16 @@ export function InviteModal({ open, onClose, defaultTeamId = '', defaultDepartme
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="invite-name">Name (optional)</Label>
-            <Input id="invite-name" placeholder="Alex Rivera" {...register('name')} />
+            <Label htmlFor="invite-name">Name *</Label>
+            <Input
+              id="invite-name"
+              placeholder="Alex Rivera"
+              {...register('name', {
+                required: 'Name is required',
+                minLength: { value: 2, message: 'Name must be at least 2 characters' },
+              })}
+            />
+            {errors.name && <p className="text-sm text-bloom-coral">{errors.name.message}</p>}
           </div>
 
           {/* 1. Department (optional when inviting Super Admin) */}

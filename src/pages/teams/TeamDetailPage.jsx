@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
-import { ArrowLeft, UserMinus, UserPlus } from 'lucide-react';
+import { ArrowLeft, FolderKanban, Plus, UserMinus, UserPlus } from 'lucide-react';
 import {
   useTeam,
   useAddTeamMember,
   useRemoveTeamMember,
 } from '@/features/teams/hooks/useTeams';
+import { useProjects, useLiveSpaces } from '@/features/projects/hooks/useProjects';
+import { CreateSpaceWizard } from '@/features/spaces/components/CreateSpaceWizard';
+import { entityPath, isSpaceKind } from '@/features/spaces/spaceKinds';
 import { PersonCard } from '@/features/teams/components/PersonCard';
 import { PersonDetailModal } from '@/features/teams/components/PersonDetailModal';
 import { Button } from '@/components/ui/Button';
@@ -24,12 +27,17 @@ export default function TeamDetailPage() {
   const canManageMembers = canInvite(role);
 
   const { data: team, isLoading } = useTeam(teamId);
+  const { data: projectsRes } = useProjects({ team: teamId, limit: 50 });
+  useLiveSpaces();
   const addMember = useAddTeamMember();
   const removeMember = useRemoveTeamMember();
 
   const [selected, setSelected] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
   const [userId, setUserId] = useState('');
+  const [spaceWizardOpen, setSpaceWizardOpen] = useState(false);
+
+  const teamProjects = projectsRes?.data ?? [];
 
   const members = useMemo(() => {
     if (!team) return [];
@@ -98,8 +106,16 @@ export default function TeamDetailPage() {
             Lead: {team.lead?.name ?? '—'}
             {team.lead?.role ? ` · ${getRoleLabel(team.lead.role)}` : ''}
           </p>
+          <p className="mt-2 max-w-xl text-xs text-graphite">
+            ClickUp-style access: create a Space/Project for this team, then invite or add people —
+            they will see those Spaces in their sidebar automatically.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setSpaceWizardOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Create Space for team
+          </Button>
           {canManageMembers && (
             <>
               <Button variant="outline" onClick={() => setAddOpen(true)}>
@@ -123,6 +139,52 @@ export default function TeamDetailPage() {
         </div>
       </div>
 
+      <section className="mb-8">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-graphite">
+            Spaces &amp; Projects ({teamProjects.length})
+          </h2>
+        </div>
+        {teamProjects.length === 0 ? (
+          <EmptyState
+            title="No Spaces yet for this team"
+            description="Create a Space linked to this team. Everyone on the team will see it."
+            action={
+              <Button onClick={() => setSpaceWizardOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Create Space
+              </Button>
+            }
+          />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {teamProjects.map((project) => (
+              <button
+                key={project._id}
+                type="button"
+                onClick={() => navigate(entityPath(project))}
+                className="flex items-start gap-3 rounded-xl border border-hairline bg-paper p-4 text-left hover:border-ink/20 hover:bg-cloud/40"
+              >
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white"
+                  style={{ backgroundColor: project.color || '#292524' }}
+                >
+                  {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-ink">{project.name}</span>
+                  <span className="mt-0.5 flex items-center gap-1 text-[11px] text-graphite">
+                    <FolderKanban className="h-3 w-3" />
+                    {isSpaceKind(project.kind) ? 'Space' : 'Project'}
+                    {project.openTaskCount != null ? ` · ${project.openTaskCount} open` : ''}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-graphite">
         People ({members.length})
       </h2>
@@ -130,7 +192,7 @@ export default function TeamDetailPage() {
       {members.length === 0 ? (
         <EmptyState
           title="No members"
-          description="Add people to this team to collaborate."
+          description="Invite or add people — they will get this team’s Spaces automatically."
           action={
             canManageMembers ? (
               <Button onClick={() => setAddOpen(true)}>Add member</Button>
@@ -172,6 +234,12 @@ export default function TeamDetailPage() {
         onOpenTeam={(id) => navigate(`/teams/${id}`)}
       />
 
+      <CreateSpaceWizard
+        open={spaceWizardOpen}
+        onClose={() => setSpaceWizardOpen(false)}
+        defaultTeamId={team._id}
+      />
+
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add team member">
         <div className="space-y-4">
           <div className="space-y-2">
@@ -188,6 +256,9 @@ export default function TeamDetailPage() {
                 </option>
               ))}
             </Select>
+            <p className="text-xs text-graphite">
+              They will immediately see this team’s Spaces &amp; Projects.
+            </p>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setAddOpen(false)}>

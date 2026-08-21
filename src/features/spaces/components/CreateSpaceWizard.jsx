@@ -55,7 +55,7 @@ function StatusPills({ statuses }) {
   );
 }
 
-export function CreateSpaceWizard({ open, onClose, initialStep = 1 }) {
+export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamId = '' }) {
   const navigate = useNavigate();
   const createProject = useCreateProject();
   const { data: teamsData } = useTeams({ limit: 50 });
@@ -75,7 +75,7 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1 }) {
     setStep(initialStep === 2 ? 2 : 1);
     setForm({
       ...EMPTY,
-      team: teams[0]?._id || '',
+      team: defaultTeamId || '',
       icon: '',
     });
     setViewsOpen(false);
@@ -84,7 +84,13 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1 }) {
     setCustomViews(null);
     setCustomStatuses(null);
     setCustomApps(null);
-  }, [open, initialStep]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, initialStep, defaultTeamId]);
+
+  useEffect(() => {
+    if (!open || defaultTeamId) return;
+    if (form.team || !teams[0]?._id) return;
+    setForm((f) => ({ ...f, team: teams[0]._id }));
+  }, [open, defaultTeamId, teams, form.team]);
 
   const template = useMemo(
     () => getWorkflowTemplate(form.workflowTemplate),
@@ -99,9 +105,10 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1 }) {
 
   const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
-  const canContinueStep1 = form.name.trim().length >= 2;
+  const canContinueStep1 = form.name.trim().length >= 2 && Boolean(form.team);
 
   const handleCreate = async () => {
+    if (!form.team) return;
     const payload = {
       name: form.name.trim(),
       description: form.description.trim(),
@@ -114,7 +121,7 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1 }) {
       statuses,
       clickApps,
       activeView: views.includes('list') ? 'list' : views[0],
-      ...(form.team ? { team: form.team } : {}),
+      team: form.team,
     };
 
     createProject.mutate(payload, {
@@ -177,22 +184,31 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1 }) {
             />
           </div>
 
-          {teams.length > 0 && (
+          {teams.length > 0 ? (
             <div className="space-y-1.5">
-              <Label htmlFor="space-team">Team</Label>
+              <Label htmlFor="space-team">Team (required)</Label>
               <select
                 id="space-team"
-                className="flex h-10 w-full rounded-md border border-hairline bg-paper px-3 text-sm text-ink"
+                className="flex h-10 w-full rounded-md border border-hairline bg-paper px-3 text-sm text-ink disabled:opacity-70"
                 value={form.team}
+                disabled={Boolean(defaultTeamId)}
                 onChange={(e) => setField('team', e.target.value)}
               >
+                <option value="">Select team</option>
                 {teams.map((t) => (
                   <option key={t._id} value={t._id}>
                     {t.name}
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-graphite">
+                Everyone on this team will see this Space in their sidebar automatically.
+              </p>
             </div>
+          ) : (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-ink">
+              Create a team first under Teams, then create a Space for that team.
+            </p>
           )}
 
           <div className="space-y-3 rounded-lg border border-hairline">

@@ -78,9 +78,12 @@ export function QuickCreateKindModal({ open, kind, onClose }) {
     e.preventDefault();
     const trimmed = name.trim();
     if (trimmed.length < 2) return;
+    if (!team) {
+      toast.error('Select a team — projects belong to a team');
+      return;
+    }
 
     const iconLetter = (trimmed[0] || 'P').toUpperCase();
-    const teamId = team && String(team).length === 24 ? team : undefined;
 
     createProject.mutate(
       {
@@ -90,7 +93,7 @@ export function QuickCreateKindModal({ open, kind, onClose }) {
         kind: meta.persistKind || kind || 'project',
         workflowTemplate: meta.workflowTemplate,
         activeView: 'list',
-        ...(teamId ? { team: teamId } : {}),
+        team,
       },
       {
         onSuccess: (project) => {
@@ -122,28 +125,37 @@ export function QuickCreateKindModal({ open, kind, onClose }) {
             onChange={(e) => setName(e.target.value)}
           />
         </div>
-        {teams.length > 0 && (
+        {teams.length > 0 ? (
           <div className="space-y-1.5">
-            <Label htmlFor="quick-kind-team">Team</Label>
+            <Label htmlFor="quick-kind-team">Team (required)</Label>
             <select
               id="quick-kind-team"
               className="flex h-10 w-full rounded-md border border-hairline bg-paper px-3 text-sm"
               value={team}
               onChange={(e) => setTeam(e.target.value)}
             >
+              <option value="">Select team</option>
               {teams.map((t) => (
                 <option key={t._id} value={t._id}>
                   {t.name}
                 </option>
               ))}
             </select>
+            <p className="text-xs text-graphite">Team members will see this in their sidebar.</p>
           </div>
+        ) : (
+          <p className="text-sm text-graphite">Create a team first, then create projects for it.</p>
         )}
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={createProject.isPending || name.trim().length < 2}>
+          <Button
+            type="submit"
+            disabled={
+              createProject.isPending || name.trim().length < 2 || !team || teams.length === 0
+            }
+          >
             {createProject.isPending ? 'Creating…' : 'Create'}
           </Button>
         </div>

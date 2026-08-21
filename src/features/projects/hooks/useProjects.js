@@ -34,7 +34,7 @@ export function useCreateProject() {
   });
 }
 
-/** Live sidebar + list refresh when spaces/projects change */
+/** Live sidebar + list refresh when spaces/projects/team access change */
 export function useLiveSpaces() {
   const queryClient = useQueryClient();
 
@@ -44,15 +44,21 @@ export function useLiveSpaces() {
 
     const refresh = () => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
+      queryClient.invalidateQueries({ queryKey: ['home'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
     };
 
     socket.on('project:created', refresh);
     socket.on('project:updated', refresh);
     socket.on('projects:counts', refresh);
+    socket.on('team:member-added', refresh);
+    socket.on('team:member-removed', refresh);
     return () => {
       socket.off('project:created', refresh);
       socket.off('project:updated', refresh);
       socket.off('projects:counts', refresh);
+      socket.off('team:member-added', refresh);
+      socket.off('team:member-removed', refresh);
     };
   }, [queryClient]);
 }

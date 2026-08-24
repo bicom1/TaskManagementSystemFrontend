@@ -27,6 +27,7 @@ import { Select } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingScreen, EmptyState } from '@/components/ui/Spinner';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/features/tasks/api/taskApi';
+import { WorkloadAnalytics } from '@/features/reports/components/WorkloadAnalytics';
 
 const PIE_COLORS = ['#024ad8', '#296ef9', '#0e3191', '#c9e0fc', '#636363', '#3d3d3d'];
 
@@ -425,6 +426,8 @@ export default function ReportsPage() {
           </div>
         </>
       )}
+
+      <WorkloadAnalytics />
     </div>
   );
 }

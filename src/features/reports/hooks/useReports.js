@@ -35,3 +35,12 @@ export function useCompletionTrend(projectId, days = 14) {
     refetchInterval: 30_000,
   });
 }
+
+export function useWorkloadAnalytics(params, enabled = true) {
+  return useQuery({
+    queryKey: ['report-analytics', params],
+    queryFn: () => reportApi.workloadAnalytics(params),
+    enabled,
+    refetchInterval: 30_000,
+  });
+}

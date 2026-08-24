@@ -14,4 +14,7 @@ export const reportApi = {
     axiosClient
       .get(`/reports/project/${projectId}/trend`, { params: { days } })
       .then((r) => r.data.data),
+
+  workloadAnalytics: (params) =>
+    axiosClient.get('/reports/analytics', { params }).then((r) => r.data.data),
 };

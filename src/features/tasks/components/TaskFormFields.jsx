@@ -27,8 +27,8 @@ export function fromDatetimeLocalValue(value) {
   return d.toISOString();
 }
 
-/** Build unique assignable people from project owner, members, and team. */
-export function getProjectAssignablePeople(project) {
+/** Merge people from org, project, and current user — unique by id. */
+export function mergeAssignablePeople(...lists) {
   const map = new Map();
   const add = (person) => {
     if (!person) return;
@@ -40,14 +40,22 @@ export function getProjectAssignablePeople(project) {
     }
     map.set(id, person);
   };
-
-  add(project?.owner);
-  (project?.members || []).forEach(add);
-  add(project?.team?.lead);
-  (project?.team?.members || []).forEach(add);
-
+  for (const list of lists) {
+    if (Array.isArray(list)) list.forEach(add);
+    else add(list);
+  }
   return [...map.values()].sort((a, b) =>
     String(a.name || '').localeCompare(String(b.name || ''))
+  );
+}
+
+/** Build unique assignable people from project owner, members, and team. */
+export function getProjectAssignablePeople(project) {
+  return mergeAssignablePeople(
+    project?.owner,
+    project?.members,
+    project?.team?.lead,
+    project?.team?.members
   );
 }
 

@@ -35,6 +35,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useProject } from '@/features/projects/hooks/useProjects';
+import { useUsers } from '@/features/users/hooks/useUsers';
 import { isSpaceKind } from '@/features/spaces/spaceKinds';
 import {
   useTaskBoard,
@@ -53,6 +54,7 @@ import {
   buildTaskPayload,
   EMPTY_TASK_FORM,
   getProjectAssignablePeople,
+  mergeAssignablePeople,
   toDatetimeLocalValue,
 } from '@/features/tasks/components/TaskFormFields';
 import { useTaskComments, useCreateComment } from '@/features/comments/hooks/useComments';
@@ -690,6 +692,7 @@ export default function ProjectBoardPage() {
   const showApprovalActions = canApproveTasks(userRole);
 
   const { data: project, isLoading: projectLoading } = useProject(projectId);
+  const { data: usersRes } = useUsers({ limit: 200 });
   const { data: board, isLoading: boardLoading } = useTaskBoard(projectId);
   useLiveProjectBoard(projectId);
   const createTask = useCreateTask(projectId);
@@ -776,7 +779,15 @@ export default function ProjectBoardPage() {
     return list;
   }, [board]);
 
-  const assignablePeople = useMemo(() => getProjectAssignablePeople(project), [project]);
+  const assignablePeople = useMemo(
+    () =>
+      mergeAssignablePeople(
+        usersRes?.data ?? [],
+        getProjectAssignablePeople(project),
+        user
+      ),
+    [usersRes, project, user]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })

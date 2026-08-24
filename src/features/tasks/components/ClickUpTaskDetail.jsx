@@ -111,8 +111,7 @@ export function ClickUpTaskDetail({
   const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
   // Delete: Super Admin anywhere; Dept Head / Team Lead only in areas they manage (BE enforces)
   const canDeleteTask =
-    isSuperAdmin ||
-    hasPermission(user, PERMISSIONS.TASK_DELETE);
+    isSuperAdmin || hasPermission(user, PERMISSIONS.TASK_DELETE);
 
   const { data: task, isLoading } = useTask(taskId);
   const { data: activity = [] } = useTaskActivity(taskId);

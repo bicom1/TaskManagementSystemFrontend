@@ -25,7 +25,9 @@ import {
   buildTaskPayload,
   EMPTY_TASK_FORM,
   getProjectAssignablePeople,
+  mergeAssignablePeople,
 } from '@/features/tasks/components/TaskFormFields';
+import { useUsers } from '@/features/users/hooks/useUsers';
 import { useAuthStore } from '@/store/authStore';
 import { getSocket } from '@/api/socketClient';
 import { Button } from '@/components/ui/Button';
@@ -42,6 +44,7 @@ export default function AllTasksPage() {
   const { data: tasks = [], isLoading } = useMyTasks('all');
   const { data: projectsData } = useProjects({ limit: 50 });
   const projects = projectsData?.data ?? [];
+  const { data: usersRes } = useUsers({ limit: 200 });
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -83,14 +86,12 @@ export default function AllTasksPage() {
   }, [projects]);
 
   const people = useMemo(() => {
-    const map = new Map();
+    const fromProjects = [];
     for (const p of projects) {
-      for (const person of getProjectAssignablePeople(p) || []) {
-        if (person?._id) map.set(String(person._id), person);
-      }
+      fromProjects.push(...(getProjectAssignablePeople(p) || []));
     }
-    return [...map.values()];
-  }, [projects]);
+    return mergeAssignablePeople(usersRes?.data ?? [], fromProjects, user);
+  }, [projects, usersRes, user]);
 
   const workspaceName =
     projects[0]?.team?.name || user?.department?.name || "Team's Workspace";

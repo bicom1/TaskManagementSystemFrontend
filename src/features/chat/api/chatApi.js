@@ -37,9 +37,7 @@ export const chatApi = {
   startTaskChat: (taskId) =>
     axiosClient.post('/chat/task', { taskId }).then((r) => r.data.data),
 
-  /**
-   * Send chat message. Pass `files` (File[]) for multipart; otherwise JSON.
-   */
+  
   sendMessage: (conversationId, payload = {}) => {
     const { files, body, mentions, shareLinks } = payload;
     const hasFiles = Array.isArray(files) && files.length > 0;

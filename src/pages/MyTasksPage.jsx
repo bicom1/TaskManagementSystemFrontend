@@ -18,6 +18,7 @@ import {
   buildTaskPayload,
   EMPTY_TASK_FORM,
   getProjectAssignablePeople,
+  mergeAssignablePeople,
 } from '@/features/tasks/components/TaskFormFields';
 import { TaskRow } from '@/features/home/components/HomeCards';
 import { useProject, useCreateProject } from '@/features/projects/hooks/useProjects';
@@ -60,19 +61,6 @@ function StatusStepper({ status }) {
   );
 }
 
-function mergePeople(...lists) {
-  const map = new Map();
-  for (const list of lists) {
-    for (const person of list || []) {
-      if (!person?._id) continue;
-      map.set(String(person._id), person);
-    }
-  }
-  return [...map.values()].sort((a, b) =>
-    String(a.name || '').localeCompare(String(b.name || ''))
-  );
-}
-
 export default function MyTasksPage() {
   const [params, setParams] = useSearchParams();
   const view = params.get('view') || 'assigned';
@@ -98,7 +86,7 @@ export default function MyTasksPage() {
 
   const people = useMemo(
     () =>
-      mergePeople(
+      mergeAssignablePeople(
         usersRes?.data ?? [],
         getProjectAssignablePeople(selectedProject),
         user ? [user] : []

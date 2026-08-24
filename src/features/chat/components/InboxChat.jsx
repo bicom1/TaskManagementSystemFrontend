@@ -51,6 +51,18 @@ import {
 const URL_REGEX =
   /((https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?"')\]])/gi;
 
+function uniqueById(list, getId = (item) => String(item?._id || item)) {
+  const seen = new Set();
+  const out = [];
+  for (const item of list || []) {
+    const id = getId(item);
+    if (!id || id === 'undefined' || seen.has(id)) continue;
+    seen.add(id);
+    out.push(item);
+  }
+  return out;
+}
+
 function formatMsgTime(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -238,7 +250,7 @@ export function InboxChat() {
   const [pendingMentions, setPendingMentions] = useState([]);
   const [typingUser, setTypingUser] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [sidebarMode, setSidebarMode] = useState('chats'); // chats | teams | people
+  const [sidebarMode, setSidebarMode] = useState('chats'); 
   const [pendingFiles, setPendingFiles] = useState([]);
   const [pendingLinks, setPendingLinks] = useState([]);
   const [linkDraft, setLinkDraft] = useState('');
@@ -252,12 +264,16 @@ export function InboxChat() {
   const fileInputRef = useRef(null);
 
   const { data: conversationsData, isLoading: convLoading } = useConversations();
-  const conversations = conversationsData?.data ?? [];
+  const conversations = uniqueById(conversationsData?.data ?? [], (c) => {
+    if (c.type === 'team') return `team:${String(c.team?._id || c.team || c._id)}`;
+    if (c.type === 'department') return `dept:${String(c.department?._id || c.department || c._id)}`;
+    return String(c._id);
+  });
   const chatUnread = conversationsData?.unread ?? 0;
 
   const { data: messagesData, isLoading: messagesLoading } = useConversationMessages(activeId);
   const loadOlder = useLoadOlderMessages(activeId);
-  const messages = messagesData?.data ?? [];
+  const messages = uniqueById(messagesData?.data ?? []);
   const hasMoreMessages = Boolean(messagesData?.pagination?.hasMore);
   const oldestMessageId = messages[0]?._id;
 
@@ -267,8 +283,8 @@ export function InboxChat() {
   );
 
   const { data: directory } = useChatDirectory(true);
-  const myTeams = directory?.myTeams ?? directory?.teams ?? [];
-  const departments = directory?.departments ?? [];
+  const myTeams = uniqueById(directory?.myTeams ?? directory?.teams ?? []);
+  const departments = uniqueById(directory?.departments ?? []);
   const limits = directory?.limits || {
     maxFiles: CHAT_LIMITS.MAX_FILES,
     maxLinks: CHAT_LIMITS.MAX_LINKS,
@@ -347,6 +363,20 @@ export function InboxChat() {
   const handleStartDm = (person) => {
     startDm.mutate(person._id, {
       onSuccess: (conv) => openConversation(conv._id),
+    });
+  };
+
+  const handleOpenTeamChat = (team) => {
+    const existing = conversations.find(
+      (c) =>
+        c.type === 'team' && String(c.team?._id || c.team) === String(team._id)
+    );
+    if (existing) {
+      openConversation(existing._id);
+      return;
+    }
+    startTeam.mutate(team._id, {
+      onSuccess: (c) => openConversation(c._id),
     });
   };
 
@@ -559,7 +589,7 @@ export function InboxChat() {
                 <p className="px-2 py-3 text-xs text-graphite">No people matched.</p>
               )}
               <ul className="space-y-0.5">
-                {people.map((person) => (
+                {people.filter((p, i, arr) => arr.findIndex((x) => String(x._id) === String(p._id)) === i).map((person) => (
                   <li key={person._id}>
                     <button
                       type="button"
@@ -598,11 +628,7 @@ export function InboxChat() {
                       <li key={team._id}>
                         <button
                           type="button"
-                          onClick={() =>
-                            startTeam.mutate(team._id, {
-                              onSuccess: (c) => openConversation(c._id),
-                            })
-                          }
+                          onClick={() => handleOpenTeamChat(team)}
                           className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-paper"
                         >
                           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-on-ink">
@@ -770,6 +796,13 @@ export function InboxChat() {
                 </h2>
                 <p className="truncate text-xs text-graphite">
                   {conversationSubtitle(activeConversation, userId)}
+                  {activeConversation?.type === 'team' && activeConversation?.participants?.length
+                    ? ` · ${uniqueById(activeConversation.participants)
+                        .map((p) => p.name)
+                        .filter(Boolean)
+                        .slice(0, 6)
+                        .join(', ')}${(activeConversation.participants.length || 0) > 6 ? '…' : ''}`
+                    : ''}
                   {typingUser ? ' · typing…' : ''}
                 </p>
               </div>

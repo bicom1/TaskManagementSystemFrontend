@@ -171,12 +171,7 @@ export function useLiveChatNotifications() {
       if (!convId) return;
 
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
-      queryClient.setQueryData([CHAT_MESSAGES_KEY, convId], (old) => {
-        if (!old?.data) return old;
-        const exists = old.data.some((m) => String(m._id) === String(message._id));
-        if (exists) return old;
-        return { ...old, data: [...old.data, message] };
-      });
+      // Do not append here — useLiveChat owns the thread cache (avoids duplicate bubbles).
 
       const fromId = String(message.from?._id || message.from);
       if (!userId || fromId === String(userId)) return;

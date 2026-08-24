@@ -7,7 +7,11 @@ import { getSocket } from '@/api/socketClient';
 const KEY = 'projects';
 
 export function useProjects(params) {
-  return useQuery({ queryKey: [KEY, params], queryFn: () => projectApi.list(params) });
+  return useQuery({
+    queryKey: [KEY, params],
+    queryFn: () => projectApi.list(params),
+    staleTime: 45_000,
+  });
 }
 
 export function useProject(id) {

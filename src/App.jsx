@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { AppShell } from './components/layout/AppShell';
@@ -6,27 +7,28 @@ import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AcceptInvitePage from './pages/AcceptInvitePage';
-import HomePage from './pages/HomePage';
-import AuditLogsPage from './pages/AuditLogsPage';
-import MyTasksPage from './pages/MyTasksPage';
-import AllTasksPage from './pages/AllTasksPage';
-import AssignedCommentsPage from './pages/AssignedCommentsPage';
-import AgendaPage from './pages/AgendaPage';
-import ProjectsPage from './pages/ProjectsPage';
-import SpacesPage from './pages/SpacesPage';
-import ProjectBoardPage from './pages/ProjectBoardPage';
-import ReportsPage from './pages/ReportsPage';
-import NotificationsPage from './pages/NotificationsPage';
-import SettingsPage from './pages/SettingsPage';
-import BoardsPage from './pages/BoardsPage';
-import ApprovalsPage from './pages/ApprovalsPage';
 import GoogleCallbackPage from './pages/GoogleCallbackPage';
-import TeamsHubLayout from './pages/teams/TeamsHubLayout';
-import AllPeoplePage from './pages/teams/AllPeoplePage';
-import AllTeamsPage from './pages/teams/AllTeamsPage';
-import TeamDetailPage from './pages/teams/TeamDetailPage';
-import OrgChartPage from './pages/teams/OrgChartPage';
-import TeamsAnalyticsPage from './pages/teams/TeamsAnalyticsPage';
+
+const HomePage = lazy(() => import('./pages/HomePage'));
+const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'));
+const MyTasksPage = lazy(() => import('./pages/MyTasksPage'));
+const AllTasksPage = lazy(() => import('./pages/AllTasksPage'));
+const AssignedCommentsPage = lazy(() => import('./pages/AssignedCommentsPage'));
+const AgendaPage = lazy(() => import('./pages/AgendaPage'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const SpacesPage = lazy(() => import('./pages/SpacesPage'));
+const ProjectBoardPage = lazy(() => import('./pages/ProjectBoardPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const BoardsPage = lazy(() => import('./pages/BoardsPage'));
+const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage'));
+const TeamsHubLayout = lazy(() => import('./pages/teams/TeamsHubLayout'));
+const AllPeoplePage = lazy(() => import('./pages/teams/AllPeoplePage'));
+const AllTeamsPage = lazy(() => import('./pages/teams/AllTeamsPage'));
+const TeamDetailPage = lazy(() => import('./pages/teams/TeamDetailPage'));
+const OrgChartPage = lazy(() => import('./pages/teams/OrgChartPage'));
+const TeamsAnalyticsPage = lazy(() => import('./pages/teams/TeamsAnalyticsPage'));
 
 export default function App() {
   return (
@@ -52,7 +54,6 @@ export default function App() {
         <Route path="home/assigned-comments" element={<AssignedCommentsPage />} />
         <Route path="home/agenda" element={<AgendaPage />} />
         <Route path="home/meetings" element={<AgendaPage />} />
-
         <Route path="inbox" element={<NotificationsPage />} />
         <Route path="notifications" element={<Navigate to="/inbox" replace />} />
         <Route path="approvals" element={<ApprovalsPage />} />
@@ -61,7 +62,6 @@ export default function App() {
         <Route path="spaces" element={<SpacesPage />} />
         <Route path="spaces/:id" element={<ProjectBoardPage />} />
         <Route path="boards" element={<BoardsPage />} />
-
         <Route path="teams" element={<TeamsHubLayout />}>
           <Route index element={<Navigate to="people" replace />} />
           <Route path="people" element={<AllPeoplePage />} />
@@ -70,7 +70,6 @@ export default function App() {
           <Route path="analytics" element={<TeamsAnalyticsPage />} />
           <Route path=":teamId" element={<TeamDetailPage />} />
         </Route>
-
         <Route path="people" element={<Navigate to="/teams/people" replace />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="audit" element={<AuditLogsPage />} />

@@ -51,6 +51,7 @@ export function getSocket() {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 8000,
       transports: ['websocket', 'polling'],
+      timeout: 12_000,
     });
   } else if (token) {
     socket.auth = { token };

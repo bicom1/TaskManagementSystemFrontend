@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { CheckSquare, FolderKanban, Mail, UserPlus, Users } from 'lucide-react';
 import { IconRail } from './IconRail';
@@ -10,6 +10,7 @@ import { CreateSpaceWizard } from '@/features/spaces/components/CreateSpaceWizar
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { LoadingScreen } from '@/components/ui/Spinner';
 import { useLiveSpaces } from '@/features/projects/hooks/useProjects';
 
 function isHomeSection(pathname) {
@@ -97,7 +98,9 @@ export function AppShell() {
           onCreate={() => setCreateOpen(true)}
         />
         <main className={cn('flex-1 overflow-x-hidden overflow-y-auto border-t border-hairline bg-canvas')}>
-          <Outlet />
+          <Suspense fallback={<LoadingScreen message="Loading workspace…" />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

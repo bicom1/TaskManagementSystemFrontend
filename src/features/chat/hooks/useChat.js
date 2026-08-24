@@ -6,6 +6,7 @@ import { chatApi } from '../api/chatApi';
 import { getSocket } from '../../../api/socketClient';
 import { useAuthStore } from '../../../store/authStore';
 import { playMessageNotifySound } from '../../../lib/notifySound';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { getActiveChatId, setActiveChatId } from '../chatActiveStore';
 
 export const CHAT_CONVERSATIONS_KEY = 'chat-conversations';
@@ -24,11 +25,12 @@ export function useChatDirectory(enabled = true) {
 
 export function useChatPeople(q, enabled = true) {
   const token = useAuthStore((s) => s.accessToken);
+  const debouncedQ = useDebouncedValue(q, 280);
   return useQuery({
-    queryKey: [CHAT_PEOPLE_KEY, q || ''],
-    queryFn: () => chatApi.searchPeople({ q: q || '', limit: 40 }),
+    queryKey: [CHAT_PEOPLE_KEY, debouncedQ || ''],
+    queryFn: () => chatApi.searchPeople({ q: debouncedQ || '', limit: 40 }),
     enabled: enabled && Boolean(token),
-    staleTime: 15_000,
+    staleTime: 30_000,
   });
 }
 

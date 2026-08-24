@@ -5,7 +5,7 @@ export function useWorkspaceOverview() {
   return useQuery({
     queryKey: ['report-workspace'],
     queryFn: reportApi.workspaceOverview,
-    refetchInterval: 30_000,
+    refetchInterval: 90_000,
   });
 }
 
@@ -14,7 +14,7 @@ export function useProjectSummary(projectId) {
     queryKey: ['report-summary', projectId],
     queryFn: () => reportApi.projectSummary(projectId),
     enabled: Boolean(projectId),
-    refetchInterval: 30_000,
+    refetchInterval: 90_000,
   });
 }
 
@@ -23,7 +23,7 @@ export function useTeamWorkload(projectId) {
     queryKey: ['report-workload', projectId],
     queryFn: () => reportApi.teamWorkload(projectId),
     enabled: Boolean(projectId),
-    refetchInterval: 30_000,
+    refetchInterval: 90_000,
   });
 }
 
@@ -32,7 +32,7 @@ export function useCompletionTrend(projectId, days = 14) {
     queryKey: ['report-trend', projectId, days],
     queryFn: () => reportApi.completionTrend(projectId, days),
     enabled: Boolean(projectId),
-    refetchInterval: 30_000,
+    refetchInterval: 90_000,
   });
 }
 
@@ -41,6 +41,6 @@ export function useWorkloadAnalytics(params, enabled = true) {
     queryKey: ['report-analytics', params],
     queryFn: () => reportApi.workloadAnalytics(params),
     enabled,
-    refetchInterval: 30_000,
+    refetchInterval: 90_000,
   });
 }

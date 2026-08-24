@@ -37,7 +37,10 @@ export function useLiveMyTasks() {
     if (!socket) return undefined;
 
     const refreshMine = () => {
-      queryClient.invalidateQueries({ queryKey: [KEY] });
+      window.clearTimeout(refreshMine._t);
+      refreshMine._t = window.setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: [KEY] });
+      }, 400);
     };
 
     socket.on('task:assigned', refreshMine);

@@ -9,9 +9,17 @@ import './index.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      staleTime: 60_000,
+      gcTime: 10 * 60_000,
       retry: 1,
+      retryDelay: 800,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      placeholderData: (previousData) => previousData,
+    },
+    mutations: {
+      retry: 0,
     },
   },
 });

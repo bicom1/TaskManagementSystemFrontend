@@ -37,6 +37,9 @@ export const chatApi = {
   startTaskChat: (taskId) =>
     axiosClient.post('/chat/task', { taskId }).then((r) => r.data.data),
 
+  startProjectChat: (projectId) =>
+    axiosClient.post('/chat/project', { projectId }).then((r) => r.data.data),
+
   
   sendMessage: (conversationId, payload = {}) => {
     const { files, body, mentions, shareLinks } = payload;

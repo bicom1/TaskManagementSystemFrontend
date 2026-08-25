@@ -33,6 +33,7 @@ import {
   Settings,
   Filter,
   ChevronDown,
+  Star,
 } from 'lucide-react';
 import { useProject } from '@/features/projects/hooks/useProjects';
 import { useUsers } from '@/features/users/hooks/useUsers';
@@ -81,6 +82,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ClickUpTasksList } from '@/features/tasks/components/ClickUpTasksList';
 import { ClickUpTaskDetail } from '@/features/tasks/components/ClickUpTaskDetail';
+import { ProjectChannelView } from '@/features/spaces/components/ProjectChannelView';
 
 function getApprovalBadgeVariant(status) {
   if (status === 'pending') return 'warning';
@@ -725,12 +727,13 @@ export default function ProjectBoardPage() {
 
   const [viewMode, setViewMode] = useState(() => {
     const v = searchParams.get('view');
-    return v === 'board' ? 'board' : 'list';
+    if (v === 'board' || v === 'list' || v === 'channel') return v;
+    return 'channel';
   });
 
   useEffect(() => {
     const v = searchParams.get('view');
-    if (v === 'board' || v === 'list') setViewMode(v);
+    if (v === 'board' || v === 'list' || v === 'channel') setViewMode(v);
     else if (project?.activeView === 'board' || project?.activeView === 'list') {
       setViewMode(project.activeView);
     }
@@ -901,7 +904,7 @@ export default function ProjectBoardPage() {
     }
   };
 
-  if (projectLoading || boardLoading) {
+  if (projectLoading || (viewMode !== 'channel' && boardLoading)) {
     return (
       <div className="px-4 py-8">
         <LoadingScreen />
@@ -930,6 +933,7 @@ export default function ProjectBoardPage() {
             <h1 className="truncate text-base font-semibold text-ink">
               {project?.name ?? entityLabel}
             </h1>
+            <Star className="h-4 w-4 shrink-0 text-graphite" />
             <ChevronDown className="h-4 w-4 shrink-0 text-graphite" />
           </div>
           <div className="flex items-center gap-1 text-graphite">
@@ -941,16 +945,14 @@ export default function ProjectBoardPage() {
 
         <div className="mt-2 flex items-center gap-1 overflow-x-auto">
           {[
-            { id: 'channel', label: 'Channel', icon: Hash, enabled: false },
+            { id: 'channel', label: 'Channel', icon: Hash, enabled: true },
             { id: 'list', label: 'List', icon: List, enabled: true },
             { id: 'board', label: 'Board', icon: LayoutGrid, enabled: true },
             { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: false },
             { id: 'docs', label: 'Gantt', icon: FileText, enabled: false },
           ].map((tab) => {
             const Icon = tab.icon;
-            const active =
-              (tab.id === 'list' && viewMode === 'list') ||
-              (tab.id === 'board' && viewMode === 'board');
+            const active = tab.id === viewMode;
             return (
               <button
                 key={tab.id}
@@ -981,6 +983,7 @@ export default function ProjectBoardPage() {
         </div>
       </div>
 
+      {viewMode !== 'channel' && (
       <div className="flex items-center justify-between gap-2 border-b border-hairline bg-paper px-4 py-2">
         <div className="flex items-center gap-2 text-xs text-graphite">
           <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1 font-medium text-ink">
@@ -1010,8 +1013,19 @@ export default function ProjectBoardPage() {
           </Button>
         </div>
       </div>
+      )}
 
-      {viewMode === 'board' ? (
+      {viewMode === 'channel' ? (
+        <ProjectChannelView
+          project={project}
+          projectId={projectId}
+          people={assignablePeople}
+          onTrackTasks={() => setView('list')}
+          onAddDoc={() =>
+            createQuickTask({ title: 'Untitled document' }, { onSuccess: () => setView('list') })
+          }
+        />
+      ) : viewMode === 'board' ? (
         <div className="flex-1 overflow-x-auto bg-cloud/50 p-4">
           <DndContext
             sensors={sensors}

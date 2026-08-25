@@ -124,23 +124,102 @@ export function useStartDepartmentChat() {
   });
 }
 
+export function useProjectChannel(projectId) {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['chat-project', projectId],
+    queryFn: () => chatApi.startProjectChat(projectId),
+    enabled: Boolean(projectId && token),
+    staleTime: 60_000,
+  });
+}
+
 export function useSendChatMessage(conversationId) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload) => chatApi.sendMessage(conversationId, payload),
-    onSuccess: (message) => {
+    onMutate: async (payload) => {
+      const files = payload?.files || [];
+      const attachments = files.map((file) => {
+        const previewUrl = URL.createObjectURL(file);
+        return {
+          url: previewUrl,
+          previewUrl,
+          fileName: file.name,
+          fileType: file.type,
+          size: file.size,
+          localPreview: true,
+        };
+      });
+      const user = useAuthStore.getState().user;
+      const clientId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const optimistic = {
+        _id: clientId,
+        clientId,
+        pending: true,
+        body: payload?.body || '',
+        attachments,
+        shareLinks: payload?.shareLinks || [],
+        mentions: payload?.mentions || [],
+        from: user,
+        createdAt: new Date().toISOString(),
+        conversation: conversationId,
+        type: 'chat',
+      };
+
+      queryClient.setQueryData([CHAT_MESSAGES_KEY, conversationId], (old) => {
+        if (!old) return { data: [optimistic], pagination: {} };
+        return { ...old, data: [...(old.data || []), optimistic] };
+      });
+
+      return { clientId, previewUrls: attachments.map((a) => a.previewUrl || a.url) };
+    },
+    onSuccess: (message, _payload, ctx) => {
       queryClient.setQueryData([CHAT_MESSAGES_KEY, conversationId], (old) => {
         if (!old) return { data: [message], pagination: {} };
-        const exists = (old.data || []).some((m) => m._id === message._id);
-        if (exists) return old;
-        return { ...old, data: [...(old.data || []), message] };
+        const merged = mergeServerMessage(message, ctx);
+        const withoutDup = (old.data || []).filter(
+          (m) =>
+            String(m._id) !== String(ctx?.clientId) &&
+            String(m._id) !== String(message._id)
+        );
+        return { ...old, data: [...withoutDup, merged] };
       });
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
     },
-    onError: (error) => {
+    onError: (error, _payload, ctx) => {
+      queryClient.setQueryData([CHAT_MESSAGES_KEY, conversationId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: (old.data || []).filter((m) => String(m._id) !== String(ctx?.clientId)),
+        };
+      });
+      (ctx?.previewUrls || []).forEach((url) => {
+        if (url && String(url).startsWith('blob:')) URL.revokeObjectURL(url);
+      });
       toast.error(error?.response?.data?.message ?? 'Failed to send');
     },
   });
+}
+
+function mergeServerMessage(message, ctx) {
+  const previews = ctx?.previewUrls || [];
+  if (!previews.length) return message;
+  return {
+    ...message,
+    attachments: (message.attachments || []).map((file, i) => ({
+      ...file,
+      previewUrl: previews[i] || file.previewUrl,
+    })),
+  };
+}
+
+function mergeAttachmentPreviews(local = [], remote = []) {
+  return (remote || []).map((file, i) => ({
+    ...file,
+    previewUrl: local?.[i]?.previewUrl || local?.[i]?.url || file.previewUrl,
+  }));
 }
 
 export function useMarkConversationRead() {
@@ -236,9 +315,29 @@ export function useLiveChat(activeConversationId, { onTyping } = {}) {
           }
           return old;
         }
-        const exists = (old.data || []).some((m) => String(m._id) === String(message._id));
-        if (exists) return old;
-        return { ...old, data: [...(old.data || []), message] };
+        const rows = old.data || [];
+        const exists = rows.some((m) => String(m._id) === String(message._id));
+        if (exists) {
+          return {
+            ...old,
+            data: rows.map((m) =>
+              String(m._id) === String(message._id) ? { ...m, ...message, previewUrl: m.previewUrl, attachments: mergeAttachmentPreviews(m.attachments, message.attachments) } : m
+            ),
+          };
+        }
+        const fromId = String(message.from?._id || message.from || '');
+        const pendingIdx = rows.findIndex(
+          (m) => m.pending && String(m.from?._id || m.from || '') === fromId
+        );
+        if (pendingIdx >= 0) {
+          const pending = rows[pendingIdx];
+          const next = [...rows];
+          next[pendingIdx] = mergeServerMessage(message, {
+            previewUrls: (pending.attachments || []).map((a) => a.previewUrl || a.url),
+          });
+          return { ...old, data: next };
+        }
+        return { ...old, data: [...rows, message] };
       });
 
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });

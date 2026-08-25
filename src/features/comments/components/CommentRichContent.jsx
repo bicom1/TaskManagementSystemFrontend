@@ -1,4 +1,5 @@
 import { ExternalLink, FileText, Paperclip } from 'lucide-react';
+import { ChatImage } from '@/features/chat/components/ChatImage';
 
 const URL_REGEX =
   /((https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?"')\]])/gi;
@@ -70,20 +71,13 @@ export function CommentAttachments({ attachments = [], links = [] }) {
             const key = `${file.url}-${file.fileName}`;
             if (isImageType(file.fileType, file.fileName)) {
               return (
-                <a
+                <ChatImage
                   key={key}
-                  href={file.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group block overflow-hidden rounded-lg border border-hairline bg-cloud"
-                  title={file.fileName}
-                >
-                  <img
-                    src={file.url}
-                    alt={file.fileName || 'Attachment'}
-                    className="h-24 w-32 object-cover transition group-hover:opacity-90"
-                  />
-                </a>
+                  src={file.url}
+                  previewUrl={file.previewUrl}
+                  alt={file.fileName || 'Attachment'}
+                  className="h-24 w-32 object-cover"
+                />
               );
             }
             return (

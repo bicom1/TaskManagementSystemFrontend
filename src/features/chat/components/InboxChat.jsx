@@ -13,7 +13,6 @@ import {
   Hash,
   Paperclip,
   X,
-  Image as ImageIcon,
   FileText,
   ExternalLink,
 } from 'lucide-react';
@@ -23,6 +22,7 @@ import { useAuthStore } from '@/store/authStore';
 import { getRoleLabel } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/UserAvatar';
+import { ChatImage, FileThumb } from '@/features/chat/components/ChatImage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingScreen } from '@/components/ui/Spinner';
@@ -40,7 +40,6 @@ import {
   useLiveChat,
   emitChatTyping,
 } from '../hooks/useChat';
-import { ImageCropModal } from './ImageCropModal';
 import {
   CHAT_LIMITS,
   formatBytes,
@@ -89,6 +88,9 @@ function conversationTitle(conversation, currentUserId) {
       ? `${conversation.relatedTask.key} · ${conversation.relatedTask.title}`
       : 'Task chat';
   }
+  if (conversation.type === 'project') {
+    return conversation.title || conversation.relatedProject?.name || 'Project channel';
+  }
   return 'Conversation';
 }
 
@@ -108,6 +110,7 @@ function conversationSubtitle(conversation, currentUserId) {
   }
   if (conversation?.type === 'department') return 'Department channel';
   if (conversation?.type === 'task') return 'Task discussion';
+  if (conversation?.type === 'project') return 'Project channel';
   return '';
 }
 
@@ -198,19 +201,13 @@ function MessageAttachments({ attachments = [], mine = false }) {
         const image = isImageFile({ type: file.fileType, name: file.fileName });
         if (image) {
           return (
-            <a
+            <ChatImage
               key={key}
-              href={file.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block overflow-hidden rounded-lg border border-white/20"
-            >
-              <img
-                src={file.url}
-                alt={file.fileName || 'Image'}
-                className="max-h-48 max-w-[220px] object-cover"
-              />
-            </a>
+              src={file.url}
+              previewUrl={file.previewUrl}
+              alt={file.fileName || 'Image'}
+              className="max-h-56 max-w-[260px] object-cover"
+            />
           );
         }
         return (
@@ -256,8 +253,6 @@ export function InboxChat() {
   const [linkDraft, setLinkDraft] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
   const [linkOpen, setLinkOpen] = useState(false);
-  const [cropSrc, setCropSrc] = useState(null);
-  const [cropName, setCropName] = useState('image.jpg');
 
   const bottomRef = useRef(null);
   const typingTimer = useRef(null);
@@ -427,20 +422,8 @@ export function InboxChat() {
     const list = Array.from(e.target.files || []);
     e.target.value = '';
     for (const file of list) {
-      if (isImageFile(file)) {
-        const url = URL.createObjectURL(file);
-        setCropSrc(url);
-        setCropName(file.name || 'image.jpg');
-        return;
-      }
       addPendingFile(file);
     }
-  };
-
-  const onCropped = (file) => {
-    if (cropSrc) URL.revokeObjectURL(cropSrc);
-    setCropSrc(null);
-    addPendingFile(file);
   };
 
   const addPendingLink = () => {
@@ -481,22 +464,16 @@ export function InboxChat() {
       }
     }
 
-    sendMessage.mutate(
-      {
-        body: text,
-        mentions: mentionIds,
-        shareLinks: pendingLinks,
-        files: pendingFiles,
-      },
-      {
-        onSuccess: () => {
-          setDraft('');
-          setPendingMentions([]);
-          setPendingFiles([]);
-          setPendingLinks([]);
-        },
-      }
-    );
+    sendMessage.mutate({
+      body: text,
+      mentions: mentionIds,
+      shareLinks: pendingLinks,
+      files: pendingFiles,
+    });
+    setDraft('');
+    setPendingMentions([]);
+    setPendingFiles([]);
+    setPendingLinks([]);
   };
 
   const shareLink =
@@ -930,12 +907,11 @@ export function InboxChat() {
                       className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-cloud px-2 py-1 text-[11px]"
                     >
                       {isImageFile(file) ? (
-                        <ImageIcon className="h-3 w-3" />
+                        <FileThumb file={file} className="h-12 w-12 rounded object-cover" />
                       ) : (
                         <FileText className="h-3 w-3" />
                       )}
                       <span className="max-w-[120px] truncate">{file.name}</span>
-                      <span className="text-graphite">{formatBytes(file.size)}</span>
                       <button
                         type="button"
                         onClick={() =>
@@ -1003,7 +979,6 @@ export function InboxChat() {
                   variant="outline"
                   title="Attach image or document"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={sendMessage.isPending}
                 >
                   <Paperclip className="h-4 w-4" />
                 </Button>
@@ -1057,7 +1032,7 @@ export function InboxChat() {
                 <Button
                   type="button"
                   onClick={handleSend}
-                  disabled={!canSend || sendMessage.isPending}
+                  disabled={!canSend}
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -1066,17 +1041,6 @@ export function InboxChat() {
           </>
         )}
       </section>
-
-      <ImageCropModal
-        open={Boolean(cropSrc)}
-        imageSrc={cropSrc}
-        fileName={cropName}
-        onClose={() => {
-          if (cropSrc) URL.revokeObjectURL(cropSrc);
-          setCropSrc(null);
-        }}
-        onCropped={onCropped}
-      />
     </div>
   );
 }

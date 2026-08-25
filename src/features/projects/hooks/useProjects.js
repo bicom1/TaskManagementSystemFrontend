@@ -77,3 +77,19 @@ export function useUpdateProject() {
     },
   });
 }
+
+export function useAddProjectMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, userId }) => projectApi.addMember(id, userId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [KEY] });
+      queryClient.invalidateQueries({ queryKey: [KEY, variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['chat-project', variables.id] });
+      toast.success('Person added to this project');
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message ?? 'Could not add person');
+    },
+  });
+}

@@ -3,24 +3,25 @@ import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-2 border font-semibold uppercase tracking-[0.7px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+  'inline-flex cursor-pointer items-center justify-center gap-2 border font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]',
   {
     variants: {
       variant: {
         primary:
-          'border-primary bg-primary text-on-ink hover:border-primary-bright hover:bg-primary-bright',
-        outline: 'border-primary bg-paper text-primary hover:bg-primary-soft',
+          'border-primary bg-primary text-on-ink shadow-soft-lift hover:border-primary-bright hover:bg-primary-bright',
+        outline:
+          'border-hairline bg-paper text-ink hover:border-primary/40 hover:bg-primary-soft/50 hover:text-primary-deep',
         ink: 'border-ink bg-ink text-on-ink hover:border-charcoal hover:bg-charcoal',
         ghost:
-          'border-transparent bg-transparent text-charcoal hover:border-hairline hover:bg-cloud uppercase tracking-normal font-medium normal-case',
+          'border-transparent bg-transparent text-charcoal hover:bg-cloud hover:text-ink',
         destructive:
           'border-bloom-coral bg-bloom-coral text-on-ink hover:border-bloom-deep hover:bg-bloom-deep',
       },
       size: {
-        default: 'h-11 px-6 rounded-md text-sm',
-        sm: 'h-9 px-4 rounded-md text-xs',
-        lg: 'h-11 px-8 rounded-md text-sm',
-        icon: 'h-11 w-11 rounded-md',
+        default: 'h-10 rounded-lg px-4 text-sm normal-case tracking-normal',
+        sm: 'h-8 rounded-lg px-3 text-xs normal-case tracking-normal',
+        lg: 'h-11 rounded-xl px-6 text-sm normal-case tracking-normal',
+        icon: 'h-9 w-9 rounded-lg',
       },
     },
     defaultVariants: {

@@ -60,19 +60,21 @@ function SpaceRow({ space, active }) {
     <NavLink
       to={spacePath(space._id)}
       className={cn(
-        'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-        active ? 'bg-paper font-medium text-ink' : 'text-charcoal hover:bg-paper/80'
+        'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors',
+        active
+          ? 'bg-paper font-medium text-ink shadow-soft-lift'
+          : 'text-charcoal hover:bg-paper/90'
       )}
     >
       <span
         className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-        style={{ backgroundColor: space.color || '#292524' }}
+        style={{ backgroundColor: space.color || '#1a1a1a' }}
       >
         {(space.icon || space.name?.[0] || 'S').toString().slice(0, 1)}
       </span>
       <span className="min-w-0 flex-1 truncate">{space.name}</span>
       {space.openTaskCount > 0 && (
-        <span className="shrink-0 tabular-nums text-[10px] font-semibold text-graphite">
+        <span className="shrink-0 rounded bg-fog px-1.5 py-0.5 tabular-nums text-[10px] font-semibold text-graphite">
           {space.openTaskCount}
         </span>
       )}
@@ -200,11 +202,11 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
                     item.matchPrefix && location.pathname.startsWith(item.matchPrefix);
                   const active = isActive || prefixActive;
                   return cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                     collapsed && 'justify-center px-0',
                     active
-                      ? 'bg-paper text-ink shadow-[var(--shadow-soft-lift)]'
-                      : 'text-charcoal hover:bg-paper/80 hover:text-ink'
+                      ? 'bg-paper text-ink shadow-soft-lift'
+                      : 'text-charcoal hover:bg-paper/90 hover:text-ink'
                   );
                 }}
               >
@@ -213,7 +215,7 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
                   <>
                     <span className="flex-1 truncate">{item.label}</span>
                     {badge != null && (
-                      <span className="rounded-sm bg-primary px-1.5 py-0.5 text-[10px] font-bold text-on-ink">
+                      <span className="rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-on-ink">
                         {badge > 99 ? '99+' : badge}
                       </span>
                     )}
@@ -230,7 +232,7 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
               <button
                 type="button"
                 onClick={onInvite}
-                className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-charcoal hover:bg-paper/80 hover:text-ink"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-charcoal transition hover:bg-paper/90 hover:text-ink"
               >
                 <UserPlus className="h-[18px] w-[18px]" />
                 Invite people

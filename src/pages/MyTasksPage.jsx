@@ -198,9 +198,9 @@ export default function MyTasksPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 lg:px-8">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">My Tasks</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">My Tasks</h1>
           <p className="mt-1 text-sm text-graphite">
             {view === 'assigned'
               ? 'Tasks where you are an assignee — updates live when someone assigns you.'
@@ -213,28 +213,24 @@ export default function MyTasksPage() {
           {isFetching && !isLoading ? (
             <span className="text-xs text-graphite">Updating…</span>
           ) : null}
-          <Button
-            size="sm"
-            className="normal-case tracking-normal"
-            onClick={() => setParams({ view, add: '1' })}
-          >
+          <Button size="sm" onClick={() => setParams({ view, add: '1' })}>
             <Plus className="h-4 w-4" />
             Add task
           </Button>
         </div>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-1 rounded-lg border border-hairline bg-cloud p-1">
+      <div className="mb-5 flex flex-wrap gap-1 rounded-xl border border-hairline bg-cloud p-1">
         {VIEWS.map((v) => (
           <button
             key={v.id}
             type="button"
             onClick={() => setParams({ view: v.id })}
             className={cn(
-              'rounded-md border px-3 py-2 text-sm font-medium',
+              'rounded-lg px-3 py-2 text-sm font-medium transition',
               view === v.id
-                ? 'border-hairline bg-paper text-ink shadow-sm'
-                : 'border-transparent text-charcoal hover:border-hairline hover:text-ink'
+                ? 'bg-paper text-ink shadow-soft-lift'
+                : 'text-charcoal hover:text-ink'
             )}
           >
             {v.label}

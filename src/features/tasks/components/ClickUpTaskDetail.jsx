@@ -71,7 +71,7 @@ function Popover({ open, onClose, children, className }) {
     <div
       ref={ref}
       className={cn(
-        'absolute z-50 mt-1 min-w-[200px] rounded-lg border border-hairline bg-paper p-2 shadow-[var(--shadow-soft-lift)]',
+        'absolute z-50 mt-1 min-w-[200px] rounded-xl border border-hairline bg-paper p-2 shadow-[0_12px_40px_rgba(26,26,26,0.12)]',
         className
       )}
       onClick={(e) => e.stopPropagation()}

@@ -78,6 +78,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
 import { LoadingScreen } from '@/components/ui/Spinner';
+import { UserAvatar } from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ClickUpTasksList } from '@/features/tasks/components/ClickUpTasksList';
@@ -197,18 +198,20 @@ function TaskCard({ task, onClick, isDragging, userRole, projectId, showApproval
       ref={setNodeRef}
       style={style}
       className={cn(
-        'rounded-xl border border-hairline bg-paper p-3 shadow-[var(--shadow-soft-lift)] cursor-pointer',
-        isDragging && 'opacity-50',
+        'group rounded-xl border border-hairline bg-paper p-3 shadow-soft-lift transition hover:border-steel hover:shadow-md',
+        isDragging && 'opacity-50 ring-2 ring-primary/30',
         !dragEnabled && 'opacity-90'
       )}
       onClick={onClick}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
-        <span className="text-xs font-medium text-graphite">{task.key}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
+          {task.key}
+        </span>
         {dragEnabled ? (
           <button
             type="button"
-            className="cursor-grab text-steel hover:text-charcoal"
+            className="cursor-grab rounded p-0.5 text-steel opacity-0 transition group-hover:opacity-100 hover:bg-cloud hover:text-charcoal"
             {...attributes}
             {...listeners}
             onClick={(e) => e.stopPropagation()}
@@ -216,12 +219,12 @@ function TaskCard({ task, onClick, isDragging, userRole, projectId, showApproval
             <GripVertical className="h-4 w-4" />
           </button>
         ) : (
-          <span className="text-[10px] text-graphite" title="Awaiting approval">
+          <span className="text-[10px] font-medium text-graphite" title="Awaiting approval">
             Locked
           </span>
         )}
       </div>
-      <p className="mb-2 text-sm font-medium text-ink">{task.title}</p>
+      <p className="mb-2.5 text-sm font-medium leading-snug text-ink">{task.title}</p>
       <div className="mb-2 flex flex-wrap gap-1.5">
         <Badge variant={priorityVariant[task.priority] || 'secondary'}>
           {PRIORITY_LABELS[task.priority] ?? task.priority}
@@ -243,9 +246,22 @@ function TaskCard({ task, onClick, isDragging, userRole, projectId, showApproval
             <p>Due {format(new Date(task.dueDate), 'MMM d · h:mm a')}</p>
           ) : null}
           {task.assignees?.length ? (
-            <p className="truncate">
-              {task.assignees.map((a) => a.name || a).join(', ')}
-            </p>
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <div className="flex -space-x-1.5">
+                {task.assignees.slice(0, 3).map((a) => (
+                  <UserAvatar
+                    key={String(a._id || a)}
+                    user={typeof a === 'object' ? a : null}
+                    name={a.name || '?'}
+                    size="xs"
+                    className="ring-1 ring-paper"
+                  />
+                ))}
+              </div>
+              {task.assignees.length > 3 ? (
+                <span className="text-[10px]">+{task.assignees.length - 3}</span>
+              ) : null}
+            </div>
           ) : null}
         </div>
       )}
@@ -265,15 +281,17 @@ function KanbanColumn({
   showApprovalActions,
 }) {
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-xl bg-cloud p-3">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-charcoal">
+    <div className="flex w-72 shrink-0 flex-col rounded-2xl border border-hairline/80 bg-cloud/80 p-3">
+      <div className="mb-3 flex items-center justify-between px-0.5">
+        <h3 className="text-[13px] font-semibold tracking-tight text-ink">
           {label || STATUS_LABELS[status]}
         </h3>
-        <span className="rounded-md bg-fog px-2 py-0.5 text-xs text-graphite">{tasks.length}</span>
+        <span className="rounded-md bg-paper px-2 py-0.5 text-[11px] font-semibold tabular-nums text-graphite shadow-soft-lift">
+          {tasks.length}
+        </span>
       </div>
       <SortableContext items={tasks.map((t) => t._id)} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-1 flex-col gap-2 overflow-y-auto min-h-[120px]">
+        <div className="flex min-h-[120px] flex-1 flex-col gap-2.5 overflow-y-auto">
           {tasks.map((task) => (
             <TaskCard
               key={task._id}
@@ -915,35 +933,49 @@ export default function ProjectBoardPage() {
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col bg-paper">
-      <div className="border-b border-hairline bg-paper px-4 pt-3">
+      <div className="border-b border-hairline bg-paper px-4 pt-3.5 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2 text-sm">
-            <Link to={catalogHref} className="shrink-0 text-graphite hover:text-ink">
+            <Link
+              to={catalogHref}
+              className="shrink-0 font-medium text-graphite transition hover:text-primary"
+            >
               {catalogLabel}
             </Link>
-            <span className="text-graphite">/</span>
+            <span className="text-steel">/</span>
             <span
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[11px] font-bold text-white"
-              style={{ backgroundColor: project?.color || '#292524' }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white shadow-soft-lift"
+              style={{ backgroundColor: project?.color || '#1a1a1a' }}
             >
               {(project?.icon || project?.name?.[0] || (isSpaceContext ? 'S' : 'P'))
                 .toString()
                 .slice(0, 1)}
             </span>
-            <h1 className="truncate text-base font-semibold text-ink">
+            <h1 className="truncate text-[15px] font-semibold tracking-tight text-ink">
               {project?.name ?? entityLabel}
             </h1>
-            <Star className="h-4 w-4 shrink-0 text-graphite" />
-            <ChevronDown className="h-4 w-4 shrink-0 text-graphite" />
+            <button
+              type="button"
+              className="rounded-md p-1 text-graphite transition hover:bg-cloud hover:text-primary"
+              title="Favorite"
+            >
+              <Star className="h-4 w-4" />
+            </button>
+            <ChevronDown className="h-4 w-4 shrink-0 text-steel" />
           </div>
-          <div className="flex items-center gap-1 text-graphite">
-            <Button size="sm" variant="outline" className="hidden sm:inline-flex" disabled>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="hidden h-8 rounded-lg px-3 normal-case tracking-normal sm:inline-flex"
+              disabled
+            >
               Share
             </Button>
           </div>
         </div>
 
-        <div className="mt-2 flex items-center gap-1 overflow-x-auto">
+        <div className="mt-3 flex items-center gap-0.5 overflow-x-auto">
           {[
             { id: 'channel', label: 'Channel', icon: Hash, enabled: true },
             { id: 'list', label: 'List', icon: List, enabled: true },
@@ -960,21 +992,24 @@ export default function ProjectBoardPage() {
                 disabled={!tab.enabled}
                 onClick={() => tab.enabled && setView(tab.id)}
                 className={cn(
-                  'flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors',
-                  active
-                    ? 'border-ink text-ink'
-                    : 'border-transparent text-graphite hover:text-ink',
-                  !tab.enabled && 'cursor-default opacity-50'
+                  'relative flex shrink-0 items-center gap-1.5 px-3.5 py-2.5 text-[13px] font-medium transition-colors',
+                  active ? 'text-ink' : 'text-graphite hover:text-ink',
+                  !tab.enabled && 'cursor-default opacity-40'
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon
+                  className={cn('h-3.5 w-3.5', active ? 'text-primary' : 'text-graphite')}
+                />
                 {tab.label}
+                {active && (
+                  <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
+                )}
               </button>
             );
           })}
           <button
             type="button"
-            className="flex shrink-0 items-center gap-1 border-b-2 border-transparent px-3 py-2.5 text-sm text-graphite"
+            className="flex shrink-0 items-center gap-1 px-3 py-2.5 text-[13px] font-medium text-graphite opacity-50"
             disabled
           >
             <Plus className="h-3.5 w-3.5" />
@@ -984,29 +1019,45 @@ export default function ProjectBoardPage() {
       </div>
 
       {viewMode !== 'channel' && (
-      <div className="flex items-center justify-between gap-2 border-b border-hairline bg-paper px-4 py-2">
-        <div className="flex items-center gap-2 text-xs text-graphite">
-          <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1 font-medium text-ink">
+      <div className="flex items-center justify-between gap-2 border-b border-hairline bg-paper px-4 py-2 sm:px-5">
+        <div className="flex items-center gap-1.5 text-xs text-graphite">
+          <span className="inline-flex h-7 items-center gap-1 rounded-lg border border-hairline bg-cloud/60 px-2.5 font-medium text-ink">
             Group: Status
           </span>
-          <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1">
+          <span className="inline-flex h-7 items-center gap-1 rounded-lg border border-hairline px-2.5 hover:bg-cloud">
             Subtasks
           </span>
-          <span className="hidden items-center gap-1 rounded-md border border-hairline px-2 py-1 sm:inline-flex">
+          <span className="hidden h-7 items-center gap-1 rounded-lg border border-hairline px-2.5 hover:bg-cloud sm:inline-flex">
             Columns
           </span>
         </div>
-        <div className="flex items-center gap-1 text-graphite">
-          <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Filter">
+        <div className="flex items-center gap-0.5 text-graphite">
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-cloud hover:text-ink"
+            title="Filter"
+          >
             <Filter className="h-4 w-4" />
           </button>
-          <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Search">
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-cloud hover:text-ink"
+            title="Search"
+          >
             <Search className="h-4 w-4" />
           </button>
-          <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Settings">
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-cloud hover:text-ink"
+            title="Settings"
+          >
             <Settings className="h-4 w-4" />
           </button>
-          <Button size="sm" onClick={openCreate} className="ml-1">
+          <Button
+            size="sm"
+            onClick={openCreate}
+            className="ml-1.5 h-8 gap-1 rounded-lg px-3 normal-case tracking-normal"
+          >
             <Plus className="h-4 w-4" />
             Add Task
             <ChevronDown className="h-3.5 w-3.5 opacity-70" />
@@ -1026,7 +1077,7 @@ export default function ProjectBoardPage() {
           }
         />
       ) : viewMode === 'board' ? (
-        <div className="flex-1 overflow-x-auto bg-cloud/50 p-4">
+        <div className="flex-1 overflow-x-auto bg-cloud/60 p-4 sm:p-5">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}

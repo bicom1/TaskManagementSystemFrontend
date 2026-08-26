@@ -36,7 +36,7 @@ export function AppShell() {
   const homeMode = isHomeSection(location.pathname);
 
   return (
-    <div className="flex h-screen overflow-hidden border border-hairline bg-canvas">
+    <div className="flex h-screen overflow-hidden bg-canvas">
       <div className="hidden h-full border-r border-hairline lg:flex">
         <IconRail pathname={location.pathname} />
         {homeMode ? (
@@ -97,7 +97,7 @@ export function AppShell() {
           onInvite={() => setInviteOpen(true)}
           onCreate={() => setCreateOpen(true)}
         />
-        <main className={cn('flex-1 overflow-x-hidden overflow-y-auto border-t border-hairline bg-canvas')}>
+        <main className={cn('flex-1 overflow-x-hidden overflow-y-auto bg-cloud/40')}>
           <Suspense fallback={<LoadingScreen message="Loading workspace…" />}>
             <Outlet />
           </Suspense>

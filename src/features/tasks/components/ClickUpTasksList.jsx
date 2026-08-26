@@ -612,7 +612,7 @@ export function ClickUpTasksList({
       <div
         className={cn(
           ROW_COLS,
-          'border-b border-hairline px-3 py-2 text-xs font-medium text-graphite sm:px-4'
+          'sticky top-0 z-10 border-b border-hairline bg-cloud/50 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-graphite backdrop-blur-sm sm:px-4'
         )}
       >
         <div />
@@ -620,18 +620,18 @@ export function ClickUpTasksList({
         <div>Assignee</div>
         <div>Due date</div>
         <div>Priority</div>
-        <div className="text-right text-graphite">+ Add</div>
+        <div className="text-right normal-case tracking-normal text-graphite">+ Add</div>
       </div>
 
       {groupByStatus ? (
-        <div className="space-y-1 py-2">
+        <div className="space-y-1.5 py-2">
           {groups.map((group) => {
             const isCollapsed = Boolean(collapsed[group.key]);
             return (
               <div key={group.key} className="px-1 sm:px-2">
                 <button
                   type="button"
-                  className="mb-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-cloud/60"
+                  className="mb-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-cloud"
                   onClick={() =>
                     setCollapsed((c) => ({ ...c, [group.key]: !c[group.key] }))
                   }
@@ -642,12 +642,14 @@ export function ClickUpTasksList({
                       !isCollapsed && 'rotate-90'
                     )}
                   />
-                  <span className="inline-flex h-3.5 w-3.5 rounded-full border border-dashed border-graphite/50" />
+                  <span className="inline-flex h-3.5 w-3.5 rounded-full border-2 border-primary/40 bg-primary-soft" />
                   <span className="text-xs font-bold tracking-wide text-ink">{group.label}</span>
-                  <span className="text-xs tabular-nums text-graphite">{group.tasks.length}</span>
+                  <span className="rounded-md bg-cloud px-1.5 py-0.5 text-[11px] tabular-nums text-graphite">
+                    {group.tasks.length}
+                  </span>
                 </button>
                 {!isCollapsed && (
-                  <div className="rounded-md">
+                  <div className="overflow-hidden rounded-xl border border-hairline/70 bg-paper">
                     {group.tasks.map(renderTaskRow)}
                     {renderInlineCreate(group.key)}
                   </div>

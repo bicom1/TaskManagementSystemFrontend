@@ -8,15 +8,15 @@ export function HomePanel({ title, count, action, children, className }) {
   return (
     <section
       className={cn(
-        'flex min-h-[280px] flex-col rounded-xl border border-hairline bg-paper',
+        'flex min-h-[280px] flex-col overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift',
         className
       )}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3">
+      <div className="flex items-center justify-between gap-3 border-b border-hairline bg-cloud/30 px-4 py-3">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h3 className="truncate text-sm font-semibold text-ink">{title}</h3>
+          <h3 className="truncate text-sm font-semibold tracking-tight text-ink">{title}</h3>
           {typeof count === 'number' ? (
-            <span className="rounded-md bg-cloud px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-graphite">
+            <span className="rounded-md bg-paper px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-graphite shadow-soft-lift">
               {count}
             </span>
           ) : null}
@@ -36,7 +36,7 @@ export function TaskRow({ task, onOpen }) {
     <button
       type="button"
       onClick={() => onOpen?.(task)}
-      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-cloud"
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-cloud"
     >
       <span className="w-14 shrink-0 truncate font-mono text-[10px] font-semibold uppercase text-graphite">
         {task.key}
@@ -57,7 +57,7 @@ export function TaskRow({ task, onOpen }) {
       {due ? (
         <span
           className={cn(
-            'w-14 shrink-0 text-right text-xs',
+            'w-14 shrink-0 text-right text-xs tabular-nums',
             overdue ? 'font-semibold text-bloom-coral' : 'text-graphite'
           )}
         >

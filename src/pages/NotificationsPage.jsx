@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bell, CheckCheck, Mail, Plus, Send, ListTodo, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { useNotifications, useMarkAllRead } from '@/features/notifications/hooks/useNotifications';
+import { useNotifications, useMarkAllRead, useMarkOneRead, useUnreadCount } from '@/features/notifications/hooks/useNotifications';
 import {
   useMessageInbox,
   useSendMessage,
@@ -267,7 +267,9 @@ export default function NotificationsPage() {
   };
 
   const { data: notifData, isLoading: notifLoading } = useNotifications({ limit: 50 });
+  const { data: unreadCount = 0 } = useUnreadCount();
   const markAllNotifRead = useMarkAllRead();
+  const markOneNotifRead = useMarkOneRead();
 
   const { data: inboxData, isLoading: inboxLoading } = useMessageInbox({ limit: 50 });
   const markMessageRead = useMarkMessageRead();
@@ -275,7 +277,22 @@ export default function NotificationsPage() {
   const { data: chatData } = useConversations();
 
   const notifications = notifData?.data ?? [];
-  const notifUnread = notifications.filter((n) => !n.isRead).length;
+  // Prefer live unread API count (TopBar / sidebar badges use the same source)
+  const notifUnread = unreadCount;
+
+  // Seeing the Notifications tab counts as reading them — clear the badge
+  useEffect(() => {
+    if (tab !== 'notifications') return;
+    if (notifLoading) return;
+    if (markAllNotifRead.isPending) return;
+    const hasUnread = unreadCount > 0 || notifications.some((n) => !n.isRead);
+    if (!hasUnread) return;
+    markAllNotifRead.mutate();
+  }, [tab, notifLoading, unreadCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openNotification = (n) => {
+    if (!n.isRead) markOneNotifRead.mutate(n._id);
+  };
 
   const messages = inboxData?.data ?? [];
   const messageUnread = inboxData?.unread ?? 0;
@@ -389,18 +406,29 @@ export default function NotificationsPage() {
           <ul className="space-y-3">
             {notifications.map((n) => (
               <li key={n._id}>
-                <Card className={!n.isRead ? 'border-primary-soft bg-primary-soft/30' : ''}>
-                  <CardContent className="flex items-start justify-between gap-4 py-4">
-                    <div>
-                      <p className="text-sm text-ink">{n.message}</p>
-                      <p className="mt-1 text-xs text-graphite">
-                        {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                        {n.sender && ` · ${n.sender.name}`}
-                      </p>
-                    </div>
-                    {!n.isRead && <Badge variant="default">New</Badge>}
-                  </CardContent>
-                </Card>
+                <button
+                  type="button"
+                  className="w-full text-left"
+                  onClick={() => openNotification(n)}
+                >
+                  <Card
+                    className={cn(
+                      'transition hover:border-steel',
+                      !n.isRead && 'border-primary-soft bg-primary-soft/30'
+                    )}
+                  >
+                    <CardContent className="flex items-start justify-between gap-4 py-4">
+                      <div>
+                        <p className="text-sm text-ink">{n.message}</p>
+                        <p className="mt-1 text-xs text-graphite">
+                          {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                          {n.sender && ` · ${n.sender.name}`}
+                        </p>
+                      </div>
+                      {!n.isRead && <Badge variant="default">New</Badge>}
+                    </CardContent>
+                  </Card>
+                </button>
               </li>
             ))}
           </ul>

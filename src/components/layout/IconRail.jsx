@@ -27,12 +27,12 @@ export function IconRail({ pathname }) {
   const user = useAuthStore((s) => s.user);
 
   return (
-    <aside className="flex h-full w-[56px] shrink-0 flex-col items-center border-r border-hairline bg-primary py-3 text-on-ink">
+    <aside className="flex h-full w-[56px] shrink-0 flex-col items-center border-r border-primary-deep/20 bg-primary py-3 text-on-ink">
       <UserAvatar
         user={user}
         size="md"
         rounded="lg"
-        className="mb-4"
+        className="mb-4 ring-2 ring-white/25"
         title={user?.name}
       />
 
@@ -47,10 +47,15 @@ export function IconRail({ pathname }) {
               end={item.end}
               title={item.label}
               className={cn(
-                'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
-                active ? 'bg-white/20 text-white' : 'text-white/75 hover:bg-white/15 hover:text-white'
+                'relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
+                active
+                  ? 'bg-white/20 text-white shadow-soft-lift'
+                  : 'text-white/75 hover:bg-white/12 hover:text-white'
               )}
             >
+              {active ? (
+                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-white" />
+              ) : null}
               <Icon className="h-[18px] w-[18px]" />
             </NavLink>
           );
@@ -60,21 +65,21 @@ export function IconRail({ pathname }) {
       <NavLink
         to="/inbox"
         title="Inbox"
-        className="mb-1 flex h-10 w-10 items-center justify-center rounded-lg text-white/75 hover:bg-white/15 hover:text-white"
+        className="mb-1 flex h-10 w-10 items-center justify-center rounded-xl text-white/75 transition hover:bg-white/12 hover:text-white"
       >
         <Inbox className="h-[18px] w-[18px]" />
       </NavLink>
       <NavLink
         to="/reports"
         title="Reports"
-        className="flex h-10 w-10 items-center justify-center rounded-lg text-white/75 hover:bg-white/15 hover:text-white"
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-white/75 transition hover:bg-white/12 hover:text-white"
       >
         <BarChart3 className="h-[18px] w-[18px]" />
       </NavLink>
       <NavLink
         to="/projects"
         title="Projects"
-        className="mt-1 flex h-10 w-10 items-center justify-center rounded-lg text-white/75 hover:bg-white/15 hover:text-white"
+        className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl text-white/75 transition hover:bg-white/12 hover:text-white"
       >
         <FolderKanban className="h-[18px] w-[18px]" />
       </NavLink>

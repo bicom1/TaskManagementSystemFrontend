@@ -118,7 +118,7 @@ export default function TeamsHubLayout() {
             key={item.to}
             type="button"
             onClick={() => navigate(item.to)}
-            className="shrink-0 rounded-md px-3 py-1.5 text-sm font-medium text-charcoal hover:bg-cloud"
+            className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-charcoal transition hover:bg-cloud hover:text-ink"
           >
             {item.label}
           </button>

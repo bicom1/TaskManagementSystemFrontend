@@ -120,15 +120,15 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
       {/* Header — clear, calm */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <UserAvatar user={user} size="lg" rounded="lg" />
+      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3.5">
+          <UserAvatar user={user} size="lg" rounded="xl" className="shadow-soft-lift" />
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-tight text-ink">
                 {timeGreeting()}, {greetingName(user?.name)}
               </h1>
-              <span className="rounded bg-cloud px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+              <span className="rounded-md bg-primary-soft px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary-deep">
                 {dashMeta.badge || getRoleLabel(user?.role)}
               </span>
               {isFetching && data ? (
@@ -138,14 +138,19 @@ export default function HomePage() {
             <p className="mt-0.5 text-sm text-graphite">{dashMeta.subtitle}</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={openManage}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={openManage}
+          className="h-9 rounded-lg normal-case tracking-normal"
+        >
           <Settings2 className="h-4 w-4" />
           Customize
         </Button>
       </div>
 
       {/* Stats — one clear row */}
-      <div className="mb-6 overflow-hidden rounded-xl border border-hairline bg-paper">
+      <div className="mb-6 overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift">
         <div className="flex flex-col sm:flex-row">
           <HomeStat
             label="Assigned to me"

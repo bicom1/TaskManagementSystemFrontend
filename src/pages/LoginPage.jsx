@@ -24,10 +24,10 @@ export default function LoginPage() {
 
   return (
     <PublicRoute>
-      <div className="relative flex min-h-screen flex-col bg-cloud overflow-hidden">
+      <div className="relative flex min-h-screen flex-col overflow-hidden bg-cloud">
         <div className="flex h-9 items-center bg-ink px-3 text-[12px] text-on-ink sm:px-4 sm:text-[13px]">
           <div className="mx-auto flex w-full max-w-[1366px] items-center justify-between gap-2">
-            <span className="font-medium tracking-wide">BIWORKSPACE</span>
+            <span className="font-semibold tracking-wide">BIWORKSPACE</span>
             <span className="hidden text-steel xs:inline sm:inline">
               Plan, track, and ship work together
             </span>
@@ -37,7 +37,7 @@ export default function LoginPage() {
         <div className="relative flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
           <GradientBlobs />
           <ChevronDecoration />
-          <Card className="relative z-10 w-full max-w-[420px] border-0 shadow-[var(--shadow-soft-lift)]">
+          <Card className="relative z-10 w-full max-w-[420px] border-hairline shadow-[0_16px_48px_rgba(26,26,26,0.1)]">
             <CardHeader className="space-y-3 pb-2">
               <BrandLogo asLink={false} size="lg" />
               <div>

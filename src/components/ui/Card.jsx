@@ -3,7 +3,10 @@ import { cn } from '@/lib/utils';
 export function Card({ className, children, ...props }) {
   return (
     <div
-      className={cn('rounded-xl border border-hairline bg-paper shadow-[var(--shadow-soft-lift)]', className)}
+      className={cn(
+        'rounded-2xl border border-hairline bg-paper shadow-soft-lift transition-shadow',
+        className
+      )}
       {...props}
     >
       {children}
@@ -13,7 +16,7 @@ export function Card({ className, children, ...props }) {
 
 export function CardHeader({ className, children, ...props }) {
   return (
-    <div className={cn('flex flex-col gap-1.5 p-6 pb-0', className)} {...props}>
+    <div className={cn('flex flex-col gap-1.5 p-5 pb-0 sm:p-6 sm:pb-0', className)} {...props}>
       {children}
     </div>
   );
@@ -21,7 +24,7 @@ export function CardHeader({ className, children, ...props }) {
 
 export function CardTitle({ className, children, ...props }) {
   return (
-    <h3 className={cn('text-lg font-medium text-ink', className)} {...props}>
+    <h3 className={cn('text-base font-semibold tracking-tight text-ink', className)} {...props}>
       {children}
     </h3>
   );
@@ -37,7 +40,7 @@ export function CardDescription({ className, children, ...props }) {
 
 export function CardContent({ className, children, ...props }) {
   return (
-    <div className={cn('p-6', className)} {...props}>
+    <div className={cn('p-5 sm:p-6', className)} {...props}>
       {children}
     </div>
   );
@@ -45,7 +48,7 @@ export function CardContent({ className, children, ...props }) {
 
 export function CardFooter({ className, children, ...props }) {
   return (
-    <div className={cn('flex items-center p-6 pt-0', className)} {...props}>
+    <div className={cn('flex items-center p-5 pt-0 sm:p-6 sm:pt-0', className)} {...props}>
       {children}
     </div>
   );

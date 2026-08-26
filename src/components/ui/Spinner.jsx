@@ -48,7 +48,7 @@ export function CardGridSkeleton({ cards = 4 }) {
   return (
     <div className="grid animate-pulse gap-4 lg:grid-cols-2">
       {Array.from({ length: cards }).map((_, i) => (
-        <div key={i} className="min-h-[280px] rounded-xl border border-hairline bg-paper p-4">
+        <div key={i} className="min-h-[280px] rounded-2xl border border-hairline bg-paper p-4 shadow-soft-lift">
           <div className="mb-4 h-4 w-1/3 rounded bg-cloud" />
           <div className="space-y-3">
             <div className="h-3 w-full rounded bg-cloud" />
@@ -63,9 +63,13 @@ export function CardGridSkeleton({ cards = 4 }) {
 
 export function EmptyState({ icon: Icon, title, description, action }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      {Icon && <Icon className="mb-4 h-12 w-12 text-steel" />}
-      <h3 className="text-lg font-medium text-ink">{title}</h3>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-hairline bg-paper px-6 py-16 text-center shadow-soft-lift">
+      {Icon && (
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-cloud">
+          <Icon className="h-7 w-7 text-graphite" />
+        </div>
+      )}
+      <h3 className="text-base font-semibold tracking-tight text-ink">{title}</h3>
       {description && <p className="mt-2 max-w-sm text-sm text-graphite">{description}</p>}
       {action && <div className="mt-6">{action}</div>}
     </div>

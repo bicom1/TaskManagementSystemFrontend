@@ -503,16 +503,16 @@ export function InboxChat() {
         : [];
 
   return (
-    <div className="flex h-[calc(100vh-11rem)] min-h-[520px] overflow-hidden rounded-xl border border-hairline bg-paper shadow-sm">
-      <aside className="flex w-full max-w-[340px] flex-col border-r border-hairline bg-gradient-to-b from-cloud/80 to-paper">
-        <div className="space-y-2.5 border-b border-hairline p-3">
+    <div className="flex h-[calc(100vh-11rem)] min-h-[520px] overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift">
+      <aside className="flex w-full max-w-[320px] flex-col border-r border-hairline bg-cloud/40">
+        <div className="space-y-2.5 border-b border-hairline bg-paper p-3.5">
           <div>
-            <h2 className="text-sm font-semibold text-ink">Inbox chat</h2>
+            <h2 className="text-[15px] font-semibold tracking-tight text-ink">Inbox</h2>
             <p className="text-[11px] text-graphite">
               Direct messages · team channels · media &amp; links
             </p>
           </div>
-          <div className="flex gap-1 rounded-lg bg-cloud p-1">
+          <div className="flex gap-1 rounded-xl bg-cloud p-1">
             {[
               { id: 'chats', label: 'Chats', icon: MessageSquare },
               { id: 'teams', label: 'Teams', icon: Hash },
@@ -523,16 +523,16 @@ export function InboxChat() {
                 type="button"
                 onClick={() => setSidebarMode(tab.id)}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold',
+                  'flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition',
                   sidebarMode === tab.id
-                    ? 'bg-paper text-ink shadow-sm'
+                    ? 'bg-paper text-ink shadow-soft-lift'
                     : 'text-graphite hover:text-ink'
                 )}
               >
                 <tab.icon className="h-3.5 w-3.5" />
                 {tab.label}
                 {tab.id === 'chats' && chatUnread > 0 ? (
-                  <span className="rounded bg-primary px-1 text-[10px] text-on-ink">
+                  <span className="rounded-md bg-primary px-1.5 py-0.5 text-[10px] text-on-ink">
                     {chatUnread}
                   </span>
                 ) : null}
@@ -548,7 +548,7 @@ export function InboxChat() {
                 if (e.target.value.trim()) setSidebarMode('people');
               }}
               placeholder="Search people…"
-              className="h-9 pl-8 text-sm"
+              className="h-9 rounded-lg border-hairline pl-8 text-sm"
             />
           </div>
         </div>
@@ -766,9 +766,9 @@ export function InboxChat() {
           </div>
         ) : (
           <>
-            <header className="flex items-center justify-between gap-3 border-b border-hairline bg-cloud/30 px-4 py-3">
+            <header className="flex items-center justify-between gap-3 border-b border-hairline bg-paper px-4 py-3">
               <div className="min-w-0">
-                <h2 className="truncate text-sm font-semibold text-ink">
+                <h2 className="truncate text-[15px] font-semibold tracking-tight text-ink">
                   {conversationTitle(activeConversation, userId)}
                 </h2>
                 <p className="truncate text-xs text-graphite">
@@ -789,13 +789,14 @@ export function InboxChat() {
                 variant="outline"
                 onClick={copyShareLink}
                 title="Copy chat link"
+                className="h-8 rounded-lg normal-case tracking-normal"
               >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
                 Share
               </Button>
             </header>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cloud/40 via-paper to-paper px-4 py-4">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-cloud/30 px-4 py-4">
               {messagesLoading ? (
                 <LoadingScreen />
               ) : messages.length === 0 ? (
@@ -831,10 +832,10 @@ export function InboxChat() {
                         />
                         <div
                           className={cn(
-                            'max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm',
+                            'max-w-[min(78%,28rem)] px-3.5 py-2.5 text-sm shadow-soft-lift',
                             mine
-                              ? 'rounded-tr-md bg-ink text-on-ink'
-                              : 'rounded-tl-md border border-hairline bg-paper text-ink'
+                              ? 'rounded-2xl rounded-tr-md bg-primary text-on-ink'
+                              : 'rounded-2xl rounded-tl-md border border-hairline bg-paper text-ink'
                           )}
                         >
                           {!mine && (
@@ -879,7 +880,7 @@ export function InboxChat() {
               <div ref={bottomRef} />
             </div>
 
-            <footer className="relative border-t border-hairline bg-paper p-3">
+            <footer className="relative border-t border-hairline bg-paper p-3.5">
               {mentionOpen && mentionCandidates.length > 0 && (
                 <div className="absolute bottom-full left-3 right-3 mb-1 max-h-48 overflow-y-auto rounded-lg border border-hairline bg-paper shadow-lg">
                   {mentionCandidates.map((p) => (
@@ -964,7 +965,7 @@ export function InboxChat() {
                 </div>
               )}
 
-              <div className="flex items-end gap-2">
+              <div className="flex items-end gap-2 rounded-xl border border-hairline bg-cloud/50 p-2 focus-within:border-primary/30 focus-within:bg-paper focus-within:ring-2 focus-within:ring-primary/10">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -976,18 +977,20 @@ export function InboxChat() {
                 <Button
                   type="button"
                   size="icon"
-                  variant="outline"
+                  variant="ghost"
                   title="Attach image or document"
                   onClick={() => fileInputRef.current?.click()}
+                  className="h-9 w-9 shrink-0 rounded-lg"
                 >
                   <Paperclip className="h-4 w-4" />
                 </Button>
                 <Button
                   type="button"
                   size="icon"
-                  variant="outline"
+                  variant="ghost"
                   title="Add link"
                   onClick={() => setLinkOpen((v) => !v)}
+                  className="h-9 w-9 shrink-0 rounded-lg"
                 >
                   <Link2 className="h-4 w-4" />
                 </Button>
@@ -1003,13 +1006,13 @@ export function InboxChat() {
                     }}
                     rows={2}
                     placeholder="Write a message… @mention · attach files · share links"
-                    className="w-full resize-none rounded-xl border border-hairline bg-cloud px-3 py-2 text-sm text-ink outline-none focus:border-ink/30"
+                    className="w-full resize-none bg-transparent px-1 py-1.5 text-sm text-ink outline-none placeholder:text-graphite"
                   />
                 </div>
                 <Button
                   type="button"
                   size="icon"
-                  variant="outline"
+                  variant="ghost"
                   title="Copy chat URL into thread"
                   onClick={() => {
                     if (!activeId) return;
@@ -1026,6 +1029,7 @@ export function InboxChat() {
                     });
                   }}
                   disabled={sendMessage.isPending}
+                  className="h-9 w-9 shrink-0 rounded-lg"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -1033,6 +1037,7 @@ export function InboxChat() {
                   type="button"
                   onClick={handleSend}
                   disabled={!canSend}
+                  className="h-9 rounded-lg px-3 normal-case tracking-normal"
                 >
                   <Send className="h-4 w-4" />
                 </Button>

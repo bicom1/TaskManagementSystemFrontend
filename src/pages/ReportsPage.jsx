@@ -163,7 +163,7 @@ export default function ReportsPage() {
           <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardContent className="flex items-center gap-3 pt-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cloud">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft">
                   <FolderKanban className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -176,7 +176,7 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardContent className="flex items-center gap-3 pt-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cloud">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft">
                   <CheckCircle2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -187,7 +187,7 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardContent className="flex items-center gap-3 pt-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cloud">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft">
                   <Clock3 className="h-5 w-5 text-bloom-coral" />
                 </div>
                 <div>
@@ -198,7 +198,7 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardContent className="flex items-center gap-3 pt-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cloud">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft">
                   <Users className="h-5 w-5 text-primary" />
                 </div>
                 <div>

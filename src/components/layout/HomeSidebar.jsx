@@ -249,14 +249,14 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
   }
 
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-hairline bg-paper">
+    <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-hairline bg-paper">
       {/* Top toolbar: collapse + search + filter | Create */}
-      <div className="border-b border-hairline p-2">
+      <div className="border-b border-hairline p-2.5">
         <div className="mb-2 flex items-center gap-1">
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-graphite hover:bg-cloud hover:text-ink"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-graphite transition hover:bg-cloud hover:text-ink"
             title="Close sidebar"
             aria-label="Close sidebar"
           >
@@ -269,7 +269,7 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
               setFilterOpen(false);
             }}
             className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-md hover:bg-cloud',
+              'flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-cloud',
               searchOpen ? 'bg-cloud text-ink' : 'text-graphite hover:text-ink'
             )}
             title="Search sidebar"
@@ -284,7 +284,7 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
               setSearchOpen(false);
             }}
             className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-md hover:bg-cloud',
+              'flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-cloud',
               filterOpen || filter !== 'all'
                 ? 'bg-cloud text-ink'
                 : 'text-graphite hover:text-ink'
@@ -295,7 +295,11 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
             <ListFilter className="h-4 w-4" />
           </button>
           <div className="ml-auto">
-            <Button size="sm" className="h-8 px-3 normal-case tracking-normal" onClick={onCreate}>
+            <Button
+              size="sm"
+              className="h-8 rounded-lg px-3 normal-case tracking-normal"
+              onClick={onCreate}
+            >
               <Plus className="h-3.5 w-3.5" />
               Create
             </Button>
@@ -349,11 +353,11 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
       <div className="flex-1 overflow-y-auto px-2 py-2">
         {/* Inbox + live notification previews (chat-app style) */}
         {showNav && (
-          <div className="mb-3 overflow-hidden rounded-lg border border-hairline bg-cloud/40">
+          <div className="mb-3 overflow-hidden rounded-xl border border-hairline bg-cloud/50">
             <button
               type="button"
               onClick={() => setInboxPreviewOpen((v) => !v)}
-              className="flex w-full items-center gap-2 px-2.5 py-2 text-left hover:bg-cloud"
+              className="flex w-full items-center gap-2 px-2.5 py-2 text-left transition hover:bg-cloud"
             >
               {inboxPreviewOpen ? (
                 <ChevronDown className="h-3.5 w-3.5 shrink-0 text-graphite" />

@@ -4,6 +4,7 @@ import {
   AtSign,
   Bookmark,
   CheckSquare,
+  ChevronDown,
   FileText,
   Link2,
   Mic,
@@ -17,6 +18,7 @@ import {
   Undo2,
   UserPlus,
   Video,
+  X,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { toast } from 'sonner';
@@ -58,6 +60,9 @@ function normalizeHref(raw) {
   if (/^www\./i.test(url)) return `https://${url}`;
   return url;
 }
+
+const TOOL_BTN =
+  'inline-flex h-8 w-8 items-center justify-center rounded-lg text-graphite transition-colors hover:bg-cloud hover:text-ink';
 
 export function ProjectChannelView({
   project,
@@ -172,27 +177,29 @@ export function ProjectChannelView({
 
   const empty = messages.length === 0;
   const teamId = project?.team?._id || project?.team || '';
+  const canSend = Boolean(draft.trim()) || pendingFiles.length > 0;
 
   return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-[#fafafa]">
+    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-cloud">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex-1 overflow-y-auto px-6 pb-4 pt-5">
-          <div className="mx-auto flex max-w-3xl flex-col items-center">
-            <div className="mb-6 flex w-full max-w-xl justify-center gap-3">
+        <div className="flex-1 overflow-y-auto px-4 pb-6 pt-6 sm:px-8">
+          <div className="mx-auto flex w-full max-w-2xl flex-col items-center">
+            {/* Top actions — same as ClickUp channel empty state */}
+            <div className="mb-7 flex w-full gap-3">
               <button
                 type="button"
                 onClick={() => setPeopleOpen(true)}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-hairline bg-paper px-5 py-2.5 text-sm font-medium text-ink shadow-sm hover:bg-cloud"
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-hairline bg-paper px-4 text-sm font-medium text-ink shadow-soft-lift transition hover:border-steel hover:bg-cloud"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 text-primary" strokeWidth={2.25} />
                 Add People
               </button>
               <button
                 type="button"
                 onClick={() => toast.info('Slack import is not connected yet')}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-hairline bg-paper px-5 py-2.5 text-sm font-medium text-ink shadow-sm hover:bg-cloud"
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-hairline bg-paper px-4 text-sm font-medium text-ink shadow-soft-lift transition hover:border-steel hover:bg-cloud"
               >
-                <span className="grid h-4 w-4 place-items-center rounded-[3px] bg-[#611f69] text-[9px] font-bold text-white">
+                <span className="grid h-5 w-5 place-items-center rounded bg-ink text-[10px] font-bold text-on-ink">
                   S
                 </span>
                 Import from Slack
@@ -200,48 +207,56 @@ export function ProjectChannelView({
             </div>
 
             {empty && !channelLoading && (
-              <div className="mb-8 w-full max-w-xl space-y-3">
+              <div className="mb-8 w-full space-y-2.5">
                 <button
                   type="button"
                   onClick={onTrackTasks}
-                  className="flex w-full items-center gap-4 rounded-2xl bg-[#f3e8ff] px-5 py-4 text-left shadow-sm transition hover:brightness-[0.98]"
+                  className="group flex w-full items-center gap-4 rounded-2xl border border-primary-soft bg-primary-soft/70 px-4 py-3.5 text-left transition hover:border-primary/30 hover:bg-primary-soft"
                 >
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#7c3aed] text-white">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary text-on-ink shadow-soft-lift transition group-hover:scale-[1.03]">
                     <CheckSquare className="h-5 w-5" />
                   </span>
-                  <span>
-                    <span className="block text-[15px] font-semibold text-ink">Track Tasks</span>
-                    <span className="block text-sm text-graphite">
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-semibold tracking-tight text-ink">
+                      Track Tasks
+                    </span>
+                    <span className="mt-0.5 block text-sm text-graphite">
                       Manage tasks, bugs, people, and more.
                     </span>
                   </span>
                 </button>
+
                 <button
                   type="button"
                   onClick={onAddDoc}
-                  className="flex w-full items-center gap-4 rounded-2xl bg-[#e8f1ff] px-5 py-4 text-left shadow-sm transition hover:brightness-[0.98]"
+                  className="group flex w-full items-center gap-4 rounded-2xl border border-hairline bg-paper px-4 py-3.5 text-left shadow-soft-lift transition hover:border-steel hover:bg-cloud"
                 >
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#2563eb] text-white">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-ink text-on-ink transition group-hover:scale-[1.03]">
                     <FileText className="h-5 w-5" />
                   </span>
-                  <span>
-                    <span className="block text-[15px] font-semibold text-ink">Add Doc</span>
-                    <span className="block text-sm text-graphite">
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-semibold tracking-tight text-ink">
+                      Add Doc
+                    </span>
+                    <span className="mt-0.5 block text-sm text-graphite">
                       Take notes or create detailed documents.
                     </span>
                   </span>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => navigate('/home/meetings')}
-                  className="flex w-full items-center gap-4 rounded-2xl bg-[#e8f8ef] px-5 py-4 text-left shadow-sm transition hover:brightness-[0.98]"
+                  className="group flex w-full items-center gap-4 rounded-2xl border border-hairline bg-fog/80 px-4 py-3.5 text-left transition hover:border-steel hover:bg-fog"
                 >
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#16a34a] text-white">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-deep text-on-ink transition group-hover:scale-[1.03]">
                     <Phone className="h-5 w-5" />
                   </span>
-                  <span>
-                    <span className="block text-[15px] font-semibold text-ink">Start SyncUp</span>
-                    <span className="block text-sm text-graphite">
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-semibold tracking-tight text-ink">
+                      Start SyncUp
+                    </span>
+                    <span className="mt-0.5 block text-sm text-graphite">
                       Jump on a voice call or video call.
                     </span>
                   </span>
@@ -249,41 +264,47 @@ export function ProjectChannelView({
               </div>
             )}
 
-            <div className="mb-6 w-full max-w-xl">
+            <div className="mb-6 w-full">
               <button
                 type="button"
                 onClick={() => toast.success('Bookmark saved on this channel')}
-                className="grid h-[72px] w-[72px] place-items-center rounded-xl border border-dashed border-steel bg-paper text-center text-[10px] leading-tight text-graphite hover:border-ink"
+                className="flex h-[76px] w-[76px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-steel bg-paper px-2 text-center text-[10px] leading-tight text-graphite transition hover:border-primary hover:bg-primary-soft/40 hover:text-primary"
               >
-                <Bookmark className="mb-1 h-4 w-4" />
+                <Bookmark className="h-4 w-4" />
                 Add bookmarks, notes, and more.
               </button>
             </div>
 
             {messages.length > 0 && (
-              <div className="w-full max-w-2xl space-y-3 pb-8">
+              <div className="w-full space-y-3 pb-4">
                 {messages.map((m) => {
                   const mine = String(m.from?._id) === String(userId);
                   return (
                     <div
                       key={m._id}
-                      className={cn('flex gap-2', mine ? 'justify-end' : 'justify-start')}
+                      className={cn('flex gap-2.5', mine ? 'justify-end' : 'justify-start')}
                     >
-                      {!mine && <UserAvatar user={m.from} size="sm" />}
+                      {!mine && (
+                        <UserAvatar user={m.from} size="sm" className="mt-0.5 shrink-0" />
+                      )}
                       <div
                         className={cn(
-                          'max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm',
+                          'max-w-[min(78%,28rem)] px-3.5 py-2.5 text-sm shadow-soft-lift',
                           mine
-                            ? 'rounded-tr-md bg-ink text-on-ink'
-                            : 'rounded-tl-md border border-hairline bg-paper'
+                            ? 'rounded-2xl rounded-tr-md bg-primary text-on-ink'
+                            : 'rounded-2xl rounded-tl-md border border-hairline bg-paper text-ink'
                         )}
                       >
                         {!mine && (
-                          <p className="mb-0.5 text-[11px] font-semibold text-graphite">
+                          <p className="mb-1 text-[11px] font-semibold text-charcoal">
                             {m.from?.name}
                           </p>
                         )}
-                        <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                        {m.body ? (
+                          <p className="whitespace-pre-wrap break-words leading-relaxed">
+                            {m.body}
+                          </p>
+                        ) : null}
                         {(m.attachments || []).map((file) =>
                           isImageFile({ type: file.fileType, name: file.fileName }) ? (
                             <ChatImage
@@ -291,22 +312,30 @@ export function ProjectChannelView({
                               src={file.url}
                               previewUrl={file.previewUrl}
                               alt={file.fileName || ''}
-                              className="mt-2 max-h-56 max-w-[260px] rounded-lg object-cover"
+                              className="mt-2 max-h-56 max-w-full rounded-lg object-cover"
                             />
                           ) : (
                             <a
                               key={file.url}
                               href={normalizeHref(file.url)}
-                              className="mt-2 flex items-center gap-1 text-xs underline"
+                              className={cn(
+                                'mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium underline-offset-2 hover:underline',
+                                mine ? 'bg-white/15' : 'bg-cloud text-primary'
+                              )}
                               target="_blank"
                               rel="noreferrer"
                             >
-                              <Link2 className="h-3 w-3" />
-                              {file.fileName}
+                              <Link2 className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{file.fileName}</span>
                             </a>
                           )
                         )}
-                        <p className={cn('mt-1 text-[10px]', mine ? 'text-on-ink/60' : 'text-graphite')}>
+                        <p
+                          className={cn(
+                            'mt-1.5 text-[10px] tabular-nums',
+                            mine ? 'text-on-ink/55' : 'text-graphite'
+                          )}
+                        >
                           {formatMsgTime(m.createdAt)}
                         </p>
                       </div>
@@ -314,7 +343,7 @@ export function ProjectChannelView({
                   );
                 })}
                 {typingUser ? (
-                  <p className="text-xs text-graphite">Someone is typing…</p>
+                  <p className="pl-1 text-xs text-graphite">Someone is typing…</p>
                 ) : null}
                 <div ref={bottomRef} />
               </div>
@@ -322,15 +351,18 @@ export function ProjectChannelView({
           </div>
         </div>
 
-        <div className="shrink-0 px-4 pb-4 pt-1">
+        {/* Composer — pinned bottom */}
+        <div className="shrink-0 border-t border-hairline/80 bg-cloud/80 px-4 pb-4 pt-3 backdrop-blur-sm sm:px-6">
           {bannerOpen && empty && (
-            <div className="mx-auto mb-2 flex max-w-3xl items-center justify-between gap-3 rounded-xl bg-[#3d3d3d] px-4 py-2.5 text-sm text-white">
-              <span>
-                👋 Send a message to #{channelName} to get the conversation started!
+            <div className="mx-auto mb-3 flex max-w-2xl items-center justify-between gap-3 rounded-xl bg-charcoal px-4 py-2.5 text-sm text-on-ink shadow-soft-lift">
+              <span className="min-w-0 leading-snug">
+                👋 Send a message to{' '}
+                <span className="font-semibold">#{channelName}</span> to get the conversation
+                started!
               </span>
               <button
                 type="button"
-                className="shrink-0 text-xs text-white/80 hover:text-white"
+                className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-on-ink/75 transition hover:bg-white/10 hover:text-on-ink"
                 onClick={() => setBannerOpen(false)}
               >
                 Dismiss
@@ -338,7 +370,7 @@ export function ProjectChannelView({
             </div>
           )}
 
-          <div className="mx-auto max-w-3xl rounded-2xl border border-hairline bg-paper shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15">
             <textarea
               value={draft}
               onChange={(e) => {
@@ -353,33 +385,39 @@ export function ProjectChannelView({
               }}
               rows={2}
               placeholder="+ Mention @Brain to create, find, ask anything."
-              className="w-full resize-none rounded-t-2xl border-0 bg-transparent px-4 pt-3 text-sm text-ink outline-none placeholder:text-graphite"
+              className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 text-sm leading-relaxed text-ink outline-none placeholder:text-graphite"
             />
+
             {pendingFiles.length > 0 && (
               <div className="flex flex-wrap gap-2 px-4 pb-2">
                 {pendingFiles.map((file, idx) => (
                   <span
                     key={`${file.name}-${idx}`}
-                    className="inline-flex items-center gap-1 rounded-full bg-cloud px-2 py-0.5 text-xs"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-cloud py-1 pl-1 pr-2 text-xs text-ink"
                   >
                     {isImageFile(file) ? (
-                      <FileThumb file={file} className="h-10 w-10 rounded object-cover" />
-                    ) : null}
-                    {file.name}
+                      <FileThumb file={file} className="h-9 w-9 rounded-md object-cover" />
+                    ) : (
+                      <FileText className="ml-1.5 h-3.5 w-3.5 text-graphite" />
+                    )}
+                    <span className="max-w-[7rem] truncate">{file.name}</span>
                     <button
                       type="button"
+                      className="rounded p-0.5 text-graphite hover:bg-fog hover:text-ink"
                       onClick={() =>
                         setPendingFiles((prev) => prev.filter((_, i) => i !== idx))
                       }
+                      aria-label="Remove file"
                     >
-                      ×
+                      <X className="h-3 w-3" />
                     </button>
                   </span>
                 ))}
               </div>
             )}
+
             <div className="flex items-center justify-between gap-2 border-t border-hairline px-2 py-1.5">
-              <div className="flex items-center gap-0.5 text-graphite">
+              <div className="flex min-w-0 items-center gap-0.5">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -390,46 +428,52 @@ export function ProjectChannelView({
                 />
                 <button
                   type="button"
-                  className="rounded-md p-1.5 hover:bg-cloud"
+                  className={TOOL_BTN}
                   onClick={() => fileInputRef.current?.click()}
                   title="Attach"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
-                <span className="hidden rounded-md px-2 py-1 text-xs font-medium text-ink sm:inline">
+                <span className="hidden items-center gap-0.5 rounded-lg px-2 py-1 text-xs font-semibold text-ink sm:inline-flex">
                   Message
+                  <ChevronDown className="h-3 w-3 text-graphite" />
                 </span>
-                <button type="button" className="rounded-md p-1.5 hover:bg-cloud" title="Mention">
+                <button type="button" className={TOOL_BTN} title="Mention">
                   <AtSign className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className="rounded-md p-1.5 hover:bg-cloud"
+                  className={TOOL_BTN}
                   title="Attach file"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Paperclip className="h-4 w-4" />
                 </button>
-                <button type="button" className="rounded-md p-1.5 hover:bg-cloud" title="Emoji">
+                <button type="button" className={cn(TOOL_BTN, 'hidden sm:inline-flex')} title="Emoji">
                   <Smile className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className="rounded-md p-1.5 hover:bg-cloud"
+                  className={cn(TOOL_BTN, 'hidden sm:inline-flex')}
                   title="Video"
                   onClick={() => navigate('/home/meetings')}
                 >
                   <Video className="h-4 w-4" />
                 </button>
-                <button type="button" className="rounded-md p-1.5 hover:bg-cloud" title="Voice">
+                <button type="button" className={cn(TOOL_BTN, 'hidden md:inline-flex')} title="Voice">
                   <Mic className="h-4 w-4" />
                 </button>
               </div>
-              <div className="flex items-center gap-1">
+
+              <div className="flex shrink-0 items-center gap-1">
+                <button type="button" className={TOOL_BTN} title="Voice note">
+                  <Mic className="h-4 w-4 sm:hidden" />
+                </button>
                 <Button
                   size="sm"
                   onClick={handleSend}
-                  disabled={!draft.trim() && !pendingFiles.length}
+                  disabled={!canSend}
+                  className="h-8 gap-1.5 rounded-lg px-3 normal-case tracking-normal"
                 >
                   Send
                   <Send className="h-3.5 w-3.5" />
@@ -440,32 +484,42 @@ export function ProjectChannelView({
         </div>
       </div>
 
-      <aside className="hidden w-14 shrink-0 flex-col items-center gap-3 border-l border-hairline bg-paper py-4 sm:flex">
-        <div className="flex flex-col items-center -space-y-1">
-          {visibleMembers.map((m) => (
-            <UserAvatar key={m._id} user={m} size="sm" className="ring-2 ring-paper" />
-          ))}
+      {/* Right utility rail */}
+      <aside className="hidden w-[3.25rem] shrink-0 flex-col items-center gap-2.5 border-l border-hairline bg-paper py-4 sm:flex">
+        <div className="mb-1 flex flex-col items-center">
+          <div className="flex flex-col items-center -space-y-1.5">
+            {visibleMembers.map((m) => (
+              <UserAvatar
+                key={m._id}
+                user={m}
+                size="sm"
+                className="ring-2 ring-paper"
+                title={m.name}
+              />
+            ))}
+          </div>
           {extraCount > 0 && (
-            <span className="mt-1 grid h-7 w-7 place-items-center rounded-full bg-cloud text-[10px] font-semibold text-ink">
+            <span className="mt-1.5 grid h-7 w-7 place-items-center rounded-full border border-hairline bg-cloud text-[10px] font-semibold text-charcoal">
               +{extraCount}
             </span>
           )}
         </div>
-        <button type="button" className="rounded-md p-1.5 text-graphite hover:bg-cloud" title="Search">
+        <div className="my-1 h-px w-6 bg-hairline" />
+        <button type="button" className={TOOL_BTN} title="Search">
           <Search className="h-4 w-4" />
         </button>
-        <button type="button" className="rounded-md p-1.5 text-graphite hover:bg-cloud" title="Undo">
+        <button type="button" className={TOOL_BTN} title="Undo">
           <Undo2 className="h-4 w-4" />
         </button>
         <button
           type="button"
-          className="rounded-md p-1.5 text-graphite hover:bg-cloud"
+          className={TOOL_BTN}
           title="Add people"
           onClick={() => setPeopleOpen(true)}
         >
           <UserPlus className="h-4 w-4" />
         </button>
-        <button type="button" className="rounded-md p-1.5 text-graphite hover:bg-cloud" title="Settings">
+        <button type="button" className={TOOL_BTN} title="Settings">
           <Settings className="h-4 w-4" />
         </button>
       </aside>
@@ -483,17 +537,17 @@ export function ProjectChannelView({
             value={peopleQuery}
             onChange={(e) => setPeopleQuery(e.target.value)}
             placeholder="Search people"
-            className="w-full rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-ink"
+            className="h-10 w-full rounded-lg border border-hairline bg-paper px-3 text-sm text-ink outline-none placeholder:text-graphite focus:border-primary focus:ring-2 focus:ring-primary/15"
           />
-          <div className="max-h-64 overflow-y-auto">
+          <div className="max-h-64 overflow-y-auto rounded-lg border border-hairline">
             {addablePeople.length === 0 ? (
-              <p className="px-1 py-6 text-center text-sm text-graphite">No more people to add.</p>
+              <p className="px-3 py-8 text-center text-sm text-graphite">No more people to add.</p>
             ) : (
               addablePeople.map((p) => (
                 <button
                   key={p._id}
                   type="button"
-                  className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-cloud"
+                  className="flex w-full items-center gap-3 border-b border-hairline px-3 py-2.5 text-left last:border-b-0 hover:bg-cloud"
                   onClick={() =>
                     addMember.mutate(
                       { id: projectId, userId: p._id },
@@ -503,14 +557,19 @@ export function ProjectChannelView({
                 >
                   <UserAvatar user={p} size="sm" />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">{p.name}</span>
+                    <span className="block truncate text-sm font-medium text-ink">{p.name}</span>
                     <span className="block truncate text-xs text-graphite">{p.email}</span>
                   </span>
                 </button>
               ))
             )}
           </div>
-          <Button type="button" variant="outline" className="w-full" onClick={() => setInviteOpen(true)}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full normal-case tracking-normal"
+            onClick={() => setInviteOpen(true)}
+          >
             Invite someone new
           </Button>
         </div>

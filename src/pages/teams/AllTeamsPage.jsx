@@ -38,8 +38,8 @@ export default function AllTeamsPage() {
               </Button>
             )}
             {(canCreateTeam || isSuperAdmin) && (
-              <Button onClick={openCreateTeam} className="bg-ink text-on-ink hover:bg-ink/90">
-                <Plus className="h-4 w-4" /> 
+              <Button onClick={openCreateTeam} variant="ink">
+                <Plus className="h-4 w-4" />
                 New team
               </Button>
             )}
@@ -56,7 +56,7 @@ export default function AllTeamsPage() {
             return (
               <div
                 key={dept._id}
-                className="rounded-xl border border-hairline bg-cloud px-4 py-3"
+                className="rounded-2xl border border-hairline bg-cloud/70 px-4 py-3 transition hover:bg-cloud"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
                   Department

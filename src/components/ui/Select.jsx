@@ -6,7 +6,7 @@ export const Select = forwardRef(function Select({ className, children, ...props
     <select
       ref={ref}
       className={cn(
-        'flex h-11 w-full cursor-pointer rounded-md border border-hairline bg-paper px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50',
+        'flex h-10 w-full cursor-pointer rounded-lg border border-hairline bg-paper px-3 py-2 text-sm text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary/40 disabled:cursor-not-allowed disabled:opacity-50',
         className
       )}
       {...props}

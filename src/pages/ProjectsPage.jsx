@@ -66,10 +66,10 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1366px] px-4 py-10 lg:px-8">
+    <div className="mx-auto max-w-[1366px] px-4 py-8 lg:px-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-graphite">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-graphite">
             Projects
           </p>
           <h1 className="page-title">All Projects</h1>
@@ -102,19 +102,21 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Link key={project._id} to={projectPath(project._id)}>
-              <Card className="h-full transition-shadow hover:shadow-[var(--shadow-soft-lift)]">
+            <Link key={project._id} to={projectPath(project._id)} className="group">
+              <Card className="h-full hover:border-primary/25 hover:shadow-md">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <span
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold text-white"
-                        style={{ backgroundColor: project.color || '#292524' }}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white shadow-soft-lift transition group-hover:scale-[1.03]"
+                        style={{ backgroundColor: project.color || '#1a1a1a' }}
                       >
                         {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
                       </span>
                       <div>
-                        <CardTitle className="text-base">{project.name}</CardTitle>
+                        <CardTitle className="text-[15px] group-hover:text-primary-deep">
+                          {project.name}
+                        </CardTitle>
                         <p className="mt-0.5 text-[11px] font-medium capitalize text-graphite">
                           {(project.kind || 'project').replace(/_/g, ' ')}
                         </p>
@@ -131,7 +133,7 @@ export default function ProjectsPage() {
                     {project.description || 'No description'}
                   </p>
                   {project.openTaskCount > 0 && (
-                    <p className="mt-2 text-xs font-medium text-ink">
+                    <p className="mt-3 inline-flex rounded-md bg-cloud px-2 py-1 text-xs font-semibold text-ink">
                       {project.openTaskCount} open task
                       {project.openTaskCount === 1 ? '' : 's'}
                     </p>

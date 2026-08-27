@@ -347,6 +347,8 @@ export function InviteModal({
           emailError: data?.emailError,
           emailTo: data?.emailTo || values.email,
           emailFrom: data?.emailFrom || 'BIWORKSPACE',
+          emailProvider: data?.emailProvider || null,
+          emailMessageId: data?.emailMessageId || null,
           emailRedirectedTo: data?.emailRedirectedTo || null,
           emailNote: data?.emailNote || null,
           emailDeliveryStatus: data?.emailDeliveryStatus || null,
@@ -362,7 +364,9 @@ export function InviteModal({
             `Invite emailed to ${data.emailRedirectedTo} (Resend test mode). Share credentials with ${values.email}.`
           );
         } else {
-          toast.success(`Invite email delivered to ${values.email} inbox`);
+          toast.success(
+            `Invite accepted by mail server for ${values.email} — check inbox and spam`
+          );
         }
       },
     });
@@ -437,13 +441,14 @@ export function InviteModal({
                   </>
                 ) : (
                   <>
-                    Invite email from BIWORKSPACE was sent to{' '}
+                    Invite email from BIWORKSPACE was accepted for{' '}
                     <span className="font-medium text-ink">{result.emailTo || result.email}</span>
+                    {result.emailProvider ? <> via {result.emailProvider}</> : null}
                     {result.emailDeliveryStatus ? (
                       <> (status: {result.emailDeliveryStatus})</>
                     ) : null}
-                    . They should open that inbox (check spam too), accept the invite, set a
-                    password, and sign in.
+                    . Open that inbox (and spam/junk), accept the invite, set a password, and
+                    sign in. If nothing arrives within a few minutes, share the link below.
                   </>
                 )}
               </p>

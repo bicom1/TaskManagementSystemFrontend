@@ -8,7 +8,9 @@ export const userApi = {
   getById: (id) => axiosClient.get(`/users/${id}`).then((r) => r.data.data),
 
   invite: (payload) =>
-    axiosClient.post('/users/invite', payload).then((r) => r.data.data),
+    axiosClient
+      .post('/users/invite', payload, { timeout: 60_000 })
+      .then((r) => r.data.data),
 
   updateUser: (id, payload) =>
     axiosClient.patch(`/users/${id}`, payload).then((r) => r.data.data),

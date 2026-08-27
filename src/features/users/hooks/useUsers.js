@@ -30,7 +30,13 @@ export function useInviteUser() {
       queryClient.invalidateQueries({ queryKey: ['home'] });
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to send invite');
+      const timedOut =
+        error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '');
+      toast.error(
+        timedOut
+          ? 'Invite is taking too long — wait a few seconds, then try again (pending invites can be resent).'
+          : error?.response?.data?.message ?? 'Failed to send invite'
+      );
     },
   });
 }

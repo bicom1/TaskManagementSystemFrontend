@@ -32,10 +32,13 @@ export function useInviteUser() {
     onError: (error) => {
       const timedOut =
         error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '');
+      const alreadyExists = /already exists/i.test(error?.response?.data?.message || '');
       toast.error(
         timedOut
-          ? 'Invite is taking too long — wait a few seconds, then try again (pending invites can be resent).'
-          : error?.response?.data?.message ?? 'Failed to send invite'
+          ? 'Server is waking up. Wait 10 seconds and click Create invite again.'
+          : alreadyExists
+            ? 'That email is already in the workspace. Delete the pending user (if unused) or invite a different email.'
+            : error?.response?.data?.message ?? 'Failed to create invite'
       );
     },
   });

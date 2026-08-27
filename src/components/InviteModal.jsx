@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
-import { Copy, Check, Mail, MessageCircle, UserPlus } from 'lucide-react';
+import { Copy, Check, MessageCircle, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
@@ -354,19 +354,14 @@ export function InviteModal({
           emailDeliveryStatus: data?.emailDeliveryStatus || null,
           teamId: data?.teamId,
         });
-        if (data?.emailSent === false) {
-          toast.warning(
-            data?.emailError ||
-              'Account created but email could not be sent. Share the invite link.'
-          );
+        if (data?.emailSent === false || data?.emailProvider === 'background') {
+          toast.success('Invite ready — share the link below (WhatsApp or copy)');
         } else if (data?.emailRedirectedTo) {
           toast.success(
             `Invite emailed to ${data.emailRedirectedTo} (Resend test mode). Share credentials with ${values.email}.`
           );
         } else {
-          toast.success(
-            `Invite accepted by mail server for ${values.email} — check inbox and spam`
-          );
+          toast.success('Invite created — share the link or wait for email');
         }
       },
     });
@@ -409,11 +404,7 @@ export function InviteModal({
       open={open}
       onClose={handleClose}
       title="Invite to BIWORKSPACE"
-      description={
-        isSuperAdmin
-          ? 'Choose department → assign role → send email. The invitee must open that email to log in.'
-          : 'Invite by email. The user receives a BIWORKSPACE message and logs in from their inbox.'
-      }
+      description="Create an invite, then share the direct link on WhatsApp. Email is sent in the background."
       size="md"
     >
       {!userCanInvite ? (
@@ -423,65 +414,32 @@ export function InviteModal({
       ) : result ? (
         <div className="space-y-4">
           <div className="rounded-xl border border-primary-soft bg-primary-soft/30 p-4">
-            <p className="text-sm font-medium text-ink">
-              {result.emailSent === false
-                ? 'Invite created (email not delivered)'
-                : 'Email sent from BIWORKSPACE'}
+            <p className="text-sm font-medium text-ink">Invite ready for {result.name || result.email}</p>
+            <p className="mt-2 text-sm leading-relaxed text-graphite">
+              Send them this link directly (WhatsApp). They open it, set a password, and join.
+              {result.teamId ? ' They were also added to the selected team.' : ''}
             </p>
-            {result.emailSent !== false ? (
-              <p className="mt-2 text-sm leading-relaxed text-graphite">
-                {result.emailRedirectedTo ? (
-                  <>
-                    Resend test mode (domain not verified yet): invite email was delivered to{' '}
-                    <span className="font-medium text-ink">{result.emailRedirectedTo}</span>.
-                    Intended user is{' '}
-                    <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
-                    Forward that email or share the link/password below. After you verify the domain
-                    in Resend, invites will go directly to the user.
-                  </>
-                ) : (
-                  <>
-                    Invite email from BIWORKSPACE was accepted for{' '}
-                    <span className="font-medium text-ink">{result.emailTo || result.email}</span>
-                    {result.emailProvider ? <> via {result.emailProvider}</> : null}
-                    {result.emailDeliveryStatus ? (
-                      <> (status: {result.emailDeliveryStatus})</>
-                    ) : null}
-                    . Open that inbox (and spam/junk), accept the invite, set a password, and
-                    sign in. If nothing arrives within a few minutes, share the link below.
-                  </>
-                )}
-              </p>
-            ) : (
-              <p className="mt-1 text-sm text-graphite">
-                Credentials for{' '}
-                <span className="font-medium text-ink">{result.emailTo || result.email}</span>
-                {result.teamId ? ' · added to team' : ''}
-              </p>
-            )}
             {result.emailNote ? (
-              <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+              <p className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-900">
                 {result.emailNote}
               </p>
             ) : null}
-            {result.emailSent !== false && result.teamId ? (
-              <p className="mt-1 text-xs text-graphite">Also added to the selected team.</p>
-            ) : null}
-            {result.emailSent === false && result.emailError ? (
-              <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
-                {result.emailError}
-              </p>
-            ) : null}
             {result.acceptUrl && (
-              <p className="mt-3 break-all rounded-md bg-paper px-3 py-2 text-xs text-ink">
-                {result.acceptUrl}
-              </p>
+              <div className="mt-3 space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-graphite">Direct invite link</p>
+                <p className="break-all rounded-md bg-paper px-3 py-2 text-sm font-medium text-ink">
+                  {result.acceptUrl}
+                </p>
+              </div>
             )}
             {result.temporaryPassword && (
               <p className="mt-2 rounded-md bg-paper px-3 py-2 font-mono text-sm text-ink">
                 Temp password: {result.temporaryPassword}
               </p>
             )}
+            <p className="mt-2 text-xs text-graphite">
+              Login email: <span className="font-medium text-ink">{result.emailTo || result.email}</span>
+            </p>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -532,8 +490,8 @@ export function InviteModal({
               : isDeptScoped
                 ? 'Inviting into this department. Department is set and can’t be changed.'
                 : isSuperAdmin
-                  ? 'As Super Admin, pick the department and the role this person should have. An invite email from BIWORKSPACE is required for them to log in.'
-                  : 'Pick department and role, then send. The invite email is required for login.'}
+                  ? 'Pick department and role, then create the invite. Share the direct link on WhatsApp — they do not need to wait for email.'
+                  : 'Pick department and role, then create the invite and share the link.'}
           </p>
 
           <div className="space-y-2">
@@ -780,8 +738,7 @@ export function InviteModal({
             </Button>
             <Button type="submit" disabled={invite.isPending}>
               <UserPlus className="h-4 w-4" />
-              <Mail className="h-4 w-4" />
-              {invite.isPending ? 'Sending invite email…' : 'Send invite email'}
+              {invite.isPending ? 'Creating invite…' : 'Create invite & get link'}
             </Button>
           </div>
         </form>

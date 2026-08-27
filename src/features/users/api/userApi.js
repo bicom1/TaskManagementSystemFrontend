@@ -9,7 +9,7 @@ export const userApi = {
 
   invite: (payload) =>
     axiosClient
-      .post('/users/invite', payload, { timeout: 60_000 })
+      .post('/users/invite', payload, { timeout: 90_000 })
       .then((r) => r.data.data),
 
   updateUser: (id, payload) =>

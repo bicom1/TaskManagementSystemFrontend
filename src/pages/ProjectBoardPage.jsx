@@ -37,7 +37,6 @@ import {
 } from 'lucide-react';
 import { useProject } from '@/features/projects/hooks/useProjects';
 import { useUsers } from '@/features/users/hooks/useUsers';
-import { isSpaceKind } from '@/features/spaces/spaceKinds';
 import {
   useTaskBoard,
   useCreateTask,
@@ -719,24 +718,15 @@ export default function ProjectBoardPage() {
   const updateTask = useUpdateTask(projectId, { silent: true });
   const moveTask = useMoveTask(projectId);
 
-  const isSpaceContext =
-    location.pathname.startsWith('/spaces/') || isSpaceKind(project?.kind);
-  const catalogHref = isSpaceContext ? '/spaces' : '/projects';
-  const catalogLabel = isSpaceContext ? 'Spaces' : 'All Projects';
-  const entityLabel = isSpaceContext ? 'Space' : 'Project';
+  const catalogHref = '/projects';
+  const catalogLabel = 'All Projects';
+  const entityLabel = 'Project';
 
-  // Keep Spaces and Projects on their own routes / dashboards
   useEffect(() => {
-    if (!project?._id) return;
-    const wantSpace = isSpaceKind(project.kind);
-    const onSpaces = location.pathname.startsWith('/spaces/');
+    if (!location.pathname.startsWith('/spaces/')) return;
     const qs = location.search || '';
-    if (wantSpace && !onSpaces) {
-      navigate(`/spaces/${projectId}${qs}`, { replace: true });
-    } else if (!wantSpace && onSpaces) {
-      navigate(`/projects/${projectId}${qs}`, { replace: true });
-    }
-  }, [project, projectId, location.pathname, location.search, navigate]);
+    navigate(`/projects/${projectId}${qs}`, { replace: true });
+  }, [location.pathname, location.search, projectId, navigate]);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -947,7 +937,7 @@ export default function ProjectBoardPage() {
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white shadow-soft-lift"
               style={{ backgroundColor: project?.color || '#1a1a1a' }}
             >
-              {(project?.icon || project?.name?.[0] || (isSpaceContext ? 'S' : 'P'))
+              {(project?.icon || project?.name?.[0] || 'P')
                 .toString()
                 .slice(0, 1)}
             </span>

@@ -16,7 +16,6 @@ const AllTasksPage = lazy(() => import('./pages/AllTasksPage'));
 const AssignedCommentsPage = lazy(() => import('./pages/AssignedCommentsPage'));
 const AgendaPage = lazy(() => import('./pages/AgendaPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
-const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const ProjectBoardPage = lazy(() => import('./pages/ProjectBoardPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
@@ -59,7 +58,7 @@ export default function App() {
         <Route path="approvals" element={<ApprovalsPage />} />
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="projects/:id" element={<ProjectBoardPage />} />
-        <Route path="spaces" element={<SpacesPage />} />
+        <Route path="spaces" element={<Navigate to="/projects" replace />} />
         <Route path="spaces/:id" element={<ProjectBoardPage />} />
         <Route path="boards" element={<BoardsPage />} />
         <Route path="teams" element={<TeamsHubLayout />}>

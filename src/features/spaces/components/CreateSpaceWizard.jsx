@@ -101,7 +101,7 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
   const statuses = customStatuses || template.statuses;
   const clickApps = customApps || template.clickApps;
 
-  const iconLetter = (form.icon || form.name?.[0] || 'S').toString().slice(0, 1).toUpperCase();
+  const iconLetter = (form.icon || form.name?.[0] || 'P').toString().slice(0, 1).toUpperCase();
 
   const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -115,7 +115,7 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
       icon: iconLetter,
       isPrivate: form.isPrivate,
       defaultPermission: form.defaultPermission,
-      kind: 'space',
+      kind: 'project',
       workflowTemplate: form.workflowTemplate,
       defaultViews: views,
       statuses,
@@ -127,7 +127,7 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
     createProject.mutate(payload, {
       onSuccess: (project) => {
         onClose?.();
-        navigate(`/spaces/${project._id}?view=list`);
+        navigate(`/projects/${project._id}?view=list`);
       },
     });
   };
@@ -137,10 +137,10 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
       open={open}
       onClose={onClose}
       size="lg"
-      title={step === 1 ? 'Create a Space' : 'Define your workflow.'}
+      title={step === 1 ? 'Create a Project' : 'Define your workflow.'}
       description={
         step === 1
-          ? 'A Space represents teams, departments, or groups, each with its own Lists, workflows, and settings.'
+          ? 'A project groups tasks, workflows, and views for a team or initiative.'
           : 'Choose a pre-configured solution or customize to your liking with apps, required views, and task statuses.'
       }
       bodyClassName="pb-2"
@@ -151,7 +151,7 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
             <button
               type="button"
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-hairline bg-cloud text-lg font-bold text-ink"
-              title="Space icon"
+              title="Project icon"
               onClick={() => {
                 const next = window.prompt('Icon letter (1 character)', iconLetter);
                 if (next != null && next.trim()) setField('icon', next.trim().slice(0, 1));
@@ -160,13 +160,13 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
               {iconLetter}
             </button>
             <div className="min-w-0 flex-1 space-y-1.5">
-              <Label htmlFor="space-name" className="sr-only">
+              <Label htmlFor="project-name" className="sr-only">
                 Name
               </Label>
               <Input
-                id="space-name"
+                id="project-name"
                 autoFocus
-                placeholder="e.g. Marketing, Engineering, HR"
+                placeholder="e.g. Website Redesign, Q4 Launch"
                 value={form.name}
                 onChange={(e) => setField('name', e.target.value)}
               />
@@ -174,11 +174,11 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="space-desc">Description (optional)</Label>
+            <Label htmlFor="project-desc">Description (optional)</Label>
             <Textarea
-              id="space-desc"
+              id="project-desc"
               rows={2}
-              placeholder="What is this Space for?"
+              placeholder="What is this project for?"
               value={form.description}
               onChange={(e) => setField('description', e.target.value)}
             />
@@ -186,9 +186,9 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
 
           {teams.length > 0 ? (
             <div className="space-y-1.5">
-              <Label htmlFor="space-team">Team (required)</Label>
+              <Label htmlFor="project-team">Team (required)</Label>
               <select
-                id="space-team"
+                id="project-team"
                 className="flex h-10 w-full rounded-md border border-hairline bg-paper px-3 text-sm text-ink disabled:opacity-70"
                 value={form.team}
                 disabled={Boolean(defaultTeamId)}
@@ -202,12 +202,12 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
                 ))}
               </select>
               <p className="text-xs text-graphite">
-                Everyone on this team will see this Space in their sidebar automatically.
+                Everyone on this team will see this project in their sidebar automatically.
               </p>
             </div>
           ) : (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-ink">
-              Create a team first under Teams, then create a Space for that team.
+              Create a team first under Teams, then create a project for that team.
             </p>
           )}
 
@@ -448,7 +448,7 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
               onClick={handleCreate}
               disabled={createProject.isPending}
             >
-              {createProject.isPending ? 'Creating…' : 'Create Space'}
+              {createProject.isPending ? 'Creating…' : 'Create Project'}
             </Button>
           </div>
         </div>

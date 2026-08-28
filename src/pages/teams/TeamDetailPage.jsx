@@ -9,7 +9,7 @@ import {
 import { useProjects, useLiveSpaces } from '@/features/projects/hooks/useProjects';
 import { useStartTeamChat } from '@/features/chat/hooks/useChat';
 import { CreateSpaceWizard } from '@/features/spaces/components/CreateSpaceWizard';
-import { entityPath, isSpaceKind } from '@/features/spaces/spaceKinds';
+import { entityPath } from '@/features/spaces/spaceKinds';
 import { PersonCard } from '@/features/teams/components/PersonCard';
 import { PersonDetailModal } from '@/features/teams/components/PersonDetailModal';
 import { Button } from '@/components/ui/Button';
@@ -109,8 +109,8 @@ export default function TeamDetailPage() {
             {team.lead?.role ? ` · ${getRoleLabel(team.lead.role)}` : ''}
           </p>
           <p className="mt-2 max-w-xl text-xs text-graphite">
-            ClickUp-style access: create a Space/Project for this team, then invite or add people —
-            they will see those Spaces in their sidebar automatically.
+            ClickUp-style access: create a project for this team, then invite or add people —
+            they will see those projects in their sidebar automatically.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -128,7 +128,7 @@ export default function TeamDetailPage() {
           </Button>
           <Button variant="outline" onClick={() => setSpaceWizardOpen(true)}>
             <Plus className="h-4 w-4" />
-            Create Space for team
+            Create Project for team
           </Button>
           {canManageMembers && (
             <>
@@ -156,17 +156,17 @@ export default function TeamDetailPage() {
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-graphite">
-            Spaces &amp; Projects ({teamProjects.length})
+            Projects ({teamProjects.length})
           </h2>
         </div>
         {teamProjects.length === 0 ? (
           <EmptyState
-            title="No Spaces yet for this team"
-            description="Create a Space linked to this team. Everyone on the team will see it."
+            title="No projects yet for this team"
+            description="Create a project linked to this team. Everyone on the team will see it."
             action={
               <Button onClick={() => setSpaceWizardOpen(true)}>
                 <Plus className="h-4 w-4" />
-                Create Space
+                Create Project
               </Button>
             }
           />
@@ -189,7 +189,7 @@ export default function TeamDetailPage() {
                   <span className="block truncate font-medium text-ink">{project.name}</span>
                   <span className="mt-0.5 flex items-center gap-1 text-[11px] text-graphite">
                     <FolderKanban className="h-3 w-3" />
-                    {isSpaceKind(project.kind) ? 'Space' : 'Project'}
+                    Project
                     {project.openTaskCount != null ? ` · ${project.openTaskCount} open` : ''}
                   </span>
                 </span>
@@ -206,7 +206,7 @@ export default function TeamDetailPage() {
       {members.length === 0 ? (
         <EmptyState
           title="No members"
-          description="Invite or add people — they will get this team’s Spaces automatically."
+          description="Invite or add people — they will get this team’s projects automatically."
           action={
             canManageMembers ? (
               <Button onClick={() => setAddOpen(true)}>Add member</Button>
@@ -271,7 +271,7 @@ export default function TeamDetailPage() {
               ))}
             </Select>
             <p className="text-xs text-graphite">
-              They will immediately see this team’s Spaces &amp; Projects.
+              They will immediately see this team’s projects.
             </p>
           </div>
           <div className="flex justify-end gap-2">

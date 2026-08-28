@@ -1,7 +1,6 @@
-/** Spaces vs Projects — shared kind helpers */
+/** Project routing helpers — legacy "space" kinds still open under /projects */
 
 const SPACE_KINDS = new Set(['space']);
-/** Legacy Space wizard saved kind: 'list' — still show under Spaces */
 const LEGACY_SPACE_KINDS = new Set(['list']);
 
 export function isSpaceKind(kind) {
@@ -9,12 +8,12 @@ export function isSpaceKind(kind) {
   return SPACE_KINDS.has(k) || LEGACY_SPACE_KINDS.has(k);
 }
 
-export function isProjectKind(kind) {
-  return !isSpaceKind(kind);
+export function isProjectKind() {
+  return true;
 }
 
 export function spacePath(id, view = 'list') {
-  return `/spaces/${id}?view=${view}`;
+  return projectPath(id, view);
 }
 
 export function projectPath(id, view = 'list') {
@@ -23,5 +22,5 @@ export function projectPath(id, view = 'list') {
 
 export function entityPath(entity) {
   if (!entity?._id) return '/projects';
-  return isSpaceKind(entity.kind) ? spacePath(entity._id) : projectPath(entity._id);
+  return projectPath(entity._id);
 }

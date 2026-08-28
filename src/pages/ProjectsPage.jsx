@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FolderKanban, Plus } from 'lucide-react';
 import { useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
@@ -7,55 +7,33 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingScreen, EmptyState } from '@/components/ui/Spinner';
 import { PROJECT_STATUS_LABELS } from '@/features/projects/api/projectApi';
-import { CreateMenuPopover } from '@/features/spaces/components/CreateMenuPopover';
-import { QuickCreateKindModal } from '@/features/spaces/components/QuickCreateKindModal';
-import { isProjectKind, projectPath } from '@/features/spaces/spaceKinds';
+import { CreateSpaceWizard } from '@/features/spaces/components/CreateSpaceWizard';
+import { projectPath } from '@/features/spaces/spaceKinds';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { useAuthStore } from '@/store/authStore';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 
-const QUICK_KINDS = new Set(['list', 'folder', 'sprint', 'doc', 'form', 'whiteboard']);
+function sortByName(items) {
+  return [...items].sort((a, b) =>
+    String(a.name || '').localeCompare(String(b.name || ''), undefined, {
+      sensitivity: 'base',
+      numeric: true,
+    })
+  );
+}
 
-/** Projects catalog dashboard — excludes Spaces */
+/** Projects catalog — all workspace projects */
 export default function ProjectsPage() {
   const user = useAuthStore((s) => s.user);
-  const navigate = useNavigate();
   const canCreate = hasPermission(user, PERMISSIONS.PROJECT_CREATE);
   const { data, isLoading } = useProjects({ limit: 100 });
   useLiveSpaces();
 
-  const [createMenuOpen, setCreateMenuOpen] = useState(false);
-  const [quickKind, setQuickKind] = useState(null);
-  const addRef = useRef(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const projects = useMemo(
-    () => (data?.data ?? []).filter((p) => isProjectKind(p.kind)),
+    () => sortByName(data?.data ?? []),
     [data]
   );
-
-  const onCreateSelect = (id) => {
-    if (!canCreate) {
-      toast.error('You do not have permission to create projects');
-      return;
-    }
-    if (QUICK_KINDS.has(id)) {
-      setQuickKind(id);
-      return;
-    }
-    if (id === 'dashboard') {
-      navigate('/reports');
-      return;
-    }
-    if (id === 'imports') {
-      navigate('/settings');
-      toast.message('Imports', { description: 'Use Settings to import data.' });
-      return;
-    }
-    if (id === 'templates') {
-      setQuickKind('list');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -74,13 +52,13 @@ export default function ProjectsPage() {
           </p>
           <h1 className="page-title">All Projects</h1>
           <p className="page-subtitle">
-            Lists, folders, sprints, and docs — separate from Spaces.
+            Organize work with boards, lists, and team workflows.
           </p>
         </div>
         {canCreate && (
-          <Button ref={addRef} onClick={() => setCreateMenuOpen((o) => !o)}>
+          <Button onClick={() => setWizardOpen(true)}>
             <Plus className="h-4 w-4" />
-            Add Project
+            New Project
           </Button>
         )}
       </div>
@@ -89,12 +67,12 @@ export default function ProjectsPage() {
         <EmptyState
           icon={FolderKanban}
           title="No projects yet"
-          description="Add a list, folder, or sprint to organize project work."
+          description="Create a project to organize tasks and collaborate with your team."
           action={
             canCreate ? (
-              <Button onClick={() => setCreateMenuOpen(true)}>
+              <Button onClick={() => setWizardOpen(true)}>
                 <Plus className="h-4 w-4" />
-                Add Project
+                New Project
               </Button>
             ) : null
           }
@@ -146,19 +124,7 @@ export default function ProjectsPage() {
       )}
 
       {canCreate && (
-        <>
-          <CreateMenuPopover
-            open={createMenuOpen}
-            onClose={() => setCreateMenuOpen(false)}
-            onSelect={onCreateSelect}
-            anchorRef={addRef}
-          />
-          <QuickCreateKindModal
-            open={Boolean(quickKind)}
-            kind={quickKind}
-            onClose={() => setQuickKind(null)}
-          />
-        </>
+        <CreateSpaceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
       )}
     </div>
   );

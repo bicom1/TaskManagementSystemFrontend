@@ -35,10 +35,7 @@ import {
 } from '@/features/notifications/hooks/useNotifications';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import {
-  isProjectKind,
-  isSpaceKind,
   projectPath,
-  spacePath,
 } from '@/features/spaces/spaceKinds';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -46,7 +43,7 @@ const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'nav', label: 'Navigation' },
   { id: 'tasks', label: 'My Tasks' },
-  { id: 'spaces', label: 'Spaces & Projects' },
+  { id: 'projects', label: 'Projects' },
   { id: 'teams', label: 'Teams' },
   { id: 'channels', label: 'Channels' },
   { id: 'upcoming', label: 'Meetings & Locations' },
@@ -71,9 +68,8 @@ function sortByName(items) {
   );
 }
 
-export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCollapse }) {
+export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
   const [tasksOpen, setTasksOpen] = useState(true);
-  const [spacesOpen, setSpacesOpen] = useState(true);
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [inboxPreviewOpen, setInboxPreviewOpen] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -102,14 +98,8 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
 
   const q = query.trim().toLowerCase();
 
-  const spaces = useMemo(() => {
-    const list = catalogProjects.filter((p) => isSpaceKind(p.kind));
-    return sortByName(list).filter((p) => matchesQuery(p.name, q));
-  }, [catalogProjects, q]);
-
   const orderedProjects = useMemo(() => {
-    const list = catalogProjects.filter((p) => isProjectKind(p.kind));
-    return sortByName(list).filter((p) => matchesQuery(p.name, q));
+    return sortByName(catalogProjects).filter((p) => matchesQuery(p.name, q));
   }, [catalogProjects, q]);
 
   const homeLinks = useMemo(
@@ -167,7 +157,7 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
   const showNav = filter === 'all' || filter === 'nav';
   const showTasks = filter === 'all' || filter === 'tasks';
   const showTeams = filter === 'all' || filter === 'teams';
-  const showSpacesProjects = (filter === 'all' || filter === 'spaces') && canViewProjects;
+  const showProjects = (filter === 'all' || filter === 'projects') && canViewProjects;
   const showChannels = filter === 'all' || filter === 'channels';
   const showUpcoming = filter === 'all' || filter === 'upcoming';
 
@@ -197,15 +187,6 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
           {unreadCount > 0 && (
             <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
           )}
-        </button>
-        <button
-          type="button"
-          onClick={onCreate}
-          className="mb-2 flex h-9 w-9 items-center justify-center rounded-md border border-primary bg-primary text-on-ink hover:bg-primary-bright"
-          title="Create"
-          aria-label="Create"
-        >
-          <Plus className="h-4 w-4" />
         </button>
         <button
           type="button"
@@ -250,7 +231,7 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
 
   return (
     <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-hairline bg-paper">
-      {/* Top toolbar: collapse + search + filter | Create */}
+      {/* Top toolbar: collapse + search + filter */}
       <div className="border-b border-hairline p-2.5">
         <div className="mb-2 flex items-center gap-1">
           <button
@@ -294,16 +275,6 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
           >
             <ListFilter className="h-4 w-4" />
           </button>
-          <div className="ml-auto">
-            <Button
-              size="sm"
-              className="h-8 rounded-lg px-3 normal-case tracking-normal"
-              onClick={onCreate}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Create
-            </Button>
-          </div>
         </div>
 
         {searchOpen && (
@@ -539,160 +510,77 @@ export function HomeSidebar({ onInvite, onCreate, collapsed = false, onToggleCol
           </div>
         )}
 
-        {showSpacesProjects && (
-          <>
-            <div className="mt-4">
-              <div className="mb-0.5 flex items-center gap-1 px-1">
-                <button
-                  type="button"
-                  onClick={() => setSpacesOpen((v) => !v)}
-                  className="rounded p-1 text-graphite hover:bg-cloud hover:text-ink"
-                  title={spacesOpen ? 'Collapse spaces' : 'Expand spaces'}
-                  aria-expanded={spacesOpen}
-                >
-                  <ChevronDown
-                    className={cn(
-                      'h-3.5 w-3.5 transition-transform',
-                      !spacesOpen && '-rotate-90'
-                    )}
-                  />
-                </button>
-                <NavLink
-                  to="/spaces"
-                  className={({ isActive }) =>
-                    cn(
-                      'min-w-0 flex-1 truncate rounded-md px-1.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em]',
-                      isActive && !activeEntityId
-                        ? 'bg-cloud text-ink'
-                        : 'text-graphite hover:bg-cloud/80'
-                    )
-                  }
-                >
-                  Spaces
-                  <span className="ml-1.5 tabular-nums font-semibold normal-case tracking-normal">
-                    {spaces.length}
-                  </span>
-                </NavLink>
-                <button
-                  type="button"
-                  onClick={onCreate}
-                  className="rounded p-0.5 text-graphite hover:bg-cloud hover:text-ink"
-                  title="Create"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              {spacesOpen && (
-                <div className="ml-2 space-y-0.5 border-l border-hairline pl-2">
-                  {spaces.length === 0 ? (
-                    <p className="px-2 py-2 text-xs text-graphite">
-                      {q ? 'No matching spaces' : 'No spaces yet'}
-                    </p>
-                  ) : (
-                    spaces.map((space) => (
-                      <NavLink
-                        key={space._id}
-                        to={spacePath(space._id)}
-                        className={cn(
-                          'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
-                          activeEntityId === String(space._id)
-                            ? 'bg-cloud font-medium text-ink'
-                            : 'text-charcoal hover:bg-cloud/80'
-                        )}
-                      >
-                        <span
-                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-                          style={{ backgroundColor: space.color || '#292524' }}
-                        >
-                          {(space.icon || space.name?.[0] || 'S').toString().slice(0, 1)}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate">{space.name}</span>
-                      </NavLink>
-                    ))
+        {showProjects && (
+          <div className="mt-4">
+            <div className="mb-0.5 flex items-center gap-1 px-1">
+              <button
+                type="button"
+                onClick={() => setProjectsOpen((v) => !v)}
+                className="rounded p-1 text-graphite hover:bg-cloud hover:text-ink"
+                title={projectsOpen ? 'Collapse projects' : 'Expand projects'}
+                aria-expanded={projectsOpen}
+              >
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 transition-transform',
+                    !projectsOpen && '-rotate-90'
                   )}
-                </div>
-              )}
+                />
+              </button>
+              <NavLink
+                to="/projects"
+                className={({ isActive }) =>
+                  cn(
+                    'flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-md px-1.5 py-1.5 text-sm font-medium',
+                    isActive && !activeEntityId
+                      ? 'bg-cloud text-ink'
+                      : 'text-charcoal hover:bg-cloud/80'
+                  )
+                }
+              >
+                <FolderKanban className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Projects</span>
+                <span className="ml-auto tabular-nums text-[10px] font-semibold text-graphite">
+                  {orderedProjects.length}
+                </span>
+              </NavLink>
             </div>
-
-            <div className="mt-3">
-              <div className="mb-0.5 flex items-center gap-1 px-1">
-                <button
-                  type="button"
-                  onClick={() => setProjectsOpen((v) => !v)}
-                  className="rounded p-1 text-graphite hover:bg-cloud hover:text-ink"
-                  title={projectsOpen ? 'Collapse projects' : 'Expand projects'}
-                  aria-expanded={projectsOpen}
-                >
-                  <ChevronDown
-                    className={cn(
-                      'h-3.5 w-3.5 transition-transform',
-                      !projectsOpen && '-rotate-90'
-                    )}
-                  />
-                </button>
-                <NavLink
-                  to="/projects"
-                  className={({ isActive }) =>
-                    cn(
-                      'flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-md px-1.5 py-1.5 text-sm font-medium',
-                      isActive && !activeEntityId
-                        ? 'bg-cloud text-ink'
-                        : 'text-charcoal hover:bg-cloud/80'
-                    )
-                  }
-                >
-                  <FolderKanban className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">Projects</span>
-                  <span className="ml-auto tabular-nums text-[10px] font-semibold text-graphite">
-                    {orderedProjects.length}
-                  </span>
-                </NavLink>
-                <button
-                  type="button"
-                  onClick={onCreate}
-                  className="rounded p-0.5 text-graphite hover:bg-cloud hover:text-ink"
-                  title="Create"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              {projectsOpen && (
-                <div className="ml-2 space-y-0.5 border-l border-hairline pl-2">
-                  {orderedProjects.length === 0 ? (
-                    <p className="px-2 py-2 text-xs text-graphite">
-                      {q ? 'No matching projects' : 'No projects yet'}
-                    </p>
-                  ) : (
-                    orderedProjects.map((project) => (
-                      <NavLink
-                        key={project._id}
-                        to={projectPath(project._id)}
-                        className={cn(
-                          'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
-                          activeEntityId === String(project._id)
-                            ? 'bg-cloud font-medium text-ink'
-                            : 'text-charcoal hover:bg-cloud/80'
-                        )}
+            {projectsOpen && (
+              <div className="ml-2 space-y-0.5 border-l border-hairline pl-2">
+                {orderedProjects.length === 0 ? (
+                  <p className="px-2 py-2 text-xs text-graphite">
+                    {q ? 'No matching projects' : 'No projects yet'}
+                  </p>
+                ) : (
+                  orderedProjects.map((project) => (
+                    <NavLink
+                      key={project._id}
+                      to={projectPath(project._id)}
+                      className={cn(
+                        'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+                        activeEntityId === String(project._id)
+                          ? 'bg-cloud font-medium text-ink'
+                          : 'text-charcoal hover:bg-cloud/80'
+                      )}
+                    >
+                      <span
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
+                        style={{ backgroundColor: project.color || '#292524' }}
                       >
-                        <span
-                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-                          style={{ backgroundColor: project.color || '#292524' }}
-                        >
-                          {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
+                        {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{project.name}</span>
+                      {project.openTaskCount > 0 && (
+                        <span className="shrink-0 tabular-nums text-[10px] font-semibold text-graphite">
+                          {project.openTaskCount}
                         </span>
-                        <span className="min-w-0 flex-1 truncate">{project.name}</span>
-                        {project.openTaskCount > 0 && (
-                          <span className="shrink-0 tabular-nums text-[10px] font-semibold text-graphite">
-                            {project.openTaskCount}
-                          </span>
-                        )}
-                      </NavLink>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          </>
+                      )}
+                    </NavLink>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {showTeams && (

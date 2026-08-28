@@ -44,7 +44,6 @@ export function AppShell() {
             collapsed={homeSidebarCollapsed}
             onToggleCollapse={() => setHomeSidebarCollapsed((v) => !v)}
             onInvite={() => setInviteOpen(true)}
-            onCreate={() => setCreateOpen(true)}
           />
         ) : (
           <AppSidebar
@@ -68,10 +67,6 @@ export function AppShell() {
                 onInvite={() => {
                   setMobileOpen(false);
                   setInviteOpen(true);
-                }}
-                onCreate={() => {
-                  setMobileOpen(false);
-                  setCreateOpen(true);
                 }}
               />
             ) : (
@@ -128,7 +123,7 @@ export function AppShell() {
             }}
           >
             <FolderKanban className="h-4 w-4" />
-            New Space
+            New Project
           </Button>
           <Button
             variant="outline"

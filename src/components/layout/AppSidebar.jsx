@@ -1,9 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { CreateSpaceWizard } from '@/features/spaces/components/CreateSpaceWizard';
-import { CreateMenuPopover } from '@/features/spaces/components/CreateMenuPopover';
-import { QuickCreateKindModal } from '@/features/spaces/components/QuickCreateKindModal';
+import { useMemo, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Inbox,
@@ -16,7 +12,6 @@ import {
   ChevronRight,
   Building2,
   LayoutGrid,
-  Plus,
   ClipboardCheck,
   ScrollText,
 } from 'lucide-react';
@@ -28,14 +23,7 @@ import { canApproveTasks, getRoleLabel, ROLES } from '@/lib/roles';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { BrandLogo } from '@/components/BrandLogo';
-import {
-  isProjectKind,
-  isSpaceKind,
-  projectPath,
-  spacePath,
-} from '@/features/spaces/spaceKinds';
-
-const QUICK_KINDS = new Set(['list', 'folder', 'sprint', 'doc', 'form', 'whiteboard']);
+import { projectPath } from '@/features/spaces/spaceKinds';
 
 const primaryNav = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
@@ -55,44 +43,13 @@ function sortByName(items) {
   );
 }
 
-function SpaceRow({ space, active }) {
-  return (
-    <NavLink
-      to={spacePath(space._id)}
-      className={cn(
-        'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors',
-        active
-          ? 'bg-paper font-medium text-ink shadow-soft-lift'
-          : 'text-charcoal hover:bg-paper/90'
-      )}
-    >
-      <span
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-        style={{ backgroundColor: space.color || '#1a1a1a' }}
-      >
-        {(space.icon || space.name?.[0] || 'S').toString().slice(0, 1)}
-      </span>
-      <span className="min-w-0 flex-1 truncate">{space.name}</span>
-      {space.openTaskCount > 0 && (
-        <span className="shrink-0 rounded bg-fog px-1.5 py-0.5 tabular-nums text-[10px] font-semibold text-graphite">
-          {space.openTaskCount}
-        </span>
-      )}
-    </NavLink>
-  );
-}
-
 export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false }) {
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
-  const navigate = useNavigate();
   const showApprovals = canApproveTasks(user?.role) || hasPermission(user, PERMISSIONS.TASK_APPROVE);
   const showInvite = hasPermission(user, PERMISSIONS.USER_INVITE);
   const showAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW) || user?.role === ROLES.SUPER_ADMIN;
   const canViewProjects = hasPermission(user, PERMISSIONS.PROJECT_VIEW);
-  const canCreateProjects = hasPermission(user, PERMISSIONS.PROJECT_CREATE);
-  const isOrgWideViewer =
-    user?.role === ROLES.SUPER_ADMIN || user?.role === ROLES.DEPT_HEAD;
 
   const { data: unreadCount = 0 } = useUnreadCount();
   const { data: pendingApprovals = [] } = usePendingApprovals(showApprovals);
@@ -100,13 +57,7 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
   const projects = projectsData?.data ?? [];
   useLiveSpaces();
 
-  const [spaceWizardOpen, setSpaceWizardOpen] = useState(false);
-  const [wizardInitialStep, setWizardInitialStep] = useState(1);
-  const [spacesExpanded, setSpacesExpanded] = useState(false);
   const [projectsExpanded, setProjectsExpanded] = useState(false);
-  const [createMenuOpen, setCreateMenuOpen] = useState(false);
-  const [quickKind, setQuickKind] = useState(null);
-  const projectsPlusRef = useRef(null);
 
   const approvalCount = pendingApprovals.length;
   const activeEntityId = useMemo(() => {
@@ -114,47 +65,7 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
     return m?.[1] || null;
   }, [location.pathname]);
 
-  const spaces = useMemo(() => {
-    const list = projects.filter((p) => isSpaceKind(p.kind));
-    return sortByName(list);
-  }, [projects]);
-
-  const orderedProjects = useMemo(
-    () => sortByName(projects.filter((p) => isProjectKind(p.kind))),
-    [projects]
-  );
-
-  const handleProjectsCreateSelect = (id) => {
-    if (!canCreateProjects) {
-      toast.error('You do not have permission to create projects');
-      return;
-    }
-    if (QUICK_KINDS.has(id)) {
-      setQuickKind(id);
-      return;
-    }
-    if (id === 'dashboard') {
-      navigate('/reports');
-      return;
-    }
-    if (id === 'imports') {
-      navigate('/settings');
-      toast.message('Imports', { description: 'Use Settings to import data.' });
-      return;
-    }
-    if (id === 'templates') {
-      setQuickKind('list');
-    }
-  };
-
-  const openSpaceWizard = () => {
-    if (!canCreateProjects) {
-      toast.error('You do not have permission to create spaces');
-      return;
-    }
-    setWizardInitialStep(1);
-    setSpaceWizardOpen(true);
-  };
+  const orderedProjects = useMemo(() => sortByName(projects), [projects]);
 
   const navItems = [
     ...primaryNav.slice(0, 2),
@@ -250,92 +161,15 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
           </div>
         )}
 
-        {/* Spaces — dropdown only; list loads dynamically per user scope */}
         {!collapsed && canViewProjects && (
           <div className="mt-6">
-            <div className="mb-1 flex items-center gap-1 px-2">
-              <button
-                type="button"
-                onClick={() => setSpacesExpanded((v) => !v)}
-                className="rounded p-1 text-graphite hover:bg-paper hover:text-ink"
-                title={spacesExpanded ? 'Collapse' : 'Expand'}
-                aria-expanded={spacesExpanded}
-              >
-                <ChevronDown
-                  className={cn(
-                    'h-3.5 w-3.5 transition-transform',
-                    !spacesExpanded && '-rotate-90'
-                  )}
-                />
-              </button>
-              <NavLink
-                to="/spaces"
-                className={({ isActive }) =>
-                  cn(
-                    'min-w-0 flex-1 truncate rounded-md px-1.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em]',
-                    isActive && !activeEntityId
-                      ? 'bg-paper text-ink'
-                      : 'text-graphite hover:bg-paper/80'
-                  )
-                }
-              >
-                Spaces
-                <span className="ml-1.5 tabular-nums font-semibold normal-case tracking-normal">
-                  {spaces.length}
-                </span>
-              </NavLink>
-              {canCreateProjects && (
-                <button
-                  type="button"
-                  onClick={openSpaceWizard}
-                  className="rounded p-0.5 text-graphite hover:bg-paper hover:text-ink"
-                  title="Create a Space"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-
-            {spacesExpanded && (
-              <div className="ml-2 space-y-0.5 border-l border-hairline pl-2">
-                {spaces.length === 0 ? (
-                  <p className="px-2 py-2 text-xs text-graphite">
-                    {canCreateProjects
-                      ? 'No spaces yet — create one to get started'
-                      : 'No spaces assigned to you yet'}
-                  </p>
-                ) : (
-                  <>
-                    {isOrgWideViewer && (
-                      <p className="px-2 pb-1 pt-0.5 text-[10px] font-medium uppercase tracking-wide text-graphite/80">
-                        {user?.role === ROLES.SUPER_ADMIN
-                          ? 'All organization spaces'
-                          : 'Department & shared spaces'}
-                      </p>
-                    )}
-                    {spaces.map((space) => (
-                      <SpaceRow
-                        key={space._id}
-                        space={space}
-                        active={activeEntityId === String(space._id)}
-                      />
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* All Projects — create menu on + only */}
-        {!collapsed && canViewProjects && (
-          <div className="mt-4">
             <div className="mb-1 flex items-center gap-1 px-2">
               <button
                 type="button"
                 onClick={() => setProjectsExpanded((v) => !v)}
                 className="rounded p-1 text-graphite hover:bg-paper hover:text-ink"
                 title={projectsExpanded ? 'Collapse' : 'Expand'}
+                aria-expanded={projectsExpanded}
               >
                 <ChevronDown
                   className={cn(
@@ -356,28 +190,16 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
                 }
               >
                 All Projects
+                <span className="ml-1.5 tabular-nums text-[11px] font-semibold text-graphite">
+                  {orderedProjects.length}
+                </span>
               </NavLink>
-              {canCreateProjects && (
-                <button
-                  ref={projectsPlusRef}
-                  type="button"
-                  onClick={() => setCreateMenuOpen((open) => !open)}
-                  className="rounded p-0.5 text-graphite hover:bg-paper hover:text-ink"
-                  title="Add project"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              )}
             </div>
 
             {projectsExpanded && (
               <div className="ml-2 space-y-0.5 border-l border-hairline pl-2">
                 {orderedProjects.length === 0 ? (
-                  <p className="px-2 py-2 text-xs text-graphite">
-                    {canCreateProjects
-                      ? 'No projects yet — use + to create'
-                      : 'No projects available yet'}
-                  </p>
+                  <p className="px-2 py-2 text-xs text-graphite">No projects yet</p>
                 ) : (
                   orderedProjects.map((project) => (
                     <NavLink
@@ -443,32 +265,6 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
           {!collapsed && 'Collapse'}
         </button>
       </div>
-
-      {canCreateProjects && (
-        <>
-          <CreateSpaceWizard
-            open={spaceWizardOpen}
-            initialStep={wizardInitialStep}
-            onClose={() => {
-              setSpaceWizardOpen(false);
-              setWizardInitialStep(1);
-            }}
-          />
-
-          <CreateMenuPopover
-            open={createMenuOpen}
-            onClose={() => setCreateMenuOpen(false)}
-            onSelect={handleProjectsCreateSelect}
-            anchorRef={projectsPlusRef}
-          />
-
-          <QuickCreateKindModal
-            open={Boolean(quickKind)}
-            kind={quickKind}
-            onClose={() => setQuickKind(null)}
-          />
-        </>
-      )}
     </aside>
   );
 }

@@ -37,7 +37,7 @@ export function useInviteUser() {
         timedOut
           ? 'Server is waking up. Wait 10 seconds and click Create invite again.'
           : alreadyExists
-            ? 'That email is already in the workspace. Delete the pending user (if unused) or invite a different email.'
+            ? 'That email is already in the workspace. As Super Admin you can invite again after the latest API deploy — or deactivate the user in Teams first.'
             : error?.response?.data?.message ?? 'Failed to create invite'
       );
     },

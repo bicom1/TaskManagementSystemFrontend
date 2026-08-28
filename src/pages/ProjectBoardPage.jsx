@@ -747,6 +747,11 @@ export default function ProjectBoardPage() {
     }
   }, [searchParams, project?.activeView]);
 
+  useEffect(() => {
+    const taskId = searchParams.get('task');
+    if (taskId) setSelectedTaskId(taskId);
+  }, [searchParams]);
+
   const setView = (mode) => {
     setViewMode(mode);
     setSearchParams({ view: mode }, { replace: true });

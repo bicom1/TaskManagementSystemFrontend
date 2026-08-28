@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bell, CheckCheck, Mail, Plus, Send, ListTodo, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNotifications, useMarkAllRead, useMarkOneRead, useUnreadCount } from '@/features/notifications/hooks/useNotifications';
+import { taskApi } from '@/features/tasks/api/taskApi';
 import {
   useMessageInbox,
   useSendMessage,
@@ -241,6 +242,7 @@ function MessageDetail({ message, onClose, isIncoming, startCreateTask = false }
 }
 
 export default function NotificationsPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab =
@@ -290,8 +292,27 @@ export default function NotificationsPage() {
     markAllNotifRead.mutate();
   }, [tab, notifLoading, unreadCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openNotification = (n) => {
+  const openNotification = async (n) => {
     if (!n.isRead) markOneNotifRead.mutate(n._id);
+
+    if (n.entityType === 'Project' && n.entityId) {
+      navigate(`/projects/${n.entityId}`);
+      return;
+    }
+
+    if (n.entityType === 'Task' && n.entityId) {
+      try {
+        const task = await taskApi.getById(n.entityId);
+        const projectId = task?.project?._id || task?.project;
+        if (projectId) {
+          navigate(`/projects/${projectId}?task=${n.entityId}`);
+          return;
+        }
+      } catch {
+        // Fall through to all-tasks
+      }
+      navigate('/all-tasks');
+    }
   };
 
   const messages = inboxData?.data ?? [];

@@ -35,9 +35,9 @@ export function useInviteUser() {
       const alreadyExists = /already exists/i.test(error?.response?.data?.message || '');
       toast.error(
         timedOut
-          ? 'Server is waking up. Wait 10 seconds and click Create invite again.'
+          ? 'Server is waking up. Wait 10 seconds and click Create invite again — it will re-send if the user was already created.'
           : alreadyExists
-            ? 'That email is already in the workspace. As Super Admin you can invite again after the latest API deploy — or deactivate the user in Teams first.'
+            ? 'That email already joined the workspace. Deactivate them in Teams → People, then invite again. If they never joined, click Create invite again after the latest API deploy to re-send.'
             : error?.response?.data?.message ?? 'Failed to create invite'
       );
     },

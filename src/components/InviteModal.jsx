@@ -354,14 +354,14 @@ export function InviteModal({
           emailDeliveryStatus: data?.emailDeliveryStatus || null,
           teamId: data?.teamId,
         });
-        if (data?.emailSent === false || data?.emailProvider === 'background') {
-          toast.success('Invite ready — share the link below (WhatsApp or copy)');
-        } else if (data?.emailRedirectedTo) {
+        if (data?.emailSent) {
           toast.success(
-            `Invite emailed to ${data.emailRedirectedTo} (Resend test mode). Share credentials with ${values.email}.`
+            data?.emailRedirectedTo
+              ? `Invite emailed to ${data.emailRedirectedTo} (Resend test mode). Share credentials with ${values.email}.`
+              : 'Invite created and email sent from BIWORKSPACE'
           );
         } else {
-          toast.success('Invite created — share the link or wait for email');
+          toast.success('Invite ready — share the link below (email may still be catching up)');
         }
       },
     });

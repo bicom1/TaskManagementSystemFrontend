@@ -163,11 +163,12 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
 
   if (collapsed) {
     return (
-      <aside className="flex h-full w-12 shrink-0 flex-col items-center border-r border-hairline bg-paper py-3">
+      <aside className="sidebar-dark flex h-full w-12 shrink-0 flex-col items-center py-3" style={{ backgroundColor: 'var(--color-sidebar-bg)' }}>
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="mb-3 flex h-9 w-9 items-center justify-center rounded-md text-graphite hover:bg-cloud hover:text-ink"
+          className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
+          style={{ color: 'var(--color-sidebar-text)' }}
           title="Open sidebar"
           aria-label="Open sidebar"
         >
@@ -179,13 +180,14 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
             onToggleCollapse?.();
             navigate('/inbox');
           }}
-          className="relative mb-2 flex h-9 w-9 items-center justify-center rounded-md text-graphite hover:bg-cloud hover:text-ink"
+          className="relative mb-2 flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
+          style={{ color: 'var(--color-sidebar-text)' }}
           title="Inbox"
           aria-label="Inbox"
         >
           <Inbox className="h-4 w-4" />
           {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-brand-400" />
           )}
         </button>
         <button
@@ -195,7 +197,8 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
             setFilterOpen(false);
             onToggleCollapse?.();
           }}
-          className="mb-1 flex h-9 w-9 items-center justify-center rounded-md text-graphite hover:bg-cloud hover:text-ink"
+          className="mb-1 flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
+          style={{ color: 'var(--color-sidebar-text)' }}
           title="Search sidebar"
           aria-label="Search sidebar"
         >
@@ -208,7 +211,8 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
             setSearchOpen(false);
             onToggleCollapse?.();
           }}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-graphite hover:bg-cloud hover:text-ink"
+          className="flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
+          style={{ color: 'var(--color-sidebar-text)' }}
           title="Filter sidebar"
           aria-label="Filter sidebar"
         >
@@ -218,7 +222,8 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
           <button
             type="button"
             onClick={onInvite}
-            className="mt-auto flex h-9 w-9 items-center justify-center rounded-md text-graphite hover:bg-cloud hover:text-ink"
+            className="mt-auto flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
+            style={{ color: 'var(--color-sidebar-text)' }}
             title="Invite"
             aria-label="Invite"
           >
@@ -230,14 +235,15 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
   }
 
   return (
-    <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-hairline bg-paper">
+    <aside className="sidebar-dark flex h-full w-[248px] shrink-0 flex-col" style={{ backgroundColor: 'var(--color-sidebar-bg)' }}>
       {/* Top toolbar: collapse + search + filter */}
-      <div className="border-b border-hairline p-2.5">
+      <div className="p-2.5" style={{ borderBottom: '1px solid var(--color-sidebar-border)' }}>
         <div className="mb-2 flex items-center gap-1">
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-graphite transition hover:bg-cloud hover:text-ink"
+            className="flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
+          style={{ color: 'var(--color-sidebar-text)' }}
             title="Close sidebar"
             aria-label="Close sidebar"
           >
@@ -250,9 +256,10 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
               setFilterOpen(false);
             }}
             className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-cloud',
-              searchOpen ? 'bg-cloud text-ink' : 'text-graphite hover:text-ink'
+              'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-[120ms]',
+              searchOpen ? 'bg-[var(--color-sidebar-active)] text-[var(--color-sidebar-text-active)]' : 'hover:bg-[var(--color-sidebar-surface)]'
             )}
+            style={{ color: 'var(--color-sidebar-text)' }}
             title="Search sidebar"
             aria-label="Search sidebar"
           >
@@ -265,11 +272,12 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
               setSearchOpen(false);
             }}
             className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-cloud',
+              'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-[120ms]',
               filterOpen || filter !== 'all'
-                ? 'bg-cloud text-ink'
-                : 'text-graphite hover:text-ink'
+                ? 'bg-[var(--color-sidebar-active)] text-[var(--color-sidebar-text-active)]'
+                : 'hover:bg-[var(--color-sidebar-surface)]'
             )}
+            style={{ color: 'var(--color-sidebar-text)' }}
             title="Filter sidebar"
             aria-label="Filter sidebar"
           >
@@ -279,19 +287,20 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
 
         {searchOpen && (
           <div className="relative mb-1">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-graphite" />
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-sidebar-text)' }} />
             <Input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search sidebar…"
-              className="h-8 border-hairline pl-8 pr-8 text-sm"
+              className="h-8 pl-8 pr-8 text-[13px] border-[rgba(255,255,255,0.12)] bg-[var(--color-sidebar-surface)] text-[var(--color-sidebar-text-active)] placeholder:text-[var(--color-sidebar-text)] focus-visible:border-brand-400"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-graphite hover:text-ink"
+                className="absolute right-2 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-100 opacity-60"
+                style={{ color: 'var(--color-sidebar-text)' }}
                 aria-label="Clear search"
               >
                 <X className="h-3.5 w-3.5" />
@@ -301,18 +310,19 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
         )}
 
         {filterOpen && (
-          <div className="mb-1 flex flex-wrap gap-1 rounded-md border border-hairline bg-cloud p-1.5">
+          <div className="mb-1 flex flex-wrap gap-1 rounded-xl p-1.5" style={{ background: 'var(--color-sidebar-surface)', border: '1px solid var(--color-sidebar-border)' }}>
             {FILTERS.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 onClick={() => setFilter(f.id)}
                 className={cn(
-                  'rounded px-2 py-1 text-[11px] font-medium',
+                  'rounded-lg px-2 py-1 text-[11px] font-medium transition-all duration-[100ms]',
                   filter === f.id
-                    ? 'bg-paper text-ink shadow-sm'
-                    : 'text-graphite hover:text-ink'
+                    ? 'bg-brand-500 text-white shadow-sm'
+                    : 'hover:bg-[var(--color-sidebar-active)]'
                 )}
+                style={{ color: filter === f.id ? 'white' : 'var(--color-sidebar-text)' }}
               >
                 {f.label}
               </button>
@@ -324,30 +334,30 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
       <div className="flex-1 overflow-y-auto px-2 py-2">
         {/* Inbox + live notification previews (chat-app style) */}
         {showNav && (
-          <div className="mb-3 overflow-hidden rounded-xl border border-hairline bg-cloud/50">
+          <div className="mb-3 overflow-hidden rounded-xl" style={{ border: '1px solid var(--color-sidebar-border)', backgroundColor: 'var(--color-sidebar-surface)' }}>
             <button
               type="button"
               onClick={() => setInboxPreviewOpen((v) => !v)}
-              className="flex w-full items-center gap-2 px-2.5 py-2 text-left transition hover:bg-cloud"
+              className="flex w-full items-center gap-2 px-2.5 py-2 text-left transition-all duration-[120ms] hover:bg-[var(--color-sidebar-active)]"
             >
               {inboxPreviewOpen ? (
-                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-graphite" />
+                <ChevronDown className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-sidebar-text)' }} />
               ) : (
-                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-graphite" />
+                <ChevronRight className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-sidebar-text)' }} />
               )}
-              <Bell className="h-3.5 w-3.5 shrink-0 text-graphite" />
-              <span className="flex-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+              <Bell className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-sidebar-text)' }} />
+              <span className="flex-1 text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.5 }}>
                 Notifications
               </span>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-on-ink">
+                <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </button>
 
             {inboxPreviewOpen && (
-              <div className="border-t border-hairline bg-paper">
+              <div style={{ borderTop: '1px solid var(--color-sidebar-border)', backgroundColor: 'var(--color-sidebar-bg)' }}>
                 {Array.isArray(recentNotifications) && recentNotifications.length > 0 ? (
                   <div className="max-h-[168px] overflow-y-auto">
                     {recentNotifications.slice(0, 6).map((n) => (
@@ -356,27 +366,29 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                         type="button"
                         onClick={() => navigate('/inbox?tab=notifications')}
                         className={cn(
-                          'flex w-full gap-2 border-b border-hairline/70 px-2.5 py-2 text-left last:border-b-0 hover:bg-cloud/60',
-                          !n.isRead && 'bg-primary/5'
+                          'flex w-full gap-2 px-2.5 py-2 text-left transition-all duration-[100ms] hover:bg-[var(--color-sidebar-surface)]',
+                          !n.isRead && 'bg-brand-500/5'
                         )}
+                        style={{ borderBottom: '1px solid var(--color-sidebar-border)' }}
                       >
                         <span
                           className={cn(
                             'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
-                            n.isRead ? 'bg-transparent' : 'bg-primary'
+                            n.isRead ? 'opacity-0' : 'bg-brand-400'
                           )}
                         />
                         <div className="min-w-0 flex-1">
                           <p
                             className={cn(
                               'line-clamp-2 text-[11px] leading-snug',
-                              n.isRead ? 'text-charcoal' : 'font-medium text-ink'
+                              n.isRead ? '' : 'font-semibold'
                             )}
+                            style={{ color: n.isRead ? 'var(--color-sidebar-text)' : 'var(--color-sidebar-text-active)' }}
                           >
                             {n.message}
                           </p>
                           {n.createdAt && (
-                            <p className="mt-0.5 text-[10px] text-graphite">
+                            <p className="mt-0.5 text-[10px]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.5 }}>
                               {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
                             </p>
                           )}
@@ -385,7 +397,7 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                     ))}
                   </div>
                 ) : (
-                  <p className="px-2.5 py-2.5 text-[11px] text-graphite">
+                  <p className="px-2.5 py-2.5 text-[11px]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.5 }}>
                     You&apos;re all caught up
                   </p>
                 )}
@@ -396,15 +408,16 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
               to="/inbox"
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-2.5 border-t border-hairline px-2.5 py-2.5 text-sm font-semibold',
-                  isActive ? 'bg-cloud text-ink' : 'text-ink hover:bg-cloud/70'
+                  'flex items-center gap-2.5 px-2.5 py-2.5 text-[13px] font-semibold transition-all duration-[120ms]',
+                  isActive ? 'bg-[var(--color-sidebar-active)] text-[var(--color-sidebar-text-active)]' : 'hover:bg-[var(--color-sidebar-surface)]'
                 )
               }
+              style={{ borderTop: '1px solid var(--color-sidebar-border)', color: 'var(--color-sidebar-text-active)' }}
             >
               <Inbox className="h-4 w-4 shrink-0" />
               <span className="flex-1 truncate">Inbox</span>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-cloud px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-charcoal">
+                <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -415,7 +428,7 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
         {showNav && (
           <nav className="space-y-0.5">
             {homeLinks.length === 0 && q ? (
-              <p className="px-2 py-1 text-xs text-graphite">No matching links</p>
+              <p className="px-2 py-1 text-[12px]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.5 }}>No matching links</p>
             ) : (
               homeLinks
                 .filter((item) => item.label !== 'Inbox')
@@ -427,15 +440,17 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                       to={item.to}
                       className={({ isActive }) =>
                         cn(
-                          'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium',
-                          isActive ? 'bg-cloud text-ink' : 'text-charcoal hover:bg-cloud/70'
+                          'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all duration-[120ms]',
+                          isActive
+                            ? 'bg-[var(--color-sidebar-active)] text-[var(--color-sidebar-text-active)]'
+                            : 'text-[var(--color-sidebar-text)] hover:bg-[var(--color-sidebar-surface)] hover:text-[var(--color-sidebar-text-active)]'
                         )
                       }
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className="h-[17px] w-[17px] shrink-0 opacity-75" />
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
                       {item.badge > 0 && (
-                        <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-primary">
+                        <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white">
                           {item.badge > 99 ? '99+' : item.badge}
                         </span>
                       )}
@@ -451,20 +466,21 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
             <button
               type="button"
               onClick={() => setTasksOpen((v) => !v)}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm font-semibold text-ink hover:bg-cloud"
+              className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
+              style={{ color: 'var(--color-sidebar-text-active)' }}
             >
               {tasksOpen ? (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-3.5 w-3.5" />
               ) : (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5" />
               )}
-              <CheckSquare className="h-4 w-4" />
+              <CheckSquare className="h-[17px] w-[17px]" />
               <span className="flex-1 text-left">My Tasks</span>
             </button>
             {tasksOpen && (
-              <div className="ml-2 space-y-0.5 border-l border-hairline pl-2">
+              <div className="ml-2 space-y-0.5 border-l pl-2" style={{ borderColor: 'var(--color-sidebar-border)' }}>
                 {myTaskLinks.length === 0 && q ? (
-                  <p className="px-2 py-1 text-xs text-graphite">No matching tasks</p>
+                  <p className="px-2 py-1 text-[11px]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.5 }}>No matching tasks</p>
                 ) : (
                   myTaskLinks.map((item) => (
                     <NavLink
@@ -472,16 +488,16 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                       to={item.to}
                       className={({ isActive }) =>
                         cn(
-                          'flex items-center gap-2 rounded-md border border-transparent px-2.5 py-1.5 text-sm',
+                          'flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12px] transition-all duration-[120ms]',
                           isActive || (item.icon === 'plus' && locationSearchHasAdd(item.to))
-                            ? 'border-hairline bg-cloud font-medium text-ink'
-                            : 'text-charcoal hover:border-hairline hover:bg-cloud/70',
-                          item.icon === 'plus' && 'text-primary'
+                            ? 'bg-[var(--color-sidebar-active)] font-semibold text-[var(--color-sidebar-text-active)]'
+                            : 'text-[var(--color-sidebar-text)] hover:bg-[var(--color-sidebar-surface)] hover:text-[var(--color-sidebar-text-active)]',
+                          item.icon === 'plus' && 'text-brand-400'
                         )
                       }
                     >
                       {item.icon === 'plus' ? (
-                        <Plus className="h-4 w-4 text-primary" />
+                        <Plus className="h-4 w-4 text-brand-400" />
                       ) : item.tint ? (
                         <UserAvatar
                           user={user}
@@ -499,7 +515,8 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                 {!q && (
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 rounded-md border border-transparent px-2.5 py-1.5 text-sm text-graphite hover:border-hairline hover:bg-cloud"
+                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12px] transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
+                    style={{ color: 'var(--color-sidebar-text)', opacity: 0.6 }}
                   >
                     <MoreHorizontal className="h-4 w-4" />
                     More
@@ -511,12 +528,13 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
         )}
 
         {showProjects && (
-          <div className="mt-4">
+          <div className="mt-5">
             <div className="mb-0.5 flex items-center gap-1 px-1">
               <button
                 type="button"
                 onClick={() => setProjectsOpen((v) => !v)}
-                className="rounded p-1 text-graphite hover:bg-cloud hover:text-ink"
+                className="rounded-md p-1 transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
+                style={{ color: 'var(--color-sidebar-text)' }}
                 title={projectsOpen ? 'Collapse projects' : 'Expand projects'}
                 aria-expanded={projectsOpen}
               >
@@ -531,24 +549,25 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                 to="/projects"
                 className={({ isActive }) =>
                   cn(
-                    'flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-md px-1.5 py-1.5 text-sm font-medium',
+                    'flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-lg px-1.5 py-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] transition-all duration-[120ms]',
                     isActive && !activeEntityId
-                      ? 'bg-cloud text-ink'
-                      : 'text-charcoal hover:bg-cloud/80'
+                      ? 'text-[var(--color-sidebar-text-active)]'
+                      : 'hover:text-[var(--color-sidebar-text-active)]'
                   )
                 }
+                style={{ color: 'var(--color-sidebar-text)', opacity: 0.6 }}
               >
                 <FolderKanban className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Projects</span>
-                <span className="ml-auto tabular-nums text-[10px] font-semibold text-graphite">
+                <span className="ml-auto tabular-nums text-[10px] font-bold" style={{ color: 'var(--color-sidebar-text)', opacity: 0.4 }}>
                   {orderedProjects.length}
                 </span>
               </NavLink>
             </div>
             {projectsOpen && (
-              <div className="ml-2 space-y-0.5 border-l border-hairline pl-2">
+              <div className="ml-2 space-y-0.5 border-l pl-2" style={{ borderColor: 'var(--color-sidebar-border)' }}>
                 {orderedProjects.length === 0 ? (
-                  <p className="px-2 py-2 text-xs text-graphite">
+                  <p className="px-2 py-2 text-[11px]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.4 }}>
                     {q ? 'No matching projects' : 'No projects yet'}
                   </p>
                 ) : (
@@ -557,21 +576,21 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                       key={project._id}
                       to={projectPath(project._id)}
                       className={cn(
-                        'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+                        'flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition-all duration-[120ms]',
                         activeEntityId === String(project._id)
-                          ? 'bg-cloud font-medium text-ink'
-                          : 'text-charcoal hover:bg-cloud/80'
+                          ? 'bg-[var(--color-sidebar-active)] font-semibold text-[var(--color-sidebar-text-active)]'
+                          : 'text-[var(--color-sidebar-text)] hover:bg-[var(--color-sidebar-surface)] hover:text-[var(--color-sidebar-text-active)]'
                       )}
                     >
                       <span
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-                        style={{ backgroundColor: project.color || '#292524' }}
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-bold text-white shadow-sm"
+                        style={{ backgroundColor: project.color || 'var(--color-brand-600)' }}
                       >
                         {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
                       </span>
                       <span className="min-w-0 flex-1 truncate">{project.name}</span>
                       {project.openTaskCount > 0 && (
-                        <span className="shrink-0 tabular-nums text-[10px] font-semibold text-graphite">
+                        <span className="shrink-0 tabular-nums text-[10px] font-bold" style={{ color: 'var(--color-sidebar-text)', opacity: 0.4 }}>
                           {project.openTaskCount}
                         </span>
                       )}
@@ -585,12 +604,12 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
 
         {showTeams && (
           <div className="mt-5 px-2.5">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.45 }}>
               My Teams
             </p>
             <div className="space-y-0.5">
               {filteredTeams.length === 0 ? (
-                <p className="px-2 py-1 text-xs text-graphite">
+                <p className="px-2 py-1 text-[11px]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.4 }}>
                   {q ? 'No matching teams' : 'Join a team to see it here'}
                 </p>
               ) : (
@@ -599,9 +618,10 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                     key={team._id}
                     type="button"
                     onClick={() => navigate(`/teams/${team._id}`)}
-                    className="flex w-full items-center gap-2 truncate rounded-md px-2 py-1.5 text-left text-sm text-charcoal hover:bg-cloud"
+                    className="flex w-full items-center gap-2 truncate rounded-xl px-2 py-1.5 text-left text-[13px] transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)] hover:text-[var(--color-sidebar-text-active)]"
+                    style={{ color: 'var(--color-sidebar-text)' }}
                   >
-                    <Building2 className="h-3.5 w-3.5 shrink-0 text-graphite" />
+                    <Building2 className="h-3.5 w-3.5 shrink-0 opacity-60" />
                     <span className="truncate">{team.name}</span>
                   </button>
                 ))
@@ -613,13 +633,14 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
         {showChannels && (
           <>
             <div className="mt-5 px-2.5">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.45 }}>
                 AI Chats
               </p>
               <button
                 type="button"
                 onClick={() => navigate('/home')}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-charcoal hover:bg-cloud"
+                className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-[13px] transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)] hover:text-[var(--color-sidebar-text-active)]"
+                style={{ color: 'var(--color-sidebar-text)' }}
               >
                 <Plus className="h-3.5 w-3.5" />
                 Ask, Build, Create
@@ -627,12 +648,12 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
             </div>
 
             <div className="mt-5 px-2.5">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.45 }}>
                 Channels
               </p>
               <div className="space-y-0.5">
                 {filteredProjects.length === 0 ? (
-                  <p className="px-2 py-1 text-xs text-graphite">
+                  <p className="px-2 py-1 text-[11px]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.4 }}>
                     {q ? 'No matching channels' : 'Projects appear when you join a team'}
                   </p>
                 ) : (
@@ -642,14 +663,14 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                       to={`/projects/${p._id}`}
                       className={({ isActive }) =>
                         cn(
-                          'flex items-center gap-2 truncate rounded-md px-2 py-1.5 text-sm',
+                          'flex items-center gap-2 truncate rounded-xl px-2 py-1.5 text-[12px] transition-all duration-[120ms]',
                           isActive
-                            ? 'bg-cloud font-medium text-ink'
-                            : 'text-charcoal hover:bg-cloud'
+                            ? 'bg-[var(--color-sidebar-active)] font-semibold text-[var(--color-sidebar-text-active)]'
+                            : 'text-[var(--color-sidebar-text)] hover:bg-[var(--color-sidebar-surface)] hover:text-[var(--color-sidebar-text-active)]'
                         )
                       }
                     >
-                      <Hash className="h-3.5 w-3.5 shrink-0 text-graphite" />
+                      <Hash className="h-3.5 w-3.5 shrink-0 opacity-60" />
                       <span className="truncate">{p.name}</span>
                     </NavLink>
                   ))
@@ -661,7 +682,7 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
 
         {showUpcoming && (filteredMeetings.length > 0 || filteredLocations.length > 0) && (
           <div className="mt-5 px-2.5 pb-3">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.45 }}>
               Upcoming
             </p>
             {filteredMeetings.slice(0, 3).map((m) => (
@@ -669,10 +690,10 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                 key={m._id}
                 type="button"
                 onClick={() => navigate('/home/meetings')}
-                className="mb-1 flex w-full flex-col rounded-md px-2 py-1.5 text-left hover:bg-cloud"
+                className="mb-1 flex w-full flex-col rounded-xl px-2 py-1.5 text-left transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)]"
               >
-                <span className="truncate text-sm text-ink">{m.title}</span>
-                <span className="text-[11px] text-graphite">
+                <span className="truncate text-[13px]" style={{ color: 'var(--color-sidebar-text-active)' }}>{m.title}</span>
+                <span className="text-[11px]" style={{ color: 'var(--color-sidebar-text)', opacity: 0.5 }}>
                   {format(new Date(m.startsAt), 'MMM d · h:mm a')}
                   {m.team?.name ? ` · ${m.team.name}` : ''}
                 </span>
@@ -681,7 +702,8 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
             {filteredLocations.slice(0, 2).map((loc) => (
               <div
                 key={loc._id}
-                className="flex items-center gap-2 px-2 py-1 text-xs text-graphite"
+                className="flex items-center gap-2 px-2 py-1 text-[11px]"
+                style={{ color: 'var(--color-sidebar-text)', opacity: 0.5 }}
               >
                 <MapPin className="h-3 w-3" />
                 <span className="truncate">
@@ -695,13 +717,14 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
       </div>
 
       {showInvite && (
-        <div className="border-t border-hairline p-2">
+        <div className="p-2" style={{ borderTop: '1px solid var(--color-sidebar-border)' }}>
           <button
             type="button"
             onClick={onInvite}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-charcoal hover:bg-cloud hover:text-ink"
+            className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all duration-[120ms] hover:bg-[var(--color-sidebar-surface)] hover:text-[var(--color-sidebar-text-active)]"
+            style={{ color: 'var(--color-sidebar-text)' }}
           >
-            <UserPlus className="h-4 w-4" />
+            <UserPlus className="h-[17px] w-[17px] opacity-70" />
             Invite
           </button>
         </div>

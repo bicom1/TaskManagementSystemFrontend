@@ -2,26 +2,78 @@ import { forwardRef } from 'react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
+/**
+ * Button — BIWORKSPACE Design System
+ *
+ * Variants:
+ *   primary   — Brand gradient, shadow, shimmer on hover (default)
+ *   outline   — Bordered, transparent background
+ *   ghost     — No border, subtle hover
+ *   ghost-dark— Ghost variant for use inside dark sidebars
+ *   ink       — Dark/inverted button
+ *   destructive — Red danger action
+ *
+ * Sizes:  sm | default | lg | icon
+ */
 const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-2 border font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]',
+  [
+    'inline-flex cursor-pointer items-center justify-center gap-2',
+    'font-semibold border',
+    'transition-all duration-[160ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/50 focus-visible:ring-offset-1',
+    'disabled:cursor-not-allowed disabled:opacity-50',
+    'active:scale-[0.97]',
+    'select-none',
+  ].join(' '),
   {
     variants: {
       variant: {
-        primary:
-          'border-primary bg-primary text-on-ink shadow-soft-lift hover:border-primary-bright hover:bg-primary-bright',
-        outline:
-          'border-hairline bg-paper text-ink hover:border-primary/40 hover:bg-primary-soft/50 hover:text-primary-deep',
-        ink: 'border-ink bg-ink text-on-ink hover:border-charcoal hover:bg-charcoal',
-        ghost:
-          'border-transparent bg-transparent text-charcoal hover:bg-cloud hover:text-ink',
-        destructive:
-          'border-bloom-coral bg-bloom-coral text-on-ink hover:border-bloom-deep hover:bg-bloom-deep',
+        primary: [
+          'border-transparent text-white',
+          'bg-gradient-to-r from-brand-500 to-brand-600',
+          'shadow-[0_2px_8px_rgba(99,102,241,0.3)]',
+          'hover:from-brand-400 hover:to-brand-500',
+          'hover:shadow-[0_4px_16px_rgba(99,102,241,0.45)]',
+          'hover:-translate-y-px',
+        ].join(' '),
+
+        outline: [
+          'border-border-subtle bg-surface-0 text-text-secondary',
+          'hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600',
+          'hover:-translate-y-px hover:shadow-xs',
+        ].join(' '),
+
+        ghost: [
+          'border-transparent bg-transparent text-text-secondary',
+          'hover:bg-surface-2 hover:text-text-primary',
+        ].join(' '),
+
+        'ghost-dark': [
+          'border-transparent bg-transparent',
+          'text-[var(--color-sidebar-text)]',
+          'hover:bg-[var(--color-sidebar-surface)] hover:text-[var(--color-sidebar-text-active)]',
+        ].join(' '),
+
+        ink: [
+          'border-text-primary bg-text-primary text-white',
+          'hover:bg-text-secondary hover:border-text-secondary',
+          'hover:-translate-y-px hover:shadow-md',
+        ].join(' '),
+
+        destructive: [
+          'border-transparent bg-danger-500 text-white',
+          'shadow-[0_2px_8px_rgba(244,63,94,0.25)]',
+          'hover:bg-[#e11d48] hover:shadow-[0_4px_16px_rgba(244,63,94,0.35)]',
+          'hover:-translate-y-px',
+        ].join(' '),
       },
+
       size: {
-        default: 'h-10 rounded-lg px-4 text-sm normal-case tracking-normal',
-        sm: 'h-8 rounded-lg px-3 text-xs normal-case tracking-normal',
-        lg: 'h-11 rounded-xl px-6 text-sm normal-case tracking-normal',
-        icon: 'h-9 w-9 rounded-lg',
+        default: 'h-9 rounded-lg px-4 text-sm',
+        sm:      'h-7 rounded-md px-3 text-xs',
+        lg:      'h-11 rounded-xl px-6 text-sm',
+        icon:    'h-9 w-9 rounded-lg',
+        'icon-sm': 'h-7 w-7 rounded-md',
       },
     },
     defaultVariants: {

@@ -3,6 +3,18 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './Button';
 
+/**
+ * Modal — BIWORKSPACE Design System
+ *
+ * Props:
+ *   open         — boolean
+ *   onClose      — () => void
+ *   title        — string (renders h2 in header)
+ *   description  — string (renders p below title)
+ *   size         — 'sm' | 'md' | 'lg' | 'xl'
+ *   className    — applied to the dialog panel
+ *   bodyClassName— applied to the scrollable body
+ */
 export function Modal({
   open,
   onClose,
@@ -37,41 +49,59 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      {/* Backdrop — dark glass */}
       <div
-        className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[rgba(13,13,20,0.55)] backdrop-blur-[3px]"
         onClick={onClose}
         aria-hidden
       />
+
+      {/* Dialog panel */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'modal-title' : undefined}
         className={cn(
-          'relative z-10 flex max-h-[min(880px,calc(100vh-2rem))] w-full flex-col overflow-hidden rounded-2xl border border-hairline bg-paper shadow-[0_20px_50px_rgba(26,26,26,0.18)]',
+          'relative z-10 flex w-full flex-col overflow-hidden',
+          'max-h-[min(880px,calc(100vh-2rem))]',
+          // Surface
+          'rounded-2xl border border-border-subtle bg-surface-0',
+          // Premium shadow
+          'shadow-[0_24px_64px_rgba(13,13,20,0.22),0_8px_24px_rgba(13,13,20,0.10)]',
+          // Entry animation
+          'animate-[scaleIn_160ms_cubic-bezier(0.34,1.56,0.64,1)_both]',
           sizeClasses[size],
           className
         )}
       >
-        <div className="flex shrink-0 items-start justify-between border-b border-hairline bg-cloud/30 px-5 py-3.5 sm:px-6">
+        {/* Header */}
+        <div className="flex shrink-0 items-start justify-between border-b border-border-subtle bg-surface-1 px-5 py-4 sm:px-6">
           <div className="min-w-0 pr-3">
             {title && (
-              <h2 id="modal-title" className="text-base font-semibold tracking-tight text-ink">
+              <h2
+                id="modal-title"
+                className="text-[0.9375rem] font-semibold leading-snug tracking-tight text-text-primary"
+              >
                 {title}
               </h2>
             )}
-            {description && <p className="mt-1 text-sm text-graphite">{description}</p>}
+            {description && (
+              <p className="mt-1 text-[0.8125rem] text-text-muted">{description}</p>
+            )}
           </div>
           <Button
             variant="ghost"
-            size="icon"
+            size="icon-sm"
             onClick={onClose}
             aria-label="Close"
-            className="h-8 w-8 shrink-0 rounded-lg"
+            className="shrink-0"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className={cn('min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6', bodyClassName)}>
+
+        {/* Body */}
+        <div className={cn('min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6', bodyClassName)}>
           {children}
         </div>
       </div>

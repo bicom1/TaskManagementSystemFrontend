@@ -47,8 +47,8 @@ export default function OrgChartPage() {
 
   return (
     <div className="px-4 py-6 lg:px-8">
-      <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Org Chart</h1>
-      <p className="mb-8 text-sm text-graphite">
+      <h1 className="page-title mb-2 text-ink">Org Chart</h1>
+      <p className="mb-8 text-[13.5px] text-graphite">
         Workspace hierarchy by department and team lead.
       </p>
 

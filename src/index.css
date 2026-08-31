@@ -14,70 +14,93 @@
    ============================================================ */
 
 @theme {
-  /* ── Brand / Primary ────────────────────────────────────── */
-  --color-brand-50:  #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;   /* ← primary action color    */
-  --color-brand-600: #4f46e5;   /* ← hover state             */
-  --color-brand-700: #4338ca;   /* ← active / pressed        */
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
+  /* ── Brand / Primary — a single confident iris-violet ───── */
+  --color-brand-50:  #f4f3fb;
+  --color-brand-100: #e9e7f7;
+  --color-brand-200: #d5d0ef;
+  --color-brand-300: #b7afe2;
+  --color-brand-400: #948ad2;
+  --color-brand-500: #6f64c4;   /* ← primary action color    */
+  --color-brand-600: #5b50ad;   /* ← hover state             */
+  --color-brand-700: #4a4090;   /* ← active / pressed        */
+  --color-brand-800: #3b3372;
+  --color-brand-900: #2e2857;
 
-  /* Brand gradient end-points (used in logo, buttons, accents) */
-  --color-brand-grad-from: #6366f1;
-  --color-brand-grad-to:   #7c3aed;
+  /* Brand gradient end-points (logo, wordmark only — kept restrained) */
+  --color-brand-grad-from: #6f64c4;
+  --color-brand-grad-to:   #574aa8;
 
   /* ── Neutral Surfaces (light content area) ──────────────── */
   --color-surface-0:   #ffffff;   /* pure white — modal, card face */
-  --color-surface-1:   #f8f9fc;   /* page background               */
-  --color-surface-2:   #f1f3f9;   /* input background, hover       */
-  --color-surface-3:   #e8ecf5;   /* selected row, tag background  */
+  --color-surface-1:   #f6f6f7;   /* page background               */
+  --color-surface-2:   #efeff1;   /* input background, hover       */
+  --color-surface-3:   #e5e5e8;   /* selected row, tag background  */
 
   /* ── Dark Sidebar Surfaces ──────────────────────────────── */
-  --color-sidebar-bg:       #0f0f14;   /* main sidebar background       */
-  --color-sidebar-surface:  #1a1a24;   /* hover / item background       */
-  --color-sidebar-active:   #252536;   /* active nav item               */
-  --color-sidebar-border:   #ffffff12; /* subtle divider in sidebar     */
-  --color-sidebar-text:     #a0a0b8;   /* inactive nav text             */
-  --color-sidebar-text-active: #f0f0ff; /* active nav text / icon       */
-  --color-sidebar-badge:    #6366f1;   /* badge in sidebar              */
+  --color-sidebar-bg:       #0f0f13;   /* main sidebar background       */
+  --color-sidebar-surface:  #1c1c23;   /* hover / item background       */
+  --color-sidebar-active:   #26262f;   /* active nav item               */
+  --color-sidebar-border:   #ffffff10; /* subtle divider in sidebar     */
+  --color-sidebar-text:     #9a9aa6;   /* inactive nav text             */
+  --color-sidebar-text-active: #f4f4f6; /* active nav text / icon       */
+  --color-sidebar-badge:    #6f64c4;   /* badge in sidebar              */
+
+  /* ── Dual Rail ──────────────────────────────────────────── */
+  /* Icon rail — the darkest surface in the product */
+  --color-rail-bg:           #0b0b0e;
+  /* Detail panel — a hair lighter than the rail */
+  --color-panel-bg:          #131318;
+  --color-panel-border:      rgba(255,255,255,0.07);
+  --color-panel-hover:       rgba(255,255,255,0.06);
+  --color-panel-active:      rgba(255,255,255,0.12);
+  --color-panel-text:        #9a9aa6;
+  --color-panel-text-active: #ffffff;
+
+  /* ── Per-section icon accent (one hue, held quietly) ────── */
+  --icon-home:       #a5b4fc;
+  --icon-inbox:      #a5b4fc;
+  --icon-mywork:     #a5b4fc;
+  --icon-spaces:     #a5b4fc;
+  --icon-dashboards: #a5b4fc;
+  --icon-people:     #a5b4fc;
+  --icon-approvals:  #a5b4fc;
+  --icon-reports:    #a5b4fc;
+  --icon-audit:      #a5b4fc;
+  --icon-settings:   #a5b4fc;
 
   /* ── Text / Ink ─────────────────────────────────────────── */
-  --color-text-primary:   #0d0d14;   /* headings, primary labels      */
-  --color-text-secondary: #4a4a6a;   /* body, descriptions            */
-  --color-text-muted:     #8888a8;   /* placeholders, hints           */
-  --color-text-disabled:  #b0b0cc;   /* disabled state                */
+  --color-text-primary:   #19191f;   /* headings, primary labels      */
+  --color-text-secondary: #55555f;   /* body, descriptions            */
+  --color-text-muted:     #8a8a93;   /* placeholders, hints           */
+  --color-text-disabled:  #b6b6bd;   /* disabled state                */
   --color-text-on-brand:  #ffffff;   /* text on brand-colored bg      */
-  --color-text-link:      #6366f1;   /* links                         */
+  --color-text-link:      #5b50ad;   /* links                         */
 
   /* ── Borders ────────────────────────────────────────────── */
-  --color-border-subtle:  #e8ecf5;   /* card borders, dividers        */
-  --color-border-base:    #d1d5e8;   /* input borders                 */
-  --color-border-strong:  #a0a0c0;   /* focus ring base               */
+  --color-border-subtle:  #ececed;   /* card borders, dividers        */
+  --color-border-base:    #dcdcdf;   /* input borders                 */
+  --color-border-strong:  #b7b7bf;   /* focus ring base               */
 
-  /* ── Status / Semantic Colors ───────────────────────────── */
-  --color-success-bg:   #f0fdf4;
-  --color-success-text: #166534;
-  --color-success-border: #bbf7d0;
-  --color-success-500:  #22c55e;
+  /* ── Status / Semantic Colors (muted, editorial) ────────── */
+  --color-success-bg:   #f0f7f2;
+  --color-success-text: #2f6b47;
+  --color-success-border: #cfe5d6;
+  --color-success-500:  #4f9d6b;
 
-  --color-warning-bg:   #fffbeb;
-  --color-warning-text: #92400e;
-  --color-warning-border: #fde68a;
-  --color-warning-500:  #f59e0b;
+  --color-warning-bg:   #faf5ec;
+  --color-warning-text: #8a5a1c;
+  --color-warning-border: #ecdcc0;
+  --color-warning-500:  #cc8b3c;
 
-  --color-danger-bg:    #fff1f2;
-  --color-danger-text:  #9f1239;
-  --color-danger-border:#fecdd3;
-  --color-danger-500:   #f43f5e;
+  --color-danger-bg:    #fbf1f1;
+  --color-danger-text:  #9a3438;
+  --color-danger-border:#eed0d1;
+  --color-danger-500:   #c9484d;
 
-  --color-info-bg:      #eff6ff;
-  --color-info-text:    #1e40af;
-  --color-info-border:  #bfdbfe;
-  --color-info-500:     #3b82f6;
+  --color-info-bg:      #f0f3fa;
+  --color-info-text:    #3a4a80;
+  --color-info-border:  #d6def0;
+  --color-info-500:     #5b6bb5;
 
   /* ── Legacy aliases (keep for backward compat with old classes) */
   --color-primary:          var(--color-brand-500);
@@ -108,27 +131,30 @@
 
   /* ── Typography ─────────────────────────────────────────── */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* Display "voice" face — used sparingly: greetings, empty-state
+     headlines, auth. Never for dense UI or data. */
+  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', 'Georgia', serif;
 
   /* ── Border Radius ──────────────────────────────────────── */
-  --radius-xs:  2px;
-  --radius-sm:  4px;
-  --radius-md:  6px;
-  --radius-lg:  8px;
-  --radius-xl:  12px;
+  --radius-xs:  3px;
+  --radius-sm:  5px;
+  --radius-md:  7px;
+  --radius-lg:  10px;
+  --radius-xl:  13px;
   --radius-2xl: 16px;
-  --radius-3xl: 20px;
+  --radius-3xl: 22px;
   --radius-full: 9999px;
 
-  /* ── Shadows ─────────────────────────────────────────────── */
+  /* ── Shadows — one believable ramp, cool and close ──────── */
   /* Usage: shadow-xs  shadow-sm  shadow-md  shadow-lg  shadow-xl  shadow-brand */
-  --shadow-xs:    0 1px 2px rgba(13, 13, 20, 0.04);
-  --shadow-sm:    0 1px 3px rgba(13, 13, 20, 0.08), 0 1px 2px rgba(13, 13, 20, 0.04);
-  --shadow-md:    0 4px 8px rgba(13, 13, 20, 0.08), 0 2px 4px rgba(13, 13, 20, 0.04);
-  --shadow-lg:    0 8px 20px rgba(13, 13, 20, 0.10), 0 4px 8px rgba(13, 13, 20, 0.04);
-  --shadow-xl:    0 16px 40px rgba(13, 13, 20, 0.12), 0 8px 16px rgba(13, 13, 20, 0.06);
-  --shadow-2xl:   0 28px 64px rgba(13, 13, 20, 0.18);
-  --shadow-brand: 0 4px 16px rgba(99, 102, 241, 0.30);
-  --shadow-brand-lg: 0 8px 32px rgba(99, 102, 241, 0.40);
+  --shadow-xs:    0 1px 2px rgba(23, 23, 33, 0.05);
+  --shadow-sm:    0 1px 2px rgba(23, 23, 33, 0.05), 0 1px 3px rgba(23, 23, 33, 0.05);
+  --shadow-md:    0 2px 4px rgba(23, 23, 33, 0.04), 0 6px 16px rgba(23, 23, 33, 0.07);
+  --shadow-lg:    0 4px 10px rgba(23, 23, 33, 0.05), 0 16px 36px rgba(23, 23, 33, 0.10);
+  --shadow-xl:    0 8px 16px rgba(23, 23, 33, 0.06), 0 28px 60px rgba(23, 23, 33, 0.14);
+  --shadow-2xl:   0 32px 72px rgba(23, 23, 33, 0.20);
+  --shadow-brand: 0 2px 10px rgba(111, 100, 196, 0.28);
+  --shadow-brand-lg: 0 8px 28px rgba(111, 100, 196, 0.34);
 
   /* ── Legacy shadow alias ─────────────────────────────────── */
   --shadow-soft-lift: var(--shadow-md);
@@ -187,6 +213,11 @@
   100% { background-position: calc(200px + 100%) 0; }
 }
 
+@keyframes slideInPanel {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 /* ============================================================
    Base / Reset
    ============================================================ */
@@ -209,6 +240,21 @@ body {
   line-height: 1.5;
   color: var(--color-text-primary);
   background-color: var(--color-surface-1);
+  font-feature-settings: "cv05" 1, "cv08" 1, "ss03" 1, "calt" 1;
+}
+
+/* Numerals in data contexts should never shift width */
+th, td, time, [data-numeric], .tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv05" 1;
+}
+
+/* Display "voice" face */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-optical-sizing: auto;
 }
 
 /* ── Cursor Conventions ─────────────────────────────────── */
@@ -265,29 +311,39 @@ body {
 
 /* Page-level title */
 .page-title {
-  font-size: clamp(1.375rem, 3vw, 1.75rem);
-  font-weight: 700;
+  font-size: clamp(1.375rem, 3vw, 1.6875rem);
+  font-weight: 600;
   line-height: 1.15;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   /* No color — inherits from context or set via Tailwind utility */
 }
 
 /* Page subtitle / lead paragraph */
 .page-subtitle {
   margin-top: 0.375rem;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 400;
   color: var(--color-text-muted);
   line-height: 1.6;
 }
 
-/* Section label (UPPERCASE small caps) */
+/* Section label — quiet, wide, uppercase */
 .section-label {
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   /* No color — use Tailwind or inherit */
+}
+
+/* The product's "voice" — a warm serif line addressed to the person,
+   not the system. Reserved for greetings and empty-state headlines. */
+.voice-line {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  font-optical-sizing: auto;
 }
 
 /* Brand wordmark */

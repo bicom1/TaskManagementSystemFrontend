@@ -29,7 +29,7 @@ import { LoadingScreen, EmptyState } from '@/components/ui/Spinner';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/features/tasks/api/taskApi';
 import { WorkloadAnalytics } from '@/features/reports/components/WorkloadAnalytics';
 
-const PIE_COLORS = ['#024ad8', '#296ef9', '#0e3191', '#c9e0fc', '#636363', '#3d3d3d'];
+const PIE_COLORS = ['#6f64c4', '#8f83d4', '#4a4090', '#e9e7f7', '#8a8a93', '#3d3d3d'];
 
 function toChartEntries(map, labels = {}) {
   return Object.entries(map || {}).map(([key, value]) => ({
@@ -277,11 +277,11 @@ export default function ReportsPage() {
                 {priorityData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={priorityData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" />
-                      <XAxis dataKey="name" tick={{ fill: '#636363', fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#636363', fontSize: 12 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
+                      <XAxis dataKey="name" tick={{ fill: '#8a8a93', fontSize: 12 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
                       <Tooltip />
-                      <Bar dataKey="value" fill="#024ad8" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="value" fill="#6f64c4" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -301,16 +301,16 @@ export default function ReportsPage() {
                   workload && workload.length > 0 ? (
                     <ResponsiveContainer width="100%" height={260}>
                       <BarChart data={workload} layout="vertical" margin={{ left: 16 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" />
-                        <XAxis type="number" allowDecimals={false} tick={{ fill: '#636363', fontSize: 12 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
+                        <XAxis type="number" allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
                         <YAxis
                           dataKey="name"
                           type="category"
                           width={110}
-                          tick={{ fill: '#636363', fontSize: 12 }}
+                          tick={{ fill: '#8a8a93', fontSize: 12 }}
                         />
                         <Tooltip />
-                        <Bar dataKey="openTasks" fill="#296ef9" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="openTasks" fill="#8f83d4" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
@@ -319,11 +319,11 @@ export default function ReportsPage() {
                 ) : deptData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={deptData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" />
-                      <XAxis dataKey="name" tick={{ fill: '#636363', fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#636363', fontSize: 12 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
+                      <XAxis dataKey="name" tick={{ fill: '#8a8a93', fontSize: 12 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
                       <Tooltip />
-                      <Bar dataKey="openTasks" fill="#0e3191" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="openTasks" fill="#4a4090" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -340,27 +340,27 @@ export default function ReportsPage() {
                 {trend && trend.some((d) => d.completed > 0) ? (
                   <ResponsiveContainer width="100%" height={260}>
                     <LineChart data={trend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" />
-                      <XAxis dataKey="_id" tick={{ fill: '#636363', fontSize: 10 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#636363', fontSize: 12 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
+                      <XAxis dataKey="_id" tick={{ fill: '#8a8a93', fontSize: 10 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
                       <Tooltip />
                       <Line
                         type="monotone"
                         dataKey="completed"
-                        stroke="#024ad8"
+                        stroke="#6f64c4"
                         strokeWidth={2}
-                        dot={{ fill: '#024ad8' }}
+                        dot={{ fill: '#6f64c4' }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
                   <ResponsiveContainer width="100%" height={260}>
                     <LineChart data={trend || []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" />
-                      <XAxis dataKey="_id" tick={{ fill: '#636363', fontSize: 10 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#636363', fontSize: 12 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
+                      <XAxis dataKey="_id" tick={{ fill: '#8a8a93', fontSize: 10 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
                       <Tooltip />
-                      <Line type="monotone" dataKey="completed" stroke="#024ad8" strokeWidth={2} />
+                      <Line type="monotone" dataKey="completed" stroke="#6f64c4" strokeWidth={2} />
                     </LineChart>
                   </ResponsiveContainer>
                 )}
@@ -375,11 +375,11 @@ export default function ReportsPage() {
                 {approvalData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={approvalData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" />
-                      <XAxis dataKey="name" tick={{ fill: '#636363', fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#636363', fontSize: 12 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
+                      <XAxis dataKey="name" tick={{ fill: '#8a8a93', fontSize: 12 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
                       <Tooltip />
-                      <Bar dataKey="value" fill="#296ef9" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="value" fill="#8f83d4" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

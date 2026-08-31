@@ -2,24 +2,14 @@ import { motion } from 'framer-motion';
 
 const blobs = [
   {
-    className: 'absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-primary/40 blur-[110px]',
-    animate: { x: [0, 50, -20, 0], y: [0, 40, 20, 0], scale: [1, 1.15, 0.95, 1] },
-    duration: 16,
+    className: 'absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full bg-brand-300/30 blur-[120px]',
+    animate: { x: [0, 40, -15, 0], y: [0, 30, 15, 0], scale: [1, 1.08, 0.97, 1] },
+    duration: 26,
   },
   {
-    className: 'absolute -bottom-48 -right-32 h-[560px] w-[560px] rounded-full bg-bloom-coral/30 blur-[130px]',
-    animate: { x: [0, -40, 30, 0], y: [0, -50, -10, 0], scale: [1, 0.9, 1.1, 1] },
-    duration: 20,
-  },
-  {
-    className: 'absolute left-1/2 top-1/4 h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-violet-400/25 blur-[100px]',
-    animate: { x: [0, 30, -30, 0], y: [0, -25, 25, 0], scale: [1, 1.1, 0.9, 1] },
-    duration: 24,
-  },
-  {
-    className: 'absolute right-1/4 bottom-1/3 h-[240px] w-[240px] rounded-full bg-sky-300/20 blur-[90px]',
-    animate: { x: [0, -20, 20, 0], y: [0, 30, -20, 0], scale: [1, 1.2, 1, 1] },
-    duration: 18,
+    className: 'absolute -bottom-52 -right-32 h-[560px] w-[560px] rounded-full bg-brand-400/22 blur-[140px]',
+    animate: { x: [0, -30, 20, 0], y: [0, -35, -10, 0], scale: [1, 0.95, 1.06, 1] },
+    duration: 32,
   },
 ];
 

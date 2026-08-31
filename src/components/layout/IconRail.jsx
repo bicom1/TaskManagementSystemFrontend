@@ -1,126 +1,173 @@
-import { NavLink } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Home,
-  CalendarDays,
-  Bell,
+  Sparkles,
   Users,
   LayoutDashboard,
-  FolderKanban,
-  BarChart3,
+  CalendarDays,
+  Grid,
+  UserPlus,
+  House,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { UserAvatar } from '@/components/UserAvatar';
-import { useAuthStore } from '@/store/authStore';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
+import { cn } from '@/lib/utils';
 
-/**
- * IconRail — BIWORKSPACE Design System
- *
- * The ultra-narrow icon-only left rail.
- * Dark background with brand-gradient active indicators.
- * Accessible CSS-only tooltips via [title] + :hover pseudo-element.
- */
-const railItems = [
-  { to: '/', label: 'Home', icon: Home, end: true, match: (p) => p === '/' || p.startsWith('/home') },
-  { to: '/home/my-tasks', label: 'My Tasks', icon: CalendarDays, match: (p) => p.startsWith('/home/my-tasks') },
-  { to: '/inbox', label: 'Inbox', icon: Bell, match: (p) => p.startsWith('/inbox'), badge: true },
-  { to: '/teams/people', label: 'Teams', icon: Users, match: (p) => p.startsWith('/teams') },
-  { to: '/boards', label: 'Analytics', icon: LayoutDashboard, match: (p) => p.startsWith('/boards') || p.startsWith('/reports') },
-  { to: '/projects', label: 'Projects', icon: FolderKanban, match: (p) => p.startsWith('/projects') || p.startsWith('/all-tasks') },
+/* ============================================================
+   IconRail — the darkest surface in the product.
+   One accent colour, held quietly: the active item is the only
+   thing with any weight. A thin brand bar marks it on the rail
+   edge; everything else is monochrome.
+   ============================================================ */
+
+export function getSectionFromPath(pathname) {
+  if (pathname.startsWith('/inbox')) return 'home';
+  if (
+    pathname.startsWith('/home/agenda') ||
+    pathname.startsWith('/home/meetings')
+  )
+    return 'planner';
+  if (
+    pathname.startsWith('/home/my-tasks') ||
+    pathname.startsWith('/home/assigned-comments') ||
+    pathname === '/all-tasks'
+  )
+    return 'home';
+  if (pathname.startsWith('/projects') || pathname.startsWith('/spaces')) return 'home';
+  if (pathname.startsWith('/boards') || pathname.startsWith('/reports')) return 'dashboard';
+  if (pathname.startsWith('/teams')) return 'teams';
+  if (pathname.startsWith('/ai')) return 'ai';
+  if (pathname.startsWith('/audit') || pathname.startsWith('/approvals') || pathname.startsWith('/settings'))
+    return 'more';
+  return 'home';
+}
+
+export function getSectionDefaultPath(sectionId) {
+  const map = {
+    home: '/',
+    planner: '/home/agenda',
+    ai: '/ai',
+    teams: '/teams/all',
+    dashboard: '/boards',
+    more: '/settings',
+  };
+  return map[sectionId] ?? '/';
+}
+
+const RAIL_ITEMS = [
+  { id: 'home', label: 'Home', icon: House },
+  { id: 'planner', label: 'Planner', icon: CalendarDays },
+  { id: 'ai', label: 'AI', icon: Sparkles },
+  { id: 'teams', label: 'Teams', icon: Users },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'more', label: 'More', icon: Grid },
 ];
 
-export function IconRail({ pathname }) {
-  const user = useAuthStore((s) => s.user);
+function RailButton({ item, active, badge, onClick }) {
+  const { icon: Icon, label } = item;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className="group relative flex w-full flex-col items-center gap-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 rounded-xl"
+    >
+      {/* rail-edge accent for the active section */}
+      <span
+        aria-hidden
+        className={cn(
+          'absolute -left-2 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full bg-brand-400',
+          'transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]',
+          active ? 'h-7 opacity-100' : 'h-0 opacity-0'
+        )}
+      />
+
+      <span
+        className={cn(
+          'relative flex h-9 w-9 items-center justify-center rounded-xl',
+          'transition-colors duration-150',
+          active
+            ? 'bg-white/[0.14] ring-1 ring-inset ring-white/10'
+            : 'group-hover:bg-white/[0.05]'
+        )}
+      >
+        <Icon
+          className={cn(
+            'h-[18px] w-[18px] transition-colors duration-150',
+            active
+              ? 'text-brand-200'
+              : 'text-zinc-500 group-hover:text-zinc-200'
+          )}
+          strokeWidth={active ? 2.2 : 1.8}
+        />
+
+        {badge > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-brand-500 px-1 text-[9px] font-semibold tabular-nums text-white ring-2 ring-[color:var(--color-rail-bg)]">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+      </span>
+
+      <span
+        className={cn(
+          'text-[9.5px] font-medium tracking-[0.02em] transition-colors duration-150',
+          active ? 'text-zinc-100' : 'text-zinc-500 group-hover:text-zinc-300'
+        )}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
+export function IconRail({ activeSection, onSectionClick, onInviteClick }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { data: unreadCount = 0 } = useUnreadCount();
+
+  const currentSection = activeSection || getSectionFromPath(location.pathname);
+
+  const handleRailClick = (sectionId) => {
+    onSectionClick(sectionId);
+    // Only navigate when actually switching sections. Re-clicking the active
+    // rail item just toggles the detail panel (handled by the parent) and must
+    // not yank the user off their current sub-page.
+    if (sectionId !== currentSection) {
+      navigate(getSectionDefaultPath(sectionId));
+    }
+  };
 
   return (
     <aside
-      className="sidebar-dark flex h-full w-[52px] shrink-0 flex-col items-center py-3"
-      style={{ backgroundColor: 'var(--color-sidebar-bg)' }}
+      className="flex h-full w-[60px] shrink-0 flex-col items-center py-3 select-none z-30"
+      style={{ backgroundColor: 'var(--color-rail-bg)' }}
     >
-      {/* User avatar at top */}
-      <div className="mb-3 shrink-0">
-        <UserAvatar
-          user={user}
-          size="md"
-          rounded="lg"
-          className="ring-2 ring-white/15 hover:ring-white/30 transition-all duration-150"
-          title={user?.name}
-        />
+      <div className="flex w-full flex-col items-center gap-1.5 px-2">
+        {RAIL_ITEMS.map((item) => (
+          <RailButton
+            key={item.id}
+            item={item}
+            active={currentSection === item.id}
+            badge={item.id === 'home' ? unreadCount : 0}
+            onClick={() => handleRailClick(item.id)}
+          />
+        ))}
       </div>
 
-      {/* Divider */}
-      <div
-        className="mb-3 h-px w-8 shrink-0 rounded-full"
-        style={{ background: 'var(--color-sidebar-border)' }}
-      />
+      <div className="flex-1" />
 
-      {/* Nav items */}
-      <nav className="flex flex-1 flex-col items-center gap-0.5">
-        {railItems.map((item) => {
-          const Icon = item.icon;
-          const active = item.match(pathname);
-          const showBadge = item.badge && unreadCount > 0;
-
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              title={item.label}
-              className={cn(
-                'group relative flex h-9 w-9 items-center justify-center rounded-xl',
-                'transition-all duration-[120ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
-                active
-                  ? 'bg-brand-500/20 text-white'
-                  : 'text-[rgba(255,255,255,0.45)] hover:bg-white/8 hover:text-[rgba(255,255,255,0.85)]'
-              )}
-            >
-              {/* Active left indicator */}
-              {active && (
-                <span
-                  aria-hidden
-                  className="absolute -left-1 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-brand-400"
-                />
-              )}
-              <Icon className="h-[17px] w-[17px]" />
-
-              {/* Unread badge */}
-              {showBadge && (
-                <span
-                  aria-hidden
-                  className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-brand-400"
-                />
-              )}
-
-              {/* CSS tooltip — appears on hover to the right */}
-              <span
-                aria-hidden
-                className={cn(
-                  'pointer-events-none absolute left-full ml-3 whitespace-nowrap',
-                  'rounded-lg border border-white/10 bg-[#1e1e2e] px-2.5 py-1.5',
-                  'text-[11px] font-semibold tracking-wide text-white shadow-xl',
-                  'opacity-0 scale-95 origin-left',
-                  'group-hover:opacity-100 group-hover:scale-100',
-                  'transition-all duration-[120ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
-                  'z-50'
-                )}
-              >
-                {item.label}
-              </span>
-            </NavLink>
-          );
-        })}
-      </nav>
-
-      {/* Reports at bottom */}
-      <NavLink
-        to="/reports"
-        title="Reports"
-        className="flex h-9 w-9 items-center justify-center rounded-xl text-[rgba(255,255,255,0.35)] transition-all duration-[120ms] hover:bg-white/8 hover:text-[rgba(255,255,255,0.85)]"
-      >
-        <BarChart3 className="h-[17px] w-[17px]" />
-      </NavLink>
+      <div className="w-full px-2">
+        <button
+          type="button"
+          onClick={onInviteClick}
+          className="group flex w-full flex-col items-center gap-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 rounded-xl"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-150 group-hover:bg-white/[0.05]">
+            <UserPlus className="h-[18px] w-[18px] text-zinc-500 transition-colors duration-150 group-hover:text-zinc-200" strokeWidth={1.8} />
+          </span>
+          <span className="text-[9.5px] font-medium tracking-[0.02em] text-zinc-500 transition-colors duration-150 group-hover:text-zinc-300">
+            Invite
+          </span>
+        </button>
+      </div>
     </aside>
   );
 }

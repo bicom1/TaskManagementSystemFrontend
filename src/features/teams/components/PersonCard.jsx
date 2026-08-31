@@ -40,7 +40,7 @@ export function PersonCard({ person, onClick, compact = false }) {
     <button
       type="button"
       onClick={() => onClick?.(person)}
-      className="group flex flex-col overflow-hidden rounded-xl border border-hairline bg-paper text-left shadow-sm transition hover:border-steel hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-xl border border-hairline bg-paper text-left shadow-xs transition-[border-color,box-shadow] hover:border-border-base hover:shadow-md"
     >
       <div className="relative flex aspect-[5/4] w-full items-center justify-center overflow-hidden bg-cloud">
         {person.avatarUrl ? (
@@ -55,18 +55,28 @@ export function PersonCard({ person, onClick, compact = false }) {
             className="flex h-full w-full items-center justify-center"
             style={{ backgroundColor: getAvatarColor(person._id || person.email || person.name) }}
           >
-            <span className="select-none text-5xl font-bold tracking-tight text-white/95 sm:text-6xl">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{ background: 'linear-gradient(155deg, rgba(255,255,255,0.10), rgba(0,0,0,0.14))' }}
+            />
+            <span className="relative select-none text-[2.5rem] font-semibold tracking-tight text-white sm:text-5xl">
               {getInitials(person.name)}
             </span>
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2 px-3 py-3">
-        <p className="truncate text-sm font-semibold text-ink">{person.name}</p>
-        <span
-          className={cn('h-2.5 w-2.5 shrink-0 rounded-full', STATUS_DOT[status])}
-          title={status}
-        />
+      <div className="min-w-0 px-3 py-2.5">
+        <div className="flex items-center gap-1.5">
+          <p className="truncate text-[13px] font-semibold text-ink">{person.name}</p>
+          <span
+            className={cn('h-2 w-2 shrink-0 rounded-full', STATUS_DOT[status])}
+            title={status}
+          />
+        </div>
+        <p className="mt-0.5 truncate text-[11.5px] text-graphite">
+          {person.jobTitle || getRoleLabel(person.role)}
+        </p>
       </div>
     </button>
   );

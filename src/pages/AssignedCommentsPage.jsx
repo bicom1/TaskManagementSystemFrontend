@@ -17,7 +17,7 @@ export default function AssignedCommentsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 lg:px-8">
-      <h1 className="mb-2 text-2xl font-semibold text-ink">Assigned Comments</h1>
+      <h1 className="page-title mb-2 text-ink">Assigned Comments</h1>
       <p className="mb-6 text-sm text-graphite">
         Comments and mentions on your tasks (from MongoDB notifications).
       </p>

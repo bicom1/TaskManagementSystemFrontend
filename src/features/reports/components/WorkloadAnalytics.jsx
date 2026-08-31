@@ -359,13 +359,13 @@ export function WorkloadAnalytics() {
                 {(data?.trend || []).length ? (
                   <ResponsiveContainer width="100%" height={260}>
                     <LineChart data={data.trend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" />
-                      <XAxis dataKey="date" tick={{ fill: '#636363', fontSize: 10 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#636363', fontSize: 12 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
+                      <XAxis dataKey="date" tick={{ fill: '#8a8a93', fontSize: 10 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
                       <Tooltip />
                       <Legend />
-                      <Line type="monotone" dataKey="completed" stroke="#024ad8" strokeWidth={2} name="Completed" />
-                      <Line type="monotone" dataKey="created" stroke="#296ef9" strokeWidth={2} name="Created" />
+                      <Line type="monotone" dataKey="completed" stroke="#6f64c4" strokeWidth={2} name="Completed" />
+                      <Line type="monotone" dataKey="created" stroke="#8f83d4" strokeWidth={2} name="Created" />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
@@ -382,13 +382,13 @@ export function WorkloadAnalytics() {
                 {(data?.teams || []).length ? (
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={data.teams}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" />
-                      <XAxis dataKey="name" tick={{ fill: '#636363', fontSize: 11 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#636363', fontSize: 12 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
+                      <XAxis dataKey="name" tick={{ fill: '#8a8a93', fontSize: 11 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="completed" fill="#024ad8" name="Completed" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="open" fill="#c9e0fc" name="Open" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="completed" fill="#6f64c4" name="Completed" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="open" fill="#e9e7f7" name="Open" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

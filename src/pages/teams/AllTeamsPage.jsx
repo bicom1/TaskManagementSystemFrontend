@@ -23,7 +23,7 @@ export default function AllTeamsPage() {
     <div className="px-4 py-6 lg:px-8">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">All Teams</h1>
+          <h1 className="page-title text-ink">All Teams</h1>
           <p className="mt-1 text-sm text-graphite">
             {teams.length} team{teams.length === 1 ? '' : 's'} across {departments.length}{' '}
             department{departments.length === 1 ? '' : 's'}

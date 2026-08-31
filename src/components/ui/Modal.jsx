@@ -51,7 +51,7 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop — dark glass */}
       <div
-        className="absolute inset-0 bg-[rgba(13,13,20,0.55)] backdrop-blur-[3px]"
+        className="absolute inset-0 bg-[rgba(19,19,24,0.42)] backdrop-blur-[2px]"
         onClick={onClose}
         aria-hidden
       />
@@ -67,9 +67,9 @@ export function Modal({
           // Surface
           'rounded-2xl border border-border-subtle bg-surface-0',
           // Premium shadow
-          'shadow-[0_24px_64px_rgba(13,13,20,0.22),0_8px_24px_rgba(13,13,20,0.10)]',
+          'shadow-[var(--shadow-2xl)]',
           // Entry animation
-          'animate-[scaleIn_160ms_cubic-bezier(0.34,1.56,0.64,1)_both]',
+          'animate-[scaleIn_150ms_cubic-bezier(0.34,1.4,0.64,1)_both]',
           sizeClasses[size],
           className
         )}

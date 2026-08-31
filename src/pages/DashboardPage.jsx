@@ -223,7 +223,7 @@ export default function DashboardPage() {
                     {/* Unread indicator */}
                     <div className="mt-1 shrink-0">
                       {!n.isRead
-                        ? <span className="block h-2 w-2 rounded-full bg-brand-500 shadow-[0_0_6px_rgba(99,102,241,0.6)]" />
+                        ? <span className="block h-2 w-2 rounded-full bg-brand-500" />
                         : <span className="block h-2 w-2 rounded-full bg-surface-3" />
                       }
                     </div>

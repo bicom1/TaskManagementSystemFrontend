@@ -48,6 +48,7 @@ export default function App() {
       >
         <Route index element={<HomePage />} />
         <Route path="home" element={<HomePage />} />
+        <Route path="ai" element={<HomePage />} />
         <Route path="home/my-tasks" element={<MyTasksPage />} />
         <Route path="all-tasks" element={<AllTasksPage />} />
         <Route path="home/assigned-comments" element={<AssignedCommentsPage />} />

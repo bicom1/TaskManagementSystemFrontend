@@ -121,21 +121,26 @@ export default function HomePage() {
     <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
       {/* Header — clear, calm */}
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3.5">
-          <UserAvatar user={user} size="lg" rounded="xl" className="shadow-soft-lift" />
+        <div className="flex items-center gap-4">
+          <UserAvatar
+            user={user}
+            size="lg"
+            rounded="xl"
+            className="ring-1 ring-black/5"
+          />
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight text-ink">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="voice-line text-[1.75rem] text-ink">
                 {timeGreeting()}, {greetingName(user?.name)}
               </h1>
-              <span className="rounded-md bg-primary-soft px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary-deep">
+              <span className="rounded-md bg-cloud px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-charcoal">
                 {dashMeta.badge || getRoleLabel(user?.role)}
               </span>
               {isFetching && data ? (
                 <span className="text-xs text-graphite">Updating…</span>
               ) : null}
             </div>
-            <p className="mt-0.5 text-sm text-graphite">{dashMeta.subtitle}</p>
+            <p className="mt-1 text-[13.5px] text-graphite">{dashMeta.subtitle}</p>
           </div>
         </div>
         <Button
@@ -150,7 +155,7 @@ export default function HomePage() {
       </div>
 
       {/* Stats — one clear row */}
-      <div className="mb-6 overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift">
+      <div className="mb-6 overflow-hidden rounded-xl border border-hairline bg-paper shadow-xs">
         <div className="flex flex-col sm:flex-row">
           <HomeStat
             label="Assigned to me"

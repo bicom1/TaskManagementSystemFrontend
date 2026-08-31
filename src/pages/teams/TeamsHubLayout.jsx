@@ -5,7 +5,6 @@ import { useTeams, useCreateTeam } from '@/features/teams/hooks/useTeams';
 import { useDepartments, useCreateDepartment } from '@/features/departments/hooks/useDepartments';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useAuthStore } from '@/store/authStore';
-import { TeamsHubSidebar } from '@/features/teams/components/TeamsHubSidebar';
 import { InviteModal } from '@/components/InviteModal';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -126,10 +125,6 @@ export default function TeamsHubLayout() {
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <div className="hidden md:flex">
-          <TeamsHubSidebar onCreateTeam={() => setTeamModalOpen(true)} />
-        </div>
-
         <div className="min-w-0 flex-1 overflow-y-auto">
           <Outlet context={contextValue} />
         </div>

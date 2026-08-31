@@ -18,11 +18,11 @@ import { cn } from '@/lib/utils';
 const buttonVariants = cva(
   [
     'inline-flex cursor-pointer items-center justify-center gap-2',
-    'font-semibold border',
-    'transition-all duration-[160ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
+    'font-semibold border tracking-[-0.005em]',
+    'transition-[background-color,border-color,color,box-shadow] duration-[130ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/50 focus-visible:ring-offset-1',
-    'disabled:cursor-not-allowed disabled:opacity-50',
-    'active:scale-[0.97]',
+    'disabled:cursor-not-allowed disabled:opacity-45',
+    'active:scale-[0.985]',
     'select-none',
   ].join(' '),
   {
@@ -30,17 +30,14 @@ const buttonVariants = cva(
       variant: {
         primary: [
           'border-transparent text-white',
-          'bg-gradient-to-r from-brand-500 to-brand-600',
-          'shadow-[0_2px_8px_rgba(99,102,241,0.3)]',
-          'hover:from-brand-400 hover:to-brand-500',
-          'hover:shadow-[0_4px_16px_rgba(99,102,241,0.45)]',
-          'hover:-translate-y-px',
+          'bg-brand-500 shadow-xs',
+          'hover:bg-brand-600',
+          'active:bg-brand-700',
         ].join(' '),
 
         outline: [
-          'border-border-subtle bg-surface-0 text-text-secondary',
-          'hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600',
-          'hover:-translate-y-px hover:shadow-xs',
+          'border-border-base bg-surface-0 text-text-secondary',
+          'hover:border-border-strong hover:bg-surface-1 hover:text-text-primary',
         ].join(' '),
 
         ghost: [
@@ -55,16 +52,13 @@ const buttonVariants = cva(
         ].join(' '),
 
         ink: [
-          'border-text-primary bg-text-primary text-white',
-          'hover:bg-text-secondary hover:border-text-secondary',
-          'hover:-translate-y-px hover:shadow-md',
+          'border-transparent bg-text-primary text-white',
+          'hover:bg-black',
         ].join(' '),
 
         destructive: [
-          'border-transparent bg-danger-500 text-white',
-          'shadow-[0_2px_8px_rgba(244,63,94,0.25)]',
-          'hover:bg-[#e11d48] hover:shadow-[0_4px_16px_rgba(244,63,94,0.35)]',
-          'hover:-translate-y-px',
+          'border-transparent bg-danger-500 text-white shadow-xs',
+          'hover:bg-[#b23c41]',
         ].join(' '),
       },
 

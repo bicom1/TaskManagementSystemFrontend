@@ -1,17 +1,18 @@
-/** Deterministic ClickUp-style avatar colors from a name */
+/** Deterministic avatar colors — a muted, jewel-neutral set that
+ *  stays legible under white text and never shouts. */
 const AVATAR_COLORS = [
-  '#e91e8c', // hot pink
-  '#2d3436', // dark gray
-  '#00b894', // teal
-  '#e17055', // orange
-  '#a29b7c', // taupe
-  '#6c5ce7', // purple
-  '#0984e3', // blue
-  '#d63031', // red
-  '#00cec9', // cyan
-  '#fdcb6e', // gold
-  '#636e72', // slate
-  '#e84393', // magenta
+  '#6f64c4', // iris
+  '#4f6f8f', // slate blue
+  '#3f8a7d', // muted teal
+  '#a56a5b', // clay
+  '#8a7a5c', // olive taupe
+  '#7a5c8a', // muted plum
+  '#5b7a9d', // steel blue
+  '#9d6b6b', // dusty rose
+  '#5f8a6a', // sage
+  '#b08a4a', // ochre
+  '#6b7280', // slate
+  '#7d6a9c', // lavender grey
 ];
 
 export function getInitials(name = '') {

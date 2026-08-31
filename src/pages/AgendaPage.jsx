@@ -257,17 +257,17 @@ export default function AgendaPage() {
   }
 
   return (
-    <div className="min-h-full bg-[#fafafa] px-4 py-6 sm:px-8 lg:px-12">
-      <p className="text-sm font-medium text-graphite">Meetings</p>
+    <div className="min-h-full bg-[var(--color-surface-1)] px-4 py-6 sm:px-8 lg:px-12">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-graphite">Meetings</p>
 
       <div className="mx-auto mt-10 max-w-3xl text-center">
-        <h1 className="text-[1.65rem] font-semibold tracking-tight text-[#2d2d2d] sm:text-[1.85rem]">
-          Hey {name}! Ready to dive into your meetings?
+        <h1 className="voice-line text-[1.75rem] text-ink sm:text-[2rem]">
+          Hey {name} — ready to dive into your meetings?
         </h1>
 
         <div className="relative mx-auto mt-8 max-w-2xl">
-          <div className="rounded-2xl bg-gradient-to-r from-sky-300 via-violet-300 to-pink-300 p-[1.5px] shadow-sm">
-            <div className="rounded-[14px] bg-white px-4 pb-3 pt-4 text-left">
+          <div className="rounded-2xl bg-gradient-to-r from-brand-300 via-brand-200 to-brand-300 p-px shadow-xs">
+            <div className="rounded-[15px] bg-white px-4 pb-3 pt-4 text-left">
               <textarea
                 ref={textareaRef}
                 rows={3}
@@ -345,7 +345,7 @@ export default function AgendaPage() {
               key={pill}
               type="button"
               onClick={() => runPrompt(pill)}
-              className="max-w-full truncate rounded-full border border-[#e4e4e4] bg-white px-3.5 py-2 text-left text-[13px] text-[#4a4a4a] shadow-sm transition hover:border-[#cfcfcf] hover:bg-[#f7f7f7]"
+              className="max-w-full truncate rounded-full border border-[var(--color-border-subtle)] bg-white px-3.5 py-2 text-left text-[13px] text-[var(--color-text-secondary)] shadow-xs transition hover:border-[var(--color-border-base)] hover:bg-[var(--color-surface-1)]"
             >
               {pill}
             </button>
@@ -353,7 +353,7 @@ export default function AgendaPage() {
         </div>
 
         {answer && (
-          <div className="mx-auto mt-5 max-w-2xl rounded-2xl border border-hairline bg-white p-4 text-left shadow-sm">
+          <div className="mx-auto mt-5 max-w-2xl rounded-2xl border border-hairline bg-white p-4 text-left shadow-xs">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">
               AI answer
             </p>
@@ -370,7 +370,7 @@ export default function AgendaPage() {
             <CalendarDays className="h-4 w-4 text-graphite" />
             Upcoming Meetings
           </div>
-          <div className="flex items-center gap-4 text-sm font-medium text-[#4a4a4a]">
+          <div className="flex items-center gap-4 text-sm font-medium text-[var(--color-text-secondary)]">
             <button type="button" onClick={sendNotetaker} className="hover:text-ink hover:underline">
               Send AI Notetaker
             </button>
@@ -384,14 +384,14 @@ export default function AgendaPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-white shadow-xs">
           <div className="grid lg:grid-cols-2">
-            <div className="flex flex-col justify-center border-b border-[#eee] px-8 py-10 lg:border-b-0 lg:border-r">
+            <div className="flex flex-col justify-center border-b border-[var(--color-border-subtle)] px-8 py-10 lg:border-b-0 lg:border-r">
               {!connected ? (
                 <>
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg border border-[#e5e5e5] bg-[#fafafa] text-sm font-semibold text-ink">
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--color-border-base)] bg-[var(--color-surface-1)] text-sm font-semibold text-ink">
                     <span className="relative">
-                      <CalendarDays className="h-6 w-6 text-[#6b6b6b]" />
+                      <CalendarDays className="h-6 w-6 text-[var(--color-text-muted)]" />
                       <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 text-[10px] font-bold leading-none">
                         {format(new Date(), 'd')}
                       </span>
@@ -462,9 +462,9 @@ export default function AgendaPage() {
               )}
             </div>
 
-            <div className="relative min-h-[320px] bg-[#fbfbfb] p-4">
-              <div className="overflow-hidden rounded-xl border border-[#e6e6e6] bg-white shadow-sm">
-                <div className="flex items-center gap-2 border-b border-[#eee] px-3 py-2.5">
+            <div className="relative min-h-[320px] bg-[var(--color-surface-1)] p-4">
+              <div className="overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-white shadow-xs">
+                <div className="flex items-center gap-2 border-b border-[var(--color-border-subtle)] px-3 py-2.5">
                   {previewMeeting ? (
                     <>
                       <a
@@ -495,7 +495,7 @@ export default function AgendaPage() {
                   ) : (
                     <span className="text-sm text-graphite">No meetings scheduled</span>
                   )}
-                  <div className="ml-auto hidden items-center gap-1 rounded-md border border-[#e8e8e8] px-2 py-1 text-xs text-graphite sm:flex">
+                  <div className="ml-auto hidden items-center gap-1 rounded-md border border-[var(--color-border-subtle)] px-2 py-1 text-xs text-graphite sm:flex">
                     <Search className="h-3.5 w-3.5" />
                     Search
                   </div>
@@ -503,11 +503,11 @@ export default function AgendaPage() {
 
                 <div className="relative h-[260px] overflow-hidden">
                   <div className="absolute inset-0 grid grid-cols-[48px_1fr]">
-                    <div className="border-r border-[#f0f0f0] text-[10px] text-graphite">
+                    <div className="border-r border-[var(--color-border-subtle)] text-[10px] text-graphite">
                       {hours.map((h) => (
                         <div
                           key={h}
-                          className="relative h-[36px] border-b border-[#f5f5f5] pr-1 text-right"
+                          className="relative h-[36px] border-b border-[var(--color-border-subtle)] pr-1 text-right"
                         >
                           <span className="-mt-2 inline-block">
                             {format(setMinutes(setHours(today, h), 0), 'h a')}
@@ -517,7 +517,7 @@ export default function AgendaPage() {
                     </div>
                     <div className="relative">
                       {hours.map((h) => (
-                        <div key={h} className="h-[36px] border-b border-[#f5f5f5]" />
+                        <div key={h} className="h-[36px] border-b border-[var(--color-border-subtle)]" />
                       ))}
 
                       {(todayMeetings.length ? todayMeetings : meetings.slice(0, 2)).map((m) => {
@@ -535,7 +535,7 @@ export default function AgendaPage() {
                                 key={m._id}
                                 type="button"
                                 onClick={() => setSelected(m)}
-                                className="absolute left-2 right-3 top-10 rounded-md border border-teal-200 bg-teal-50 px-2 py-1.5 text-left shadow-sm transition hover:bg-teal-100"
+                                className="absolute left-2 right-3 top-10 rounded-md border border-teal-200 bg-teal-50 px-2 py-1.5 text-left shadow-xs transition hover:bg-teal-100"
                               >
                                 <p className="truncate text-xs font-semibold text-teal-900">
                                   {m.title}
@@ -560,7 +560,7 @@ export default function AgendaPage() {
                             type="button"
                             onClick={() => setSelected(m)}
                             style={{ top: `${top}%`, height: `${height}%` }}
-                            className="absolute left-2 right-3 overflow-hidden rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-left shadow-sm transition hover:bg-teal-100"
+                            className="absolute left-2 right-3 overflow-hidden rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-left shadow-xs transition hover:bg-teal-100"
                           >
                             <p className="truncate text-xs font-semibold text-teal-900">{m.title}</p>
                             <p className="text-[10px] text-teal-800">
@@ -588,7 +588,7 @@ export default function AgendaPage() {
                 </div>
 
                 {previewMeeting && (
-                  <div className="m-3 flex items-center gap-2 rounded-lg border border-[#e8e8e8] bg-white px-3 py-2 shadow-sm">
+                  <div className="m-3 flex items-center gap-2 rounded-lg border border-[var(--color-border-subtle)] bg-white px-3 py-2 shadow-xs">
                     <div
                       className={cn(
                         'flex h-7 w-7 items-center justify-center rounded text-[10px] font-bold text-white',

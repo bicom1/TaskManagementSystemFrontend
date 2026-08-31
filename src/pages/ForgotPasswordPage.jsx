@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
             <CardHeader className="space-y-3 pb-2">
               <BrandLogo asLink={false} size="lg" />
               <div>
-                <CardTitle className="text-[24px] leading-none sm:text-[28px]">
+                <CardTitle className="voice-line text-[24px] font-normal leading-tight tracking-[-0.01em] sm:text-[26px]">
                   {step === 'otp' ? 'Enter OTP & new password' : 'Forgot password'}
                 </CardTitle>
                 <CardDescription className="mt-2">{subtitle}</CardDescription>

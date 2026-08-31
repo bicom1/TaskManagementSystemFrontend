@@ -45,7 +45,7 @@ export default function AuditLogsPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-6">
       <header>
-        <h1 className="text-2xl font-semibold text-ink">Audit & activity</h1>
+        <h1 className="page-title text-ink">Audit & activity</h1>
         <p className="mt-1 text-sm text-graphite">
           Super Admin only — API audit trail and workspace activity.
         </p>

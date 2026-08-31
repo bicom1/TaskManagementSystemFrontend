@@ -46,7 +46,7 @@ export default function TeamsAnalyticsPage() {
 
   return (
     <div className="px-4 py-6 lg:px-8">
-      <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Analytics</h1>
+      <h1 className="page-title mb-2 text-ink">Analytics</h1>
       <p className="mb-8 text-sm text-graphite">People and team health across the workspace.</p>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -8,22 +8,23 @@ export function HomePanel({ title, count, action, children, className }) {
   return (
     <section
       className={cn(
-        'flex min-h-[280px] flex-col overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift',
+        'flex min-h-[196px] flex-col overflow-hidden rounded-xl border border-hairline bg-paper shadow-xs',
+        'transition-[border-color] duration-150 hover:border-border-base',
         className
       )}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-hairline bg-cloud/30 px-4 py-3">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <h3 className="truncate text-sm font-semibold tracking-tight text-ink">{title}</h3>
-          {typeof count === 'number' ? (
-            <span className="rounded-md bg-paper px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-graphite shadow-soft-lift">
+      <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-2.5">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h3 className="truncate text-[13px] font-semibold tracking-[-0.01em] text-ink">{title}</h3>
+          {typeof count === 'number' && count > 0 ? (
+            <span className="text-[11px] font-semibold tabular-nums text-graphite">
               {count}
             </span>
           ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-1.5">{children}</div>
     </section>
   );
 }
@@ -70,8 +71,9 @@ export function TaskRow({ task, onOpen }) {
 
 export function EmptyCardLine({ children }) {
   return (
-    <div className="flex h-full min-h-[160px] items-center justify-center px-6">
-      <p className="text-center text-sm text-graphite">{children}</p>
+    <div className="flex h-full min-h-[120px] flex-col items-center justify-center gap-2 px-8 text-center">
+      <span aria-hidden className="h-1 w-6 rounded-full bg-border-base" />
+      <p className="text-[12.5px] leading-relaxed text-graphite">{children}</p>
     </div>
   );
 }
@@ -112,14 +114,14 @@ export function HomeStat({ label, value, onClick, alert = false }) {
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={cn(
-        'flex flex-1 flex-col border-r border-hairline px-4 py-3 text-left last:border-r-0',
-        onClick && 'hover:bg-cloud/80'
+        'flex flex-1 flex-col border-r border-hairline px-4 py-3.5 text-left last:border-r-0',
+        onClick && 'hover:bg-cloud/60'
       )}
     >
-      <span className="text-[11px] font-medium uppercase tracking-wide text-graphite">{label}</span>
+      <span className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-graphite">{label}</span>
       <span
         className={cn(
-          'mt-1 text-2xl font-semibold tabular-nums tracking-tight',
+          'mt-1.5 text-[1.625rem] font-semibold tabular-nums tracking-[-0.02em]',
           alert ? 'text-bloom-coral' : 'text-ink'
         )}
       >

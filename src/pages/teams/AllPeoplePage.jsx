@@ -128,7 +128,7 @@ export default function AllPeoplePage() {
   return (
     <div className="px-4 py-6 lg:px-8">
       <div className="mb-5 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">All People</h1>
+        <h1 className="page-title text-ink">All People</h1>
         {canInvite && (
           <Button
             onClick={openInvite}

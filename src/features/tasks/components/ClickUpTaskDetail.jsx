@@ -49,9 +49,9 @@ import {
 } from '@/features/tasks/api/taskApi';
 
 function priorityFlagClass(priority) {
-  if (priority === 'urgent') return 'text-red-500';
-  if (priority === 'high') return 'text-amber-400';
-  if (priority === 'medium') return 'text-sky-500';
+  if (priority === 'urgent') return 'text-danger-500';
+  if (priority === 'high') return 'text-warning-500';
+  if (priority === 'medium') return 'text-brand-400';
   if (priority === 'low') return 'text-graphite/50';
   return 'text-graphite/40';
 }
@@ -71,7 +71,7 @@ function Popover({ open, onClose, children, className }) {
     <div
       ref={ref}
       className={cn(
-        'absolute z-50 mt-1 min-w-[200px] rounded-xl border border-hairline bg-paper p-2 shadow-[0_12px_40px_rgba(26,26,26,0.12)]',
+        'absolute z-50 mt-1 min-w-[200px] rounded-xl border border-hairline bg-paper p-2 shadow-[var(--shadow-lg)]',
         className
       )}
       onClick={(e) => e.stopPropagation()}
@@ -477,7 +477,7 @@ export function ClickUpTaskDetail({
                     e.currentTarget.blur();
                   }
                 }}
-                className="w-full bg-transparent text-3xl font-bold tracking-tight text-ink outline-none placeholder:text-graphite/40"
+                className="w-full bg-transparent text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] text-ink outline-none placeholder:text-graphite/40"
                 placeholder="Task name"
               />
 
@@ -491,7 +491,7 @@ export function ClickUpTaskDetail({
                   <div className="relative inline-flex items-center gap-2">
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1.5 rounded-md border border-hairline bg-cloud px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-ink hover:bg-paper"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-hairline bg-cloud px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-ink hover:bg-paper"
                       onClick={() => setMenu((m) => (m === 'status' ? null : 'status'))}
                     >
                       {statusLabels[task.status] || STATUS_LABELS[task.status] || task.status}

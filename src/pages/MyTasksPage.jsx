@@ -200,7 +200,7 @@ export default function MyTasksPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 lg:px-8">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">My Tasks</h1>
+          <h1 className="page-title text-ink">My Tasks</h1>
           <p className="mt-1 text-sm text-graphite">
             {view === 'assigned'
               ? 'Tasks where you are an assignee — updates live when someone assigns you.'

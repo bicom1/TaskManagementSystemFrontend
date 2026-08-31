@@ -26,11 +26,11 @@ export default function RegisterPage() {
         <div className="relative flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
           <GradientBlobs />
           <ChevronDecoration />
-          <Card className="relative z-10 w-full max-w-[420px] border-0 shadow-[var(--shadow-soft-lift)]">
+          <Card className="relative z-10 w-full max-w-[420px] border border-border-subtle shadow-[var(--shadow-xl)]">
             <CardHeader className="space-y-3 pb-2">
-              <BrandLogo asLink={false} size="lg" />
+              <BrandLogo asLink={false} size="md" />
               <div>
-                <CardTitle className="text-[24px] leading-none sm:text-[28px]">
+                <CardTitle className="voice-line text-[24px] font-normal leading-tight tracking-[-0.01em] sm:text-[26px]">
                   {fromInvite ? 'Join BIWORKSPACE' : 'Create account'}
                 </CardTitle>
                 <CardDescription className="mt-2">
@@ -42,15 +42,22 @@ export default function RegisterPage() {
             </CardHeader>
             <CardContent className="space-y-5">
               {fromInvite && (
-                <div className="rounded-lg border border-primary-soft bg-primary-soft/40 px-3 py-2 text-sm text-ink">
+                <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-text-secondary">
                   Invite link accepted — fill in your details below, or continue with Google.
                 </div>
               )}
               <RegisterForm />
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-border-subtle" />
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-disabled">
+                  or
+                </span>
+                <div className="h-px flex-1 bg-border-subtle" />
+              </div>
               <GoogleAuthButton label="Sign up with Google" />
               <p className="text-center text-sm text-graphite">
                 Already have an account?{' '}
-                <Link to="/login" className="font-medium text-primary hover:underline">
+                <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
                   Sign in
                 </Link>
               </p>

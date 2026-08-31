@@ -15,49 +15,19 @@ import { cn } from '@/lib/utils';
  *   active      — Pulsing green dot + label (live status)
  */
 const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold tracking-wide',
+  'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold tracking-[0.01em]',
   {
     variants: {
       variant: {
-        default: [
-          'bg-brand-100 text-brand-700',
-          'ring-1 ring-brand-200',
-        ].join(' '),
-
-        secondary: [
-          'bg-surface-2 text-text-secondary',
-          'ring-1 ring-border-subtle',
-        ].join(' '),
-
-        outline: [
-          'border border-border-base bg-surface-0 text-text-secondary',
-        ].join(' '),
-
-        success: [
-          'bg-success-bg text-success-text',
-          'ring-1 ring-success-border',
-        ].join(' '),
-
-        warning: [
-          'bg-warning-bg text-warning-text',
-          'ring-1 ring-warning-border',
-        ].join(' '),
-
-        danger: [
-          'bg-danger-bg text-danger-text',
-          'ring-1 ring-danger-border',
-        ].join(' '),
-
-        info: [
-          'bg-info-bg text-info-text',
-          'ring-1 ring-info-border',
-        ].join(' '),
-
+        default: 'bg-brand-50 text-brand-700',
+        secondary: 'bg-surface-2 text-text-secondary',
+        outline: 'border border-border-base bg-surface-0 text-text-secondary',
+        success: 'bg-success-bg text-success-text',
+        warning: 'bg-warning-bg text-warning-text',
+        danger: 'bg-danger-bg text-danger-text',
+        info: 'bg-info-bg text-info-text',
         /* Pulsing "live" status badge */
-        active: [
-          'bg-success-bg text-success-text',
-          'ring-1 ring-success-border',
-        ].join(' '),
+        active: 'bg-success-bg text-success-text',
       },
     },
     defaultVariants: {

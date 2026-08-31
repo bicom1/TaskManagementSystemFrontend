@@ -8,16 +8,10 @@ export function GoogleAuthButton({ label = 'Continue with Google' }) {
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <div className="flex w-full items-center gap-3">
-        <div className="h-px flex-1 bg-steel/40" />
-        <span className="text-xs font-medium uppercase tracking-wide text-graphite">or</span>
-        <div className="h-px flex-1 bg-steel/40" />
-      </div>
-
       <button
         type="button"
         onClick={handleClick}
-        className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-steel bg-paper px-4 text-sm font-medium text-ink shadow-sm transition hover:bg-cloud"
+        className="flex h-10 w-full items-center justify-center gap-3 rounded-lg border border-border-base bg-surface-0 px-4 text-[13px] font-semibold text-text-primary transition-colors hover:bg-surface-1"
       >
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
           <path

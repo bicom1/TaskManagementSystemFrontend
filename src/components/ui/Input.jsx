@@ -21,10 +21,10 @@ export const Input = forwardRef(function Input({ className, type = 'text', ...pr
         'rounded-lg border border-border-base bg-surface-0',
         // Transitions
         'transition-[border-color,box-shadow,background-color] duration-[120ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
-        // Focus — glow ring
+        // Focus — quiet ring
         'focus-visible:outline-none',
         'focus-visible:border-brand-400',
-        'focus-visible:ring-[3px] focus-visible:ring-brand-400/20',
+        'focus-visible:ring-2 focus-visible:ring-brand-400/25',
         'focus-visible:bg-surface-0',
         // Hover
         'hover:border-border-strong',

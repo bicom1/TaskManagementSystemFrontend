@@ -7,9 +7,9 @@ import { UserAvatar } from '@/components/UserAvatar';
 import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
 
 function priorityFlagClass(priority) {
-  if (priority === 'urgent') return 'text-red-500';
-  if (priority === 'high') return 'text-amber-400';
-  if (priority === 'medium') return 'text-sky-500';
+  if (priority === 'urgent') return 'text-danger-500';
+  if (priority === 'high') return 'text-warning-500';
+  if (priority === 'medium') return 'text-brand-400';
   return 'text-graphite/40';
 }
 

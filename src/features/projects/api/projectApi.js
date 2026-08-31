@@ -13,6 +13,9 @@ export const projectApi = {
   update: (id, payload) =>
     axiosClient.patch(`/projects/${id}`, payload).then((r) => r.data.data),
 
+  delete: (id) =>
+    axiosClient.delete(`/projects/${id}`).then((r) => r.data.data),
+
   addMember: (id, userId) =>
     axiosClient.post(`/projects/${id}/members`, { userId }).then((r) => r.data.data),
 };

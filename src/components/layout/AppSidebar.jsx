@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Inbox,
@@ -18,12 +18,14 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
 import { usePendingApprovals } from '@/features/tasks/hooks/useTasks';
-import { useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
+import { useLiveSpaces, useProjects, useArchiveProject } from '@/features/projects/hooks/useProjects';
+import { ProjectSidebarItem } from '@/features/projects/components/ProjectSidebarItem';
+import { EditProjectModal } from '@/features/projects/components/EditProjectModal';
+import { DeleteProjectModal } from '@/features/projects/components/DeleteProjectModal';
 import { canApproveTasks, getRoleLabel, ROLES } from '@/lib/roles';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { BrandLogo } from '@/components/BrandLogo';
-import { projectPath } from '@/features/spaces/spaceKinds';
 
 const primaryNav = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
@@ -46,6 +48,10 @@ function sortByName(items) {
 export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false }) {
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
+  const navigate = useNavigate();
+  const archiveProject = useArchiveProject();
+  const [editProject, setEditProject] = useState(null);
+  const [deleteProject, setDeleteProject] = useState(null);
   const showApprovals = canApproveTasks(user?.role) || hasPermission(user, PERMISSIONS.TASK_APPROVE);
   const showInvite = hasPermission(user, PERMISSIONS.USER_INVITE);
   const showAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW) || user?.role === ROLES.SUPER_ADMIN;
@@ -65,7 +71,10 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
     return m?.[1] || null;
   }, [location.pathname]);
 
-  const orderedProjects = useMemo(() => sortByName(projects), [projects]);
+  const orderedProjects = useMemo(
+    () => sortByName(projects).filter((p) => p.status !== 'archived'),
+    [projects]
+  );
 
   const navItems = [
     ...primaryNav.slice(0, 2),
@@ -202,29 +211,16 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
                   <p className="px-2 py-2 text-xs text-graphite">No projects yet</p>
                 ) : (
                   orderedProjects.map((project) => (
-                    <NavLink
+                    <ProjectSidebarItem
                       key={project._id}
-                      to={projectPath(project._id)}
-                      className={cn(
-                        'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
-                        activeEntityId === String(project._id)
-                          ? 'bg-paper font-medium text-ink'
-                          : 'text-charcoal hover:bg-paper/80'
-                      )}
-                    >
-                      <span
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-                        style={{ backgroundColor: project.color || '#292524' }}
-                      >
-                        {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">{project.name}</span>
-                      {project.openTaskCount > 0 && (
-                        <span className="shrink-0 tabular-nums text-[10px] font-semibold text-graphite">
-                          {project.openTaskCount}
-                        </span>
-                      )}
-                    </NavLink>
+                      project={project}
+                      isActive={activeEntityId === String(project._id)}
+                      activeClassName="bg-paper font-medium text-ink"
+                      idleClassName="text-charcoal hover:bg-paper/80"
+                      onEdit={setEditProject}
+                      onDelete={setDeleteProject}
+                      onArchive={(p) => archiveProject.mutate(p._id)}
+                    />
                   ))
                 )}
               </div>
@@ -265,6 +261,22 @@ export function AppSidebar({ collapsed, onToggle, onInvite, hideBrand = false })
           {!collapsed && 'Collapse'}
         </button>
       </div>
+
+      <EditProjectModal
+        project={editProject}
+        open={Boolean(editProject)}
+        onClose={() => setEditProject(null)}
+      />
+      <DeleteProjectModal
+        project={deleteProject}
+        open={Boolean(deleteProject)}
+        onClose={() => setDeleteProject(null)}
+        onDeleted={(p) => {
+          if (activeEntityId === String(p._id)) {
+            navigate('/projects');
+          }
+        }}
+      />
     </aside>
   );
 }

@@ -28,7 +28,10 @@ import { Input } from '@/components/ui/Input';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
-import { useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
+import { useLiveSpaces, useProjects, useArchiveProject } from '@/features/projects/hooks/useProjects';
+import { ProjectSidebarItem } from '@/features/projects/components/ProjectSidebarItem';
+import { EditProjectModal } from '@/features/projects/components/EditProjectModal';
+import { DeleteProjectModal } from '@/features/projects/components/DeleteProjectModal';
 import {
   useNotifications,
   useUnreadCount,
@@ -76,10 +79,13 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
+  const [editProject, setEditProject] = useState(null);
+  const [deleteProject, setDeleteProject] = useState(null);
 
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const location = useLocation();
+  const archiveProject = useArchiveProject();
   const { data: home } = useHomeOverview();
   const { data: projectsData } = useProjects({ limit: 100 });
   const { data: unreadCount = 0 } = useUnreadCount();
@@ -99,7 +105,9 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
   const q = query.trim().toLowerCase();
 
   const orderedProjects = useMemo(() => {
-    return sortByName(catalogProjects).filter((p) => matchesQuery(p.name, q));
+    return sortByName(catalogProjects)
+      .filter((p) => p.status !== 'archived')
+      .filter((p) => matchesQuery(p.name, q));
   }, [catalogProjects, q]);
 
   const homeLinks = useMemo(
@@ -553,29 +561,14 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
                   </p>
                 ) : (
                   orderedProjects.map((project) => (
-                    <NavLink
+                    <ProjectSidebarItem
                       key={project._id}
-                      to={projectPath(project._id)}
-                      className={cn(
-                        'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
-                        activeEntityId === String(project._id)
-                          ? 'bg-cloud font-medium text-ink'
-                          : 'text-charcoal hover:bg-cloud/80'
-                      )}
-                    >
-                      <span
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-                        style={{ backgroundColor: project.color || '#292524' }}
-                      >
-                        {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">{project.name}</span>
-                      {project.openTaskCount > 0 && (
-                        <span className="shrink-0 tabular-nums text-[10px] font-semibold text-graphite">
-                          {project.openTaskCount}
-                        </span>
-                      )}
-                    </NavLink>
+                      project={project}
+                      isActive={activeEntityId === String(project._id)}
+                      onEdit={setEditProject}
+                      onDelete={setDeleteProject}
+                      onArchive={(p) => archiveProject.mutate(p._id)}
+                    />
                   ))
                 )}
               </div>
@@ -706,6 +699,22 @@ export function HomeSidebar({ onInvite, collapsed = false, onToggleCollapse }) {
           </button>
         </div>
       )}
+
+      <EditProjectModal
+        project={editProject}
+        open={Boolean(editProject)}
+        onClose={() => setEditProject(null)}
+      />
+      <DeleteProjectModal
+        project={deleteProject}
+        open={Boolean(deleteProject)}
+        onClose={() => setDeleteProject(null)}
+        onDeleted={(p) => {
+          if (activeEntityId === String(p._id)) {
+            navigate('/projects');
+          }
+        }}
+      />
     </aside>
   );
 }

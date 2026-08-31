@@ -7,6 +7,7 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LoginForm } from '@/features/auth/components/LoginForm';
 import { GoogleAuthButton } from '@/features/auth/components/GoogleAuthButton';
+import { getGoogleErrorMessage } from '@/features/auth/googleErrors';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 
 export default function LoginPage() {
@@ -15,11 +16,7 @@ export default function LoginPage() {
   useEffect(() => {
     const googleError = params.get('googleError');
     if (!googleError) return;
-    toast.error(
-      googleError === 'redirect_uri_mismatch'
-        ? 'Google redirect URI mismatch. Add http://localhost:5000/api/v1/auth/google/callback in Google Console.'
-        : `Google Sign-In failed: ${googleError}`
-    );
+    toast.error(getGoogleErrorMessage(googleError));
   }, [params]);
 
   return (

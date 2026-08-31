@@ -54,12 +54,14 @@ export function useLiveSpaces() {
 
     socket.on('project:created', refresh);
     socket.on('project:updated', refresh);
+    socket.on('project:deleted', refresh);
     socket.on('projects:counts', refresh);
     socket.on('team:member-added', refresh);
     socket.on('team:member-removed', refresh);
     return () => {
       socket.off('project:created', refresh);
       socket.off('project:updated', refresh);
+      socket.off('project:deleted', refresh);
       socket.off('projects:counts', refresh);
       socket.off('team:member-added', refresh);
       socket.off('team:member-removed', refresh);
@@ -74,8 +76,38 @@ export function useUpdateProject() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: [KEY, variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['home'] });
+      toast.success('Project updated');
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message ?? 'Failed to update project');
     },
   });
+}
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: projectApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [KEY] });
+      queryClient.invalidateQueries({ queryKey: ['home'] });
+      toast.success('Project deleted');
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message ?? 'Failed to delete project');
+    },
+  });
+}
+
+export function useArchiveProject() {
+  const update = useUpdateProject();
+  return {
+    ...update,
+    mutate: (id, options) =>
+      update.mutate({ id, payload: { status: 'archived' } }, options),
+    mutateAsync: (id) => update.mutateAsync({ id, payload: { status: 'archived' } }),
+  };
 }
 
 export function useAddProjectMember() {

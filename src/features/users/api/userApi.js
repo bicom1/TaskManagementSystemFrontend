@@ -1,7 +1,8 @@
 import { axiosClient } from '../../../api/axiosClient';
 
 export const userApi = {
-  me: () => axiosClient.get('/users/me').then((r) => r.data.data),
+  me: (config = {}) =>
+    axiosClient.get('/users/me', { skipAuthRefresh: true, ...config }).then((r) => r.data.data),
 
   list: (params) => axiosClient.get('/users', { params }).then((r) => r.data),
 

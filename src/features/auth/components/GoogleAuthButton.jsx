@@ -2,8 +2,8 @@ export function GoogleAuthButton({ label = 'Continue with Google' }) {
   const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api/v1';
 
   const handleClick = () => {
-    // Server-side OAuth redirect — does NOT need Authorized JavaScript origins
-    window.location.href = `${apiBase}/auth/google`;
+    const clientUrl = encodeURIComponent(window.location.origin);
+    window.location.href = `${apiBase}/auth/google?clientUrl=${clientUrl}`;
   };
 
   return (

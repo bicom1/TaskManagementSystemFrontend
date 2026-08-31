@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { userApi } from '@/features/users/api/userApi';
+import { decodeOAuthProfile } from '@/features/auth/googleProfile';
 import { LoadingScreen } from '@/components/ui/Spinner';
 
 export default function GoogleCallbackPage() {
@@ -16,28 +17,37 @@ export default function GoogleCallbackPage() {
 
     async function finish() {
       const accessToken = params.get('accessToken');
+      const profile = decodeOAuthProfile(params.get('profile'));
+
       if (!accessToken) {
         toast.error('Google Sign-In failed — missing token');
         navigate('/login?googleError=missing_token', { replace: true });
         return;
       }
 
+      const baseUser = profile || { name: 'User' };
+      setAuth(baseUser, accessToken);
+
       try {
-        setAuth({ name: '…' }, accessToken);
-        const user = await userApi.me();
+        const full = await userApi.me({ skipAuthRefresh: true });
         if (cancelled) return;
-        setAuth(user, accessToken);
-        toast.success(`Welcome, ${user.name}`);
-        navigate('/', { replace: true });
-      } catch (err) {
-        if (cancelled) return;
-        setStatus('Could not complete Google Sign-In');
-        toast.error(err?.response?.data?.message ?? 'Google Sign-In failed');
-        navigate('/login?googleError=session', { replace: true });
+        setAuth({ ...baseUser, ...full }, accessToken);
+      } catch {
+        // Profile from OAuth redirect is enough to enter the app; permissions load later.
       }
+
+      if (cancelled) return;
+      toast.success(`Welcome${baseUser.name ? `, ${baseUser.name}` : ''}`);
+      navigate('/', { replace: true });
     }
 
-    finish();
+    finish().catch(() => {
+      if (cancelled) return;
+      setStatus('Could not complete Google Sign-In');
+      toast.error('Google Sign-In failed. Please try again.');
+      navigate('/login?googleError=session', { replace: true });
+    });
+
     return () => {
       cancelled = true;
     };

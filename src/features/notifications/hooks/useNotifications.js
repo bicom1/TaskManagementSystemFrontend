@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { notificationApi } from '../api/notificationApi';
+import { taskApi } from '../../tasks/api/taskApi';
 import { getSocket } from '../../../api/socketClient';
 import { useAuthStore } from '../../../store/authStore';
+import { playMessageNotifySound } from '../../../lib/notifySound';
 
 export const NOTIF_LIST_KEY = 'notifications';
 export const NOTIF_COUNT_KEY = 'notifications-unread-count';
@@ -20,6 +23,24 @@ function markListsRead(queryClient, predicate) {
   });
 }
 
+async function openTaskNotification(notification, navigate) {
+  if (notification?.entityType !== 'Task' || !notification?.entityId) {
+    navigate('/inbox?tab=notifications');
+    return;
+  }
+  try {
+    const task = await taskApi.getById(notification.entityId);
+    const projectId = task?.project?._id || task?.project;
+    if (projectId) {
+      navigate(`/projects/${projectId}?task=${notification.entityId}`);
+      return;
+    }
+  } catch {
+    // fall through
+  }
+  navigate('/home/my-tasks?view=assigned');
+}
+
 export function useNotifications(params) {
   return useQuery({
     queryKey: [NOTIF_LIST_KEY, params],
@@ -32,6 +53,7 @@ export function useUnreadCount() {
     queryKey: [NOTIF_COUNT_KEY],
     queryFn: notificationApi.unreadCount,
     staleTime: 15_000,
+    refetchInterval: 30_000,
   });
 }
 
@@ -101,6 +123,7 @@ export function useMarkOneRead() {
 
 export function useLiveNotifications() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const token = useAuthStore((s) => s.accessToken);
 
   useEffect(() => {
@@ -115,26 +138,30 @@ export function useLiveNotifications() {
       );
       queryClient.invalidateQueries({ queryKey: [NOTIF_COUNT_KEY] });
 
-      if (
+      const isTaskAssigned =
         notification?.type === 'task_assigned' ||
-        /assigned/i.test(notification?.message || '')
-      ) {
+        /assigned/i.test(notification?.message || '');
+
+      if (isTaskAssigned) {
         queryClient.invalidateQueries({ queryKey: ['home'] });
+        playMessageNotifySound();
       }
 
       if (notification?.type === 'message_received' && /chat/i.test(notification.message || '')) {
         return;
       }
+
       toast(notification.message, {
-        action:
-          notification?.type === 'task_assigned'
-            ? {
-                label: 'View',
-                onClick: () => {
-                  window.location.href = '/home/my-tasks?view=assigned';
-                },
-              }
-            : undefined,
+        duration: 8000,
+        action: isTaskAssigned
+          ? {
+              label: 'Open task',
+              onClick: () => openTaskNotification(notification, navigate),
+            }
+          : {
+              label: 'View',
+              onClick: () => navigate('/inbox?tab=notifications'),
+            },
       });
     };
 
@@ -142,5 +169,5 @@ export function useLiveNotifications() {
     return () => {
       socket.off('notification:new', handleNew);
     };
-  }, [queryClient, token]);
+  }, [queryClient, navigate, token]);
 }

@@ -26,8 +26,6 @@ import {
   List,
   Trash2,
   Activity,
-  Calendar,
-  FileText,
   Hash,
   Search,
   Settings,
@@ -975,8 +973,6 @@ export default function ProjectBoardPage() {
             { id: 'channel', label: 'Channel', icon: Hash, enabled: true },
             { id: 'list', label: 'List', icon: List, enabled: true },
             { id: 'board', label: 'Board', icon: LayoutGrid, enabled: true },
-            { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: false },
-            { id: 'docs', label: 'Gantt', icon: FileText, enabled: false },
           ].map((tab) => {
             const Icon = tab.icon;
             const active = tab.id === viewMode;

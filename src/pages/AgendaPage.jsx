@@ -1,8 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CalendarDays,
+  MapPin,
   Mic,
   MoreHorizontal,
+  Plus,
   Search,
   Trash2,
   X,
@@ -13,12 +16,21 @@ import { format, differenceInMinutes, isSameDay, setHours, setMinutes, startOfDa
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview, useUpdateHomePreferences } from '@/features/home/hooks/useHome';
-import { useAskMeetingAi } from '@/features/meetings/hooks/useMeetings';
+import {
+  useAskMeetingAi,
+  useCreateMeeting,
+  useCreateLocation,
+} from '@/features/meetings/hooks/useMeetings';
 import { MentionAtButton, MentionPicker } from '@/features/meetings/components/MentionPicker';
 import { useUsers } from '@/features/users/hooks/useUsers';
+import { useTeams } from '@/features/teams/hooks/useTeams';
 import { LoadingScreen } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Textarea } from '@/components/ui/Textarea';
+import { Select } from '@/components/ui/Select';
 import { cn } from '@/lib/utils';
 
 const PROMPT_PILLS = [
@@ -54,10 +66,15 @@ function getMentionContext(text, cursor) {
 
 export default function AgendaPage() {
   const user = useAuthStore((s) => s.user);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') === 'locations' ? 'locations' : 'meetings';
   const { data, isLoading } = useHomeOverview();
   const { data: peopleRes } = useUsers({ limit: 100 });
+  const { data: teamsData } = useTeams({ limit: 50 });
   const updatePrefs = useUpdateHomePreferences();
   const askAi = useAskMeetingAi();
+  const createMeeting = useCreateMeeting();
+  const createLocation = useCreateLocation();
 
   const [prompt, setPrompt] = useState('');
   const [answer, setAnswer] = useState(null);
@@ -67,6 +84,23 @@ export default function AgendaPage() {
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [cursor, setCursor] = useState(0);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [meetingForm, setMeetingForm] = useState({
+    title: '',
+    description: '',
+    startsAt: '',
+    endsAt: '',
+    team: '',
+    meetingUrl: '',
+    attendees: [],
+  });
+  const [locationForm, setLocationForm] = useState({
+    name: '',
+    address: '',
+    city: '',
+    type: 'office',
+  });
   const textareaRef = useRef(null);
 
   const meetings = data?.cards?.meetings ?? [];
@@ -258,9 +292,83 @@ export default function AgendaPage() {
 
   return (
     <div className="min-h-full bg-[var(--color-surface-1)] px-4 py-6 sm:px-8 lg:px-12">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-graphite">Meetings</p>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-graphite">
+            Workspace
+          </p>
+          <div className="mt-2 flex gap-1">
+            <button
+              type="button"
+              onClick={() => setSearchParams({}, { replace: true })}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-sm font-medium',
+                activeTab === 'meetings'
+                  ? 'bg-ink text-on-ink'
+                  : 'text-graphite hover:bg-cloud hover:text-ink'
+              )}
+            >
+              Meetings
+            </button>
+            <button
+              type="button"
+              onClick={() => setSearchParams({ tab: 'locations' }, { replace: true })}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-sm font-medium',
+                activeTab === 'locations'
+                  ? 'bg-ink text-on-ink'
+                  : 'text-graphite hover:bg-cloud hover:text-ink'
+              )}
+            >
+              Locations
+            </button>
+          </div>
+        </div>
+        {activeTab === 'meetings' ? (
+          <Button size="sm" onClick={() => setScheduleOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Schedule meeting
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => setLocationOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Add location
+          </Button>
+        )}
+      </div>
 
-      <div className="mx-auto mt-10 max-w-3xl text-center">
+      {activeTab === 'locations' ? (
+        <section className="mx-auto max-w-3xl">
+          <h1 className="voice-line text-[1.5rem] text-ink">Locations</h1>
+          <p className="mt-1 text-sm text-graphite">
+            Offices and places your team meets — shown in the sidebar.
+          </p>
+          <div className="mt-6 space-y-2">
+            {locations.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-hairline bg-paper px-4 py-8 text-center text-sm text-graphite">
+                No locations yet. Add your first office or client site.
+              </p>
+            ) : (
+              locations.map((loc) => (
+                <div
+                  key={loc._id}
+                  className="flex items-start gap-3 rounded-xl border border-hairline bg-paper px-4 py-3"
+                >
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">{loc.name}</p>
+                    <p className="text-sm text-graphite">
+                      {[loc.address, loc.city].filter(Boolean).join(' · ') || loc.type}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      ) : (
+        <>
+      <div className="mx-auto mt-4 max-w-3xl text-center">
         <h1 className="voice-line text-[1.75rem] text-ink sm:text-[2rem]">
           Hey {name} — ready to dive into your meetings?
         </h1>
@@ -371,6 +479,9 @@ export default function AgendaPage() {
             Upcoming Meetings
           </div>
           <div className="flex items-center gap-4 text-sm font-medium text-[var(--color-text-secondary)]">
+            <button type="button" onClick={() => setScheduleOpen(true)} className="hover:text-ink hover:underline">
+              Schedule meeting
+            </button>
             <button type="button" onClick={sendNotetaker} className="hover:text-ink hover:underline">
               Send AI Notetaker
             </button>
@@ -767,6 +878,183 @@ export default function AgendaPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+        </>
+      )}
+
+      <Modal
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        title="Schedule meeting"
+        description="Anyone can schedule a meeting. Attendees and Super Admin are notified."
+        size="md"
+      >
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!meetingForm.title.trim() || !meetingForm.startsAt || !meetingForm.endsAt) {
+              toast.error('Title, start, and end time are required');
+              return;
+            }
+            createMeeting.mutate(
+              {
+                title: meetingForm.title.trim(),
+                description: meetingForm.description,
+                startsAt: new Date(meetingForm.startsAt).toISOString(),
+                endsAt: new Date(meetingForm.endsAt).toISOString(),
+                team: meetingForm.team || null,
+                meetingUrl: meetingForm.meetingUrl,
+                attendees: meetingForm.attendees,
+              },
+              {
+                onSuccess: () => {
+                  setScheduleOpen(false);
+                  setMeetingForm({
+                    title: '',
+                    description: '',
+                    startsAt: '',
+                    endsAt: '',
+                    team: '',
+                    meetingUrl: '',
+                    attendees: [],
+                  });
+                },
+              }
+            );
+          }}
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="mtg-title">Title</Label>
+            <Input
+              id="mtg-title"
+              value={meetingForm.title}
+              onChange={(e) => setMeetingForm((f) => ({ ...f, title: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="mtg-desc">Description</Label>
+            <Textarea
+              id="mtg-desc"
+              rows={2}
+              value={meetingForm.description}
+              onChange={(e) => setMeetingForm((f) => ({ ...f, description: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="mtg-start">Starts</Label>
+              <Input
+                id="mtg-start"
+                type="datetime-local"
+                value={meetingForm.startsAt}
+                onChange={(e) => setMeetingForm((f) => ({ ...f, startsAt: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mtg-end">Ends</Label>
+              <Input
+                id="mtg-end"
+                type="datetime-local"
+                value={meetingForm.endsAt}
+                onChange={(e) => setMeetingForm((f) => ({ ...f, endsAt: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="mtg-team">Team (optional)</Label>
+            <Select
+              id="mtg-team"
+              value={meetingForm.team}
+              onChange={(e) => setMeetingForm((f) => ({ ...f, team: e.target.value }))}
+            >
+              <option value="">Just selected people</option>
+              {(teamsData?.data || []).map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="mtg-url">Meeting link</Label>
+            <Input
+              id="mtg-url"
+              placeholder="https://meet.google.com/..."
+              value={meetingForm.meetingUrl}
+              onChange={(e) => setMeetingForm((f) => ({ ...f, meetingUrl: e.target.value }))}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setScheduleOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createMeeting.isPending}>
+              {createMeeting.isPending ? 'Scheduling…' : 'Schedule'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={locationOpen}
+        onClose={() => setLocationOpen(false)}
+        title="Add location"
+        description="Locations appear in the sidebar for your workspace."
+        size="sm"
+      >
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!locationForm.name.trim()) return;
+            createLocation.mutate(locationForm, {
+              onSuccess: () => {
+                setLocationOpen(false);
+                setLocationForm({ name: '', address: '', city: '', type: 'office' });
+                setSearchParams({ tab: 'locations' }, { replace: true });
+              },
+            });
+          }}
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="loc-name">Name</Label>
+            <Input
+              id="loc-name"
+              value={locationForm.name}
+              onChange={(e) => setLocationForm((f) => ({ ...f, name: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="loc-address">Address</Label>
+            <Input
+              id="loc-address"
+              value={locationForm.address}
+              onChange={(e) => setLocationForm((f) => ({ ...f, address: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="loc-city">City</Label>
+            <Input
+              id="loc-city"
+              value={locationForm.city}
+              onChange={(e) => setLocationForm((f) => ({ ...f, city: e.target.value }))}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setLocationOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createLocation.isPending}>
+              {createLocation.isPending ? 'Saving…' : 'Save location'}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

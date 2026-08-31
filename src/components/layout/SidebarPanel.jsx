@@ -22,6 +22,7 @@ import {
   FolderKanban,
   Building2,
   GitBranch,
+  MapPin,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
@@ -178,6 +179,12 @@ function HomeView({ onCreateClick, unreadCount, projects, home, users, user }) {
           label="Meetings"
           icon={Phone}
           badge={meetingsCount > 0 ? meetingsCount : undefined}
+        />
+        <ClickUpNavItem
+          to="/home/meetings?tab=locations"
+          label="Locations"
+          icon={MapPin}
+          badge={(home?.cards?.locations?.length || 0) > 0 ? home.cards.locations.length : undefined}
         />
         <ClickUpNavItem
           to="/home/my-tasks"
@@ -513,6 +520,12 @@ function PlannerView({ home }) {
           label="Meetings Schedule"
           icon={Phone}
           badge={meetingsCount > 0 ? meetingsCount : undefined}
+        />
+        <ClickUpNavItem
+          to="/home/meetings?tab=locations"
+          label="Locations"
+          icon={MapPin}
+          badge={(home?.cards?.locations?.length || 0) > 0 ? home.cards.locations.length : undefined}
         />
         <ClickUpNavItem to="/home/my-tasks?view=assigned" label="Assigned Tasks" icon={UserCheck} />
       </div>

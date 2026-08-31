@@ -9,7 +9,6 @@ import { LoadingScreen, EmptyState } from '@/components/ui/Spinner';
 import { PROJECT_STATUS_LABELS } from '@/features/projects/api/projectApi';
 import { CreateSpaceWizard } from '@/features/spaces/components/CreateSpaceWizard';
 import { projectPath } from '@/features/spaces/spaceKinds';
-import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { useAuthStore } from '@/store/authStore';
 
 function sortByName(items) {
@@ -24,7 +23,7 @@ function sortByName(items) {
 /** Projects catalog — all workspace projects */
 export default function ProjectsPage() {
   const user = useAuthStore((s) => s.user);
-  const canCreate = hasPermission(user, PERMISSIONS.PROJECT_CREATE);
+  const canCreate = Boolean(user);
   const { data, isLoading } = useProjects({ limit: 100 });
   useLiveSpaces();
 

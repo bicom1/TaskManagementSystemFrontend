@@ -7,10 +7,7 @@ import { GoogleAuthButton } from '@/features/auth/components/GoogleAuthButton';
 import { getGoogleErrorMessage } from '@/features/auth/googleErrors';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 
-/**
- * LoginPage — BIWORKSPACE
- * A single quiet card on a dark ambient ground. One violet glow, nothing else.
- */
+
 export default function LoginPage() {
   const [params] = useSearchParams();
 

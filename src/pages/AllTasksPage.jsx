@@ -1,24 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Calendar,
-  ChevronDown,
-  FileText,
-  Filter,
-  Hash,
-  LayoutGrid,
-  List,
-  Plus,
-  Search,
-  Settings,
-} from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronDown, Filter, Hash, LayoutGrid, List, Plus, Search, Settings } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMyTasks } from '@/features/home/hooks/useHome';
 import { useProjects } from '@/features/projects/hooks/useProjects';
-import {
-  useCreateTask,
-  useUpdateTask,
-} from '@/features/tasks/hooks/useTasks';
+import { useCreateTask, useUpdateTask } from '@/features/tasks/hooks/useTasks';
 import { ClickUpTasksList } from '@/features/tasks/components/ClickUpTasksList';
 import {
   TaskFormFields,
@@ -27,6 +13,8 @@ import {
   getProjectAssignablePeople,
   mergeAssignablePeople,
 } from '@/features/tasks/components/TaskFormFields';
+import { ProjectChannelView } from '@/features/spaces/components/ProjectChannelView';
+import { STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useAuthStore } from '@/store/authStore';
 import { getSocket } from '@/api/socketClient';
@@ -35,10 +23,67 @@ import { Modal } from '@/components/ui/Modal';
 import { ListSkeleton } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
 import { canApproveTasks } from '@/lib/roles';
+import { projectPath } from '@/features/spaces/spaceKinds';
 
-/** ClickUp-style All Tasks workspace — flat list of every task you can see */
+const VIEW_TABS = [
+  { id: 'channel', label: 'Channel', icon: Hash },
+  { id: 'list', label: 'List', icon: List },
+  { id: 'board', label: 'Board', icon: LayoutGrid },
+];
+
+function AllTasksBoard({ tasks, onTaskClick }) {
+  const columns = useMemo(() => {
+    const map = Object.fromEntries(TASK_STATUSES.map((s) => [s, []]));
+    for (const task of tasks) {
+      const status = TASK_STATUSES.includes(task.status) ? task.status : 'todo';
+      map[status].push(task);
+    }
+    return map;
+  }, [tasks]);
+
+  return (
+    <div className="flex h-full gap-3 overflow-x-auto p-4">
+      {TASK_STATUSES.map((status) => (
+        <div
+          key={status}
+          className="flex w-64 shrink-0 flex-col rounded-xl border border-hairline bg-cloud/40"
+        >
+          <div className="flex items-center justify-between border-b border-hairline px-3 py-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-graphite">
+              {STATUS_LABELS[status] || status}
+            </span>
+            <span className="text-[11px] font-semibold tabular-nums text-graphite">
+              {columns[status].length}
+            </span>
+          </div>
+          <div className="flex-1 space-y-2 overflow-y-auto p-2">
+            {columns[status].map((task) => (
+              <button
+                key={task._id}
+                type="button"
+                onClick={() => onTaskClick(task._id)}
+                className="w-full rounded-lg border border-hairline bg-paper px-3 py-2.5 text-left shadow-sm transition hover:border-primary/30"
+              >
+                <p className="truncate text-sm font-medium text-ink">{task.title}</p>
+                <p className="mt-1 truncate text-[11px] text-graphite">
+                  {task.project?.name || 'Project'}
+                </p>
+              </button>
+            ))}
+            {columns[status].length === 0 && (
+              <p className="px-1 py-4 text-center text-[11px] text-graphite">No tasks</p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** ClickUp-style All Tasks — Channel / List / Board only */
 export default function AllTasksPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const { data: tasks = [], isLoading } = useMyTasks('all');
@@ -46,16 +91,26 @@ export default function AllTasksPage() {
   const projects = projectsData?.data ?? [];
   const { data: usersRes } = useUsers({ limit: 200 });
 
+  const viewMode = ['channel', 'list', 'board'].includes(searchParams.get('view'))
+    ? searchParams.get('view')
+    : 'list';
+
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ ...EMPTY_TASK_FORM });
   const [createProjectId, setCreateProjectId] = useState('');
+  const [channelProjectId, setChannelProjectId] = useState('');
 
   const activeProjectId = createProjectId || projects[0]?._id || '';
   const createTask = useCreateTask(activeProjectId);
   const updateTask = useUpdateTask(activeProjectId, { silent: true });
 
-  // Keep list fresh when any project task changes
+  useEffect(() => {
+    if (!channelProjectId && projects[0]?._id) {
+      setChannelProjectId(projects[0]._id);
+    }
+  }, [projects, channelProjectId]);
+
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return undefined;
@@ -74,7 +129,6 @@ export default function AllTasksPage() {
     };
   }, [queryClient]);
 
-  // Join first few project rooms for live updates
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return undefined;
@@ -95,6 +149,10 @@ export default function AllTasksPage() {
 
   const workspaceName =
     projects[0]?.team?.name || user?.department?.name || "Team's Workspace";
+
+  const setView = (mode) => {
+    setSearchParams({ view: mode }, { replace: true });
+  };
 
   const openCreate = () => {
     setCreateForm({ ...EMPTY_TASK_FORM });
@@ -154,7 +212,6 @@ export default function AllTasksPage() {
     const projectId = task?.project?._id || task?.project || activeProjectId;
     if (!projectId) return;
 
-    // Instant UI on All Tasks list
     queryClient.setQueryData(['home', 'my-tasks', 'all'], (prev) => {
       if (!Array.isArray(prev)) return prev;
       return prev.map((t) => {
@@ -184,7 +241,7 @@ export default function AllTasksPage() {
     setSelectedTaskId(taskId);
     const task = tasks.find((t) => t._id === taskId);
     const projectId = task?.project?._id || task?.project;
-    if (projectId) navigate(`/projects/${projectId}?view=list`);
+    if (projectId) navigate(`${projectPath(projectId)}?view=${viewMode}&task=${taskId}`);
   };
 
   if (isLoading && tasks.length === 0) {
@@ -208,24 +265,19 @@ export default function AllTasksPage() {
         </div>
 
         <div className="mt-2 flex items-center gap-1 overflow-x-auto">
-          {[
-            { id: 'channel', label: 'Channel', icon: Hash },
-            { id: 'board', label: 'Board', icon: LayoutGrid },
-            { id: 'calendar', label: 'Calendar', icon: Calendar },
-            { id: 'docs', label: 'Docs', icon: FileText },
-            { id: 'tasks', label: 'Tasks', icon: List, active: true },
-            { id: 'list', label: 'List', icon: List },
-          ].map((tab) => {
+          {VIEW_TABS.map((tab) => {
             const Icon = tab.icon;
+            const active = tab.id === viewMode;
             return (
               <button
                 key={tab.id}
                 type="button"
+                onClick={() => setView(tab.id)}
                 className={cn(
                   'flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium',
-                  tab.active
+                  active
                     ? 'border-ink text-ink'
-                    : 'cursor-default border-transparent text-graphite opacity-60'
+                    : 'border-transparent text-graphite hover:text-ink'
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -233,47 +285,76 @@ export default function AllTasksPage() {
               </button>
             );
           })}
-          <span className="flex shrink-0 items-center gap-1 border-b-2 border-transparent px-3 py-2.5 text-sm text-graphite opacity-60">
-            <Plus className="h-3.5 w-3.5" />
-            View
-          </span>
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-2">
-        <div className="flex items-center gap-2 text-xs text-graphite">
-          <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1 font-medium text-ink">
-            Group: None
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1">
-            Subtasks
-          </span>
+      {viewMode !== 'channel' && (
+        <div className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-2">
+          <div className="flex items-center gap-2 text-xs text-graphite">
+            <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1 font-medium text-ink">
+              Group: {viewMode === 'board' ? 'Status' : 'None'}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1">
+              {tasks.length} tasks
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-graphite">
+            <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Filter">
+              <Filter className="h-4 w-4" />
+            </button>
+            <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Search">
+              <Search className="h-4 w-4" />
+            </button>
+            <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Settings">
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-1 text-graphite">
-          <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Filter">
-            <Filter className="h-4 w-4" />
-          </button>
-          <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Search">
-            <Search className="h-4 w-4" />
-          </button>
-          <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Settings">
-            <Settings className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+      )}
 
       <div className="flex-1 overflow-auto">
-        <ClickUpTasksList
-          tasks={tasks}
-          selectedId={selectedTaskId}
-          onTaskClick={onTaskClick}
-          onCreateTask={createQuickTask}
-          creating={createTask.isPending}
-          people={people}
-          onUpdateTask={onInlineUpdate}
-          groupByStatus={false}
-          defaultCreateStatus="todo"
-        />
+        {viewMode === 'channel' ? (
+          <div className="flex h-full flex-col">
+            <div className="flex items-center gap-2 border-b border-hairline px-4 py-2">
+              <label className="text-xs font-medium text-graphite" htmlFor="channel-project">
+                Channel project
+              </label>
+              <select
+                id="channel-project"
+                className="h-8 rounded-md border border-hairline bg-paper px-2 text-sm"
+                value={channelProjectId || ''}
+                onChange={(e) => setChannelProjectId(e.target.value)}
+              >
+                {projects.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {channelProjectId ? (
+              <div className="min-h-0 flex-1">
+                <ProjectChannelView projectId={channelProjectId} />
+              </div>
+            ) : (
+              <p className="p-6 text-sm text-graphite">Create a project to open its channel.</p>
+            )}
+          </div>
+        ) : viewMode === 'board' ? (
+          <AllTasksBoard tasks={tasks} onTaskClick={onTaskClick} />
+        ) : (
+          <ClickUpTasksList
+            tasks={tasks}
+            selectedId={selectedTaskId}
+            onTaskClick={onTaskClick}
+            onCreateTask={createQuickTask}
+            creating={createTask.isPending}
+            people={people}
+            onUpdateTask={onInlineUpdate}
+            groupByStatus={false}
+            defaultCreateStatus="todo"
+          />
+        )}
       </div>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Add task" size="lg">
@@ -305,7 +386,7 @@ export default function AllTasksPage() {
           />
           {!canApproveTasks(user?.role) && (
             <p className="text-xs text-graphite">
-              Tasks you create may need team lead approval before work starts.
+              Super Admin is notified when you create or reassign tasks.
             </p>
           )}
           <div className="flex justify-end gap-3">

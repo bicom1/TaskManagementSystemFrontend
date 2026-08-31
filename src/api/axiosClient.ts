@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
+import { refreshSessionToken } from './sessionRefresh';
 
 export const axiosClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api/v1',
@@ -14,19 +15,6 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-let refreshPromise: Promise<string> | null = null;
-
-async function refreshAccessToken(): Promise<string> {
-  const { data } = await axios.post(
-    `${axiosClient.defaults.baseURL}/auth/refresh`,
-    {},
-    { withCredentials: true }
-  );
-  const newToken = data.data.accessToken as string;
-  useAuthStore.getState().setAccessToken(newToken);
-  return newToken;
-}
-
 axiosClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -35,15 +23,10 @@ axiosClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        // Coalesce concurrent 401s into a single refresh call
-        refreshPromise ??= refreshAccessToken().finally(() => {
-          refreshPromise = null;
-        });
-        const newToken = await refreshPromise;
+        const newToken = await refreshSessionToken();
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return axiosClient(originalRequest);
       } catch (refreshError) {
-        useAuthStore.getState().clearAuth();
         return Promise.reject(refreshError);
       }
     }

@@ -5,7 +5,14 @@ const GOOGLE_ERROR_MESSAGES = {
     'Google sign-in session expired. Please try again — do not use the browser back button after choosing your Google account.',
   access_denied: 'Google sign-in was cancelled.',
   session: 'Signed in with Google but could not load your profile. Try again or use email login.',
+  not_invited: 'You are not invited to this workspace.',
+  invite_expired: 'Your invitation has expired. Ask your admin to send a new invite.',
 };
+
+const EXACT_MESSAGES = new Set([
+  'You are not invited to this workspace.',
+  'Your invitation has expired. Ask your admin to send a new invite.',
+]);
 
 function isLocalDev() {
   if (typeof window === 'undefined') return false;
@@ -15,12 +22,26 @@ function isLocalDev() {
 export function getGoogleErrorMessage(code) {
   if (!code) return 'Google Sign-In failed. Please try again.';
 
+  const decoded = decodeURIComponent(String(code));
+
+  if (EXACT_MESSAGES.has(decoded)) {
+    return decoded;
+  }
+
+  if (decoded.startsWith('Your invitation has expired')) {
+    return GOOGLE_ERROR_MESSAGES.invite_expired;
+  }
+
   if (code === 'redirect_uri_mismatch' && isLocalDev()) {
     return 'Google redirect URI mismatch. Add http://localhost:5000/api/v1/auth/google/callback in Google Console.';
   }
 
   if (GOOGLE_ERROR_MESSAGES[code]) {
     return GOOGLE_ERROR_MESSAGES[code];
+  }
+
+  if (GOOGLE_ERROR_MESSAGES[decoded]) {
+    return GOOGLE_ERROR_MESSAGES[decoded];
   }
 
   if (/Google authorization failed/i.test(code)) {

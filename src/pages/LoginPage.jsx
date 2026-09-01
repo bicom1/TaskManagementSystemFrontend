@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/BrandLogo';
 import { LoginForm } from '@/features/auth/components/LoginForm';
 import { GoogleAuthButton } from '@/features/auth/components/GoogleAuthButton';
-import { getGoogleErrorMessage } from '@/features/auth/googleErrors';
+import { getGoogleErrorToast } from '@/features/auth/googleErrors';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 
 
@@ -14,7 +14,13 @@ export default function LoginPage() {
   useEffect(() => {
     const googleError = params.get('googleError');
     if (!googleError) return;
-    toast.error(getGoogleErrorMessage(googleError));
+
+    const { title, description } = getGoogleErrorToast(googleError);
+    if (description) {
+      toast.error(title, { description, duration: 9000 });
+    } else {
+      toast.error(title);
+    }
   }, [params]);
 
   return (
@@ -67,14 +73,15 @@ export default function LoginPage() {
 
                 <GoogleAuthButton label="Continue with Google" />
 
+                <p className="text-center text-[12px] leading-relaxed text-text-muted">
+                  Google sign-in is available after your Super Admin invites you to this workspace.
+                </p>
+
                 <p className="pt-1 text-center text-[13px] text-text-muted">
-                  No account?{' '}
-                  <Link
-                    to="/register"
-                    className="font-semibold text-brand-600 transition-colors hover:text-brand-700"
-                  >
-                    Create one
-                  </Link>
+                  Need access?{' '}
+                  <span className="text-text-secondary">
+                    Ask your Super Admin to send you a workspace invitation.
+                  </span>
                 </p>
               </div>
             </div>

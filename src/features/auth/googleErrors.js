@@ -9,9 +9,23 @@ const GOOGLE_ERROR_MESSAGES = {
   invite_expired: 'Your invitation has expired. Ask your admin to send a new invite.',
 };
 
-const EXACT_MESSAGES = new Set([
+/** Rich toast copy for invite-gated Google sign-in */
+const GOOGLE_ERROR_TOASTS = {
+  not_invited: {
+    title: 'Invitation required',
+    description:
+      'This workspace is invite-only. Your Super Admin must invite you first and assign your role. Once you receive the invitation email, return here and sign in with Google using the same email address.',
+  },
+  invite_expired: {
+    title: 'Invitation expired',
+    description:
+      'Your invite link is no longer valid. Please ask your Super Admin to send a new invitation, then sign in with Google using the invited email address.',
+  },
+};
+
+const NOT_INVITED_MARKERS = new Set([
   'You are not invited to this workspace.',
-  'Your invitation has expired. Ask your admin to send a new invite.',
+  'not_invited',
 ]);
 
 function isLocalDev() {
@@ -19,17 +33,58 @@ function isLocalDev() {
   return /localhost|127\.0\.0\.1/.test(window.location.hostname);
 }
 
+function decodeGoogleError(code) {
+  try {
+    return decodeURIComponent(String(code || ''));
+  } catch {
+    return String(code || '');
+  }
+}
+
+function isNotInvitedError(decoded) {
+  return NOT_INVITED_MARKERS.has(decoded) || decoded.includes('not invited to this workspace');
+}
+
+function isInviteExpiredError(decoded) {
+  return (
+    decoded.startsWith('Your invitation has expired') ||
+    decoded === GOOGLE_ERROR_MESSAGES.invite_expired
+  );
+}
+
+/**
+ * Returns { title, description? } for sonner toasts.
+ * Use description when present for clearer invite-only messaging.
+ */
+export function getGoogleErrorToast(code) {
+  if (!code) {
+    return { title: 'Google Sign-In failed. Please try again.' };
+  }
+
+  const decoded = decodeGoogleError(code);
+
+  if (isNotInvitedError(decoded)) {
+    return GOOGLE_ERROR_TOASTS.not_invited;
+  }
+
+  if (isInviteExpiredError(decoded)) {
+    return GOOGLE_ERROR_TOASTS.invite_expired;
+  }
+
+  return { title: getGoogleErrorMessage(code) };
+}
+
 export function getGoogleErrorMessage(code) {
   if (!code) return 'Google Sign-In failed. Please try again.';
 
-  const decoded = decodeURIComponent(String(code));
+  const decoded = decodeGoogleError(code);
 
-  if (EXACT_MESSAGES.has(decoded)) {
-    return decoded;
+  if (isNotInvitedError(decoded)) {
+    return GOOGLE_ERROR_TOASTS.not_invited.title;
   }
 
-  if (decoded.startsWith('Your invitation has expired')) {
-    return GOOGLE_ERROR_MESSAGES.invite_expired;
+  if (isInviteExpiredError(decoded)) {
+    return GOOGLE_ERROR_TOASTS.invite_expired.title;
   }
 
   if (code === 'redirect_uri_mismatch' && isLocalDev()) {

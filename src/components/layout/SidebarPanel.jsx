@@ -187,6 +187,7 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
   const navigate = useNavigate();
   const isSuperAdmin = canManageOrg(user?.role);
   const handleAddProject = onAddProject || onCreateClick;
+  const aiChats = useAiStore((s) => s.chats);
 
   // Dynamic counts from live backend overview
   const assignedCount = home?.cards?.assigned_to_me?.length || 0;
@@ -224,7 +225,8 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
           badge={unreadCount > 0 ? unreadCount : undefined}
           badgeColor="bg-brand-50 text-brand-700"
         />
-        <ClickUpNavItem to="/inbox?tab=replies" label="Replies" icon={MessageSquareReply} />
+        <ClickUpNavItem to="/inbox?view=replies" label="Replies" icon={MessageSquareReply} />
+        <ClickUpNavItem to="/ai/skills" label="Skills" icon={Zap} />
         <ClickUpNavItem
           to="/home/assigned-comments"
           label="Assigned Comments"
@@ -247,7 +249,53 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
         <ClickUpNavItem to="/all-tasks" label="All Tasks" icon={MoreHorizontal} />
       </div>
 
-      {/* All Projects */}
+      {/* AI Chats */}
+      <SectionTitle title="AI Chats" />
+      <div className="space-y-0.5">
+        {aiChats.slice(0, 4).map((chat) => (
+          <ClickUpNavItem
+            key={chat.id}
+            to={`/ai/chat/${chat.id}`}
+            label={chat.title}
+            iconNode={<BrainLogo size={16} />}
+          />
+        ))}
+        <ClickUpNavItem
+          to="/ai"
+          label="Ask, Build, Create"
+          icon={Sparkles}
+        />
+      </div>
+
+      {/* Project channels */}
+      <SectionTitle
+        title="Channels"
+        action={
+          <button
+            type="button"
+            onClick={handleAddProject}
+            className="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            title="Add channel"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        }
+      />
+      <div className="space-y-0.5">
+        {projects.filter((p) => p.status !== 'archived').slice(0, 8).map((project) => (
+          <ClickUpNavItem
+            key={project._id}
+            to={`/projects/${project._id}?view=channel`}
+            label={project.name}
+            icon={Hash}
+          />
+        ))}
+        {projects.filter((p) => p.status !== 'archived').length === 0 && (
+          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No channels yet</p>
+        )}
+      </div>
+
+      {/* All Projects — moved below channels */}
       <SectionTitle
         title="All Projects"
         action={
@@ -290,7 +338,7 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
           colleagues.map((member) => (
             <NavLink
               key={member._id}
-              to="/inbox"
+              to={`/inbox?view=chat&dm=${member._id}`}
               className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-700 hover:bg-[#f4f5f7] hover:text-gray-950 transition-colors"
             >
               <div className="relative flex shrink-0">
@@ -304,7 +352,14 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
           <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No teammates yet</p>
         )}
         <NavLink
-          to="/inbox"
+          to="/inbox?view=chat"
+          className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-500 hover:bg-[#f4f5f7] hover:text-gray-900 transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span>New message</span>
+        </NavLink>
+        <NavLink
+          to="/inbox?view=chat"
           className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-700 hover:bg-[#f4f5f7] hover:text-gray-950 transition-colors"
         >
           <div className="relative flex shrink-0">

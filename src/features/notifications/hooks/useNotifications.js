@@ -25,7 +25,7 @@ function markListsRead(queryClient, predicate) {
 
 async function openTaskNotification(notification, navigate) {
   if (notification?.entityType !== 'Task' || !notification?.entityId) {
-    navigate('/inbox?tab=notifications');
+    navigate('/inbox?view=activity');
     return;
   }
   try {
@@ -142,9 +142,14 @@ export function useLiveNotifications() {
         notification?.type === 'task_assigned' ||
         /assigned/i.test(notification?.message || '');
 
-      if (isTaskAssigned) {
+      const isTaskActivity =
+        notification?.type === 'task_created' ||
+        notification?.type === 'task_status_changed' ||
+        isTaskAssigned;
+
+      if (isTaskActivity) {
         queryClient.invalidateQueries({ queryKey: ['home'] });
-        playMessageNotifySound();
+        if (isTaskAssigned) playMessageNotifySound();
       }
 
       if (notification?.type === 'message_received' && /chat/i.test(notification.message || '')) {
@@ -160,14 +165,25 @@ export function useLiveNotifications() {
             }
           : {
               label: 'View',
-              onClick: () => navigate('/inbox?tab=notifications'),
+              onClick: () => navigate('/inbox?view=activity'),
             },
       });
     };
 
     socket.on('notification:new', handleNew);
+
+    const refreshInbox = () => {
+      queryClient.invalidateQueries({ queryKey: [NOTIF_LIST_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NOTIF_COUNT_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['inbox-live-tasks'] });
+    };
+    socket.on('task:created', refreshInbox);
+    socket.on('task:updated', refreshInbox);
+
     return () => {
       socket.off('notification:new', handleNew);
+      socket.off('task:created', refreshInbox);
+      socket.off('task:updated', refreshInbox);
     };
   }, [queryClient, navigate, token]);
 }

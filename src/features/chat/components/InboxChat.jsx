@@ -238,6 +238,7 @@ export function InboxChat() {
   const userId = user?._id;
   const [searchParams, setSearchParams] = useSearchParams();
   const initialChat = searchParams.get('chat') || '';
+  const dmUserId = searchParams.get('dm') || '';
 
   const [activeId, setActiveId] = useState(initialChat);
   const [peopleQuery, setPeopleQuery] = useState('');
@@ -338,6 +339,25 @@ export function InboxChat() {
   useEffect(() => {
     if (initialChat) setActiveId(initialChat);
   }, [initialChat]);
+
+  useEffect(() => {
+    if (!dmUserId || String(dmUserId) === String(userId)) return;
+    const existing = conversations.find(
+      (c) =>
+        c.type === 'dm' &&
+        (c.participants || []).some((p) => String(p._id) === String(dmUserId))
+    );
+    if (existing) {
+      setActiveId(existing._id);
+      return;
+    }
+    if (startDm.isPending) return;
+    startDm.mutate(dmUserId, {
+      onSuccess: (conv) => {
+        if (conv?._id) setActiveId(conv._id);
+      },
+    });
+  }, [dmUserId, conversations, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!activeId) return;

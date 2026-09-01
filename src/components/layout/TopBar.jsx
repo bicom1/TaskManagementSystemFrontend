@@ -97,7 +97,10 @@ export function TopBar({ onMenuClick, onInvite, onCreate, panelOpen, onTogglePan
     if (p.includes('/projects/')) return 'Board View';
     if (p === '/projects') return 'All Spaces';
     if (p === '/boards') return 'Task Boards';
-    if (p === '/inbox') return 'Notifications & Feed';
+    if (p === '/inbox') return 'Inbox';
+    if (p.startsWith('/inbox') && p.includes('view=chat')) return 'Chat';
+    if (p.startsWith('/inbox') && p.includes('view=queries')) return 'Queries';
+    if (p.startsWith('/inbox') && p.includes('view=replies')) return 'Replies';
     if (p === '/approvals') return 'Approval Queue';
     if (p === '/reports') return 'Overview';
     if (p === '/audit') return 'System Logs';
@@ -199,7 +202,7 @@ export function TopBar({ onMenuClick, onInvite, onCreate, panelOpen, onTogglePan
 
         {/* Notifications Icon with Badge */}
         <Link
-          to="/inbox?tab=notifications"
+          to="/inbox?view=activity"
           className="relative flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors duration-[120ms] hover:bg-surface-2 hover:text-text-primary"
           aria-label={`Notifications (${unreadCount} unread)`}
         >

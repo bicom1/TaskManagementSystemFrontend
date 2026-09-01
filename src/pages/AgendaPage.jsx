@@ -60,6 +60,7 @@ function defaultMeetingTimes() {
 function openScheduleForm(setMeetingForm, setScheduleOpen) {
   const defaults = defaultMeetingTimes();
   setMeetingForm({
+    scope: 'individual',
     title: '',
     description: '',
     startsAt: defaults.startsAt,
@@ -102,6 +103,7 @@ export default function AgendaPage() {
   const [cursor, setCursor] = useState(0);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [meetingForm, setMeetingForm] = useState({
+    scope: 'individual',
     title: '',
     description: '',
     startsAt: '',
@@ -147,6 +149,40 @@ export default function AgendaPage() {
     return fromRecents.length ? fromRecents : fromProjects;
   }, [data]);
   const channels = data?.workspace?.teams ?? [];
+  const teams = teamsData?.data || [];
+
+  const selectedTeam = useMemo(
+    () => teams.find((t) => String(t._id) === String(meetingForm.team)),
+    [teams, meetingForm.team]
+  );
+
+  const teamNotifyPeople = useMemo(() => {
+    if (!selectedTeam) return [];
+    const seen = new Set();
+    const list = [];
+    const addPerson = (person) => {
+      const id = String(person?._id || person || '');
+      if (!id || id === String(user?._id) || seen.has(id)) return;
+      seen.add(id);
+      list.push(typeof person === 'object' ? person : { _id: person });
+    };
+    addPerson(selectedTeam.lead);
+    (selectedTeam.members || []).forEach(addPerson);
+    return list;
+  }, [selectedTeam, user?._id]);
+
+  const individualNotifyPeople = useMemo(
+    () =>
+      people.filter(
+        (p) =>
+          meetingForm.attendees.some((id) => String(id) === String(p._id)) &&
+          String(p._id) !== String(user?._id)
+      ),
+    [people, meetingForm.attendees, user?._id]
+  );
+
+  const notifyPreview =
+    meetingForm.scope === 'team' ? teamNotifyPeople : individualNotifyPeople;
 
   const provider = data?.preferences?.calendarProvider || 'none';
   const connected = provider !== 'none';
@@ -840,7 +876,7 @@ export default function AgendaPage() {
         open={scheduleOpen}
         onClose={() => setScheduleOpen(false)}
         title="Schedule meeting"
-        description="Anyone can schedule a meeting. Attendees and Super Admin are notified."
+        description="Choose a team or specific people — everyone invited gets an email and in-app notification."
         size="md"
       >
         <form
@@ -851,20 +887,29 @@ export default function AgendaPage() {
               toast.error('Title, start, and end time are required');
               return;
             }
+            if (meetingForm.scope === 'team' && !meetingForm.team) {
+              toast.error('Select a team to invite all members');
+              return;
+            }
+            if (meetingForm.scope === 'individual' && meetingForm.attendees.length === 0) {
+              toast.error('Select at least one person for a 1-on-1 meeting');
+              return;
+            }
             createMeeting.mutate(
               {
                 title: meetingForm.title.trim(),
                 description: meetingForm.description,
                 startsAt: new Date(meetingForm.startsAt).toISOString(),
                 endsAt: new Date(meetingForm.endsAt).toISOString(),
-                team: meetingForm.team || null,
+                team: meetingForm.scope === 'team' ? meetingForm.team : null,
                 meetingUrl: meetingForm.meetingUrl,
-                attendees: meetingForm.attendees,
+                attendees: meetingForm.scope === 'individual' ? meetingForm.attendees : [],
               },
               {
                 onSuccess: () => {
                   setScheduleOpen(false);
                   setMeetingForm({
+                    scope: 'individual',
                     title: '',
                     description: '',
                     startsAt: '',
@@ -878,6 +923,39 @@ export default function AgendaPage() {
             );
           }}
         >
+          <div className="space-y-2">
+            <Label>Meeting type</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setMeetingForm((f) => ({ ...f, scope: 'individual', team: '', attendees: [] }))
+                }
+                className={cn(
+                  'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition',
+                  meetingForm.scope === 'individual'
+                    ? 'border-ink bg-ink text-on-ink'
+                    : 'border-hairline bg-paper text-graphite hover:bg-cloud'
+                )}
+              >
+                1-on-1 / Selected people
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setMeetingForm((f) => ({ ...f, scope: 'team', attendees: [] }))
+                }
+                className={cn(
+                  'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition',
+                  meetingForm.scope === 'team'
+                    ? 'border-ink bg-ink text-on-ink'
+                    : 'border-hairline bg-paper text-graphite hover:bg-cloud'
+                )}
+              >
+                Whole team
+              </button>
+            </div>
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="mtg-title">Title</Label>
             <Input
@@ -918,50 +996,79 @@ export default function AgendaPage() {
               />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="mtg-team">Team (optional)</Label>
-            <Select
-              id="mtg-team"
-              value={meetingForm.team}
-              onChange={(e) => setMeetingForm((f) => ({ ...f, team: e.target.value }))}
-            >
-              <option value="">Just selected people</option>
-              {(teamsData?.data || []).map((t) => (
-                <option key={t._id} value={t._id}>
-                  {t.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Attendees</Label>
-            <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-hairline bg-paper p-2">
-              {people
-                .filter((p) => String(p._id) !== String(user?._id))
-                .map((person) => {
-                  const selected = meetingForm.attendees.some(
-                    (id) => String(id) === String(person._id)
-                  );
-                  return (
-                    <label
-                      key={person._id}
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-cloud"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleAttendee(person._id)}
-                        className="rounded border-hairline"
-                      />
-                      <span className="text-ink">{person.name}</span>
-                    </label>
-                  );
-                })}
-              {people.filter((p) => String(p._id) !== String(user?._id)).length === 0 && (
-                <p className="px-2 py-1 text-xs text-graphite">No other teammates to invite yet.</p>
+          {meetingForm.scope === 'team' ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="mtg-team">Team</Label>
+              <Select
+                id="mtg-team"
+                value={meetingForm.team}
+                onChange={(e) => setMeetingForm((f) => ({ ...f, team: e.target.value }))}
+                required
+              >
+                <option value="">Select a team…</option>
+                {teams.map((t) => (
+                  <option key={t._id} value={t._id}>
+                    {t.name}
+                    {t.members?.length ? ` (${t.members.length + (t.lead ? 1 : 0)} people)` : ''}
+                  </option>
+                ))}
+              </Select>
+              {selectedTeam && (
+                <p className="text-xs text-graphite">
+                  All active members of <strong>{selectedTeam.name}</strong> will receive an email
+                  and in-app notification.
+                </p>
               )}
             </div>
-          </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Invite people</Label>
+              <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-hairline bg-paper p-2">
+                {people
+                  .filter((p) => String(p._id) !== String(user?._id))
+                  .map((person) => {
+                    const selected = meetingForm.attendees.some(
+                      (id) => String(id) === String(person._id)
+                    );
+                    return (
+                      <label
+                        key={person._id}
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-cloud"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleAttendee(person._id)}
+                          className="rounded border-hairline"
+                        />
+                        <span className="text-ink">{person.name}</span>
+                        {person.email ? (
+                          <span className="truncate text-xs text-graphite">{person.email}</span>
+                        ) : null}
+                      </label>
+                    );
+                  })}
+                {people.filter((p) => String(p._id) !== String(user?._id)).length === 0 && (
+                  <p className="px-2 py-1 text-xs text-graphite">No other teammates to invite yet.</p>
+                )}
+              </div>
+            </div>
+          )}
+          {notifyPreview.length > 0 && (
+            <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-brand-900">
+              <p className="font-medium">
+                {notifyPreview.length} person{notifyPreview.length === 1 ? '' : 's'} will be
+                notified
+              </p>
+              <p className="mt-1 text-xs text-brand-800">
+                {notifyPreview
+                  .slice(0, 5)
+                  .map((p) => p.name)
+                  .join(', ')}
+                {notifyPreview.length > 5 ? ` +${notifyPreview.length - 5} more` : ''}
+              </p>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="mtg-url">Meeting link</Label>
             <Input

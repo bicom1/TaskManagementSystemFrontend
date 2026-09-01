@@ -29,10 +29,14 @@ export function useCreateMeeting() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: meetingsApi.create,
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toast.success('Meeting scheduled — attendees and Super Admin notified');
+      const teamMode = Boolean(variables?.team);
+      const count = teamMode
+        ? 'all team members'
+        : `${variables?.attendees?.length || 0} person${variables?.attendees?.length === 1 ? '' : 's'}`;
+      toast.success(`Meeting scheduled — ${count} notified by email and in-app alert`);
     },
     onError: (e) => toast.error(e?.response?.data?.message ?? 'Could not schedule meeting'),
   });

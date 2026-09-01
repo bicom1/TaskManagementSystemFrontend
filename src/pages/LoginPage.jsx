@@ -17,9 +17,9 @@ export default function LoginPage() {
 
     const { title, description } = getGoogleErrorToast(googleError);
     if (description) {
-      toast.error(title, { description, duration: 10000 });
+      toast.error(title, { description, duration: 12000 });
     } else {
-      toast.error(title, { duration: 8000 });
+      toast.error(title, { duration: 1000 });
     }
 
     // Remove error from URL so refresh does not re-show the toast
@@ -34,7 +34,7 @@ export default function LoginPage() {
         className="relative flex min-h-screen flex-col overflow-hidden"
         style={{ backgroundColor: 'var(--color-rail-bg)' }}
       >
-        {/* Ambient glow — one source, held low */}
+     
         <div
           aria-hidden
           className="pointer-events-none absolute left-1/2 top-0 h-[560px] w-[560px] -translate-x-1/2 -translate-y-1/3 rounded-full opacity-[0.18] blur-[120px]"

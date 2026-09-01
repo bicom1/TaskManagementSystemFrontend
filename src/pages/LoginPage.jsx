@@ -9,7 +9,7 @@ import { PublicRoute } from '@/routes/ProtectedRoute';
 
 
 export default function LoginPage() {
-  const [params] = useSearchParams();
+  const [params, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const googleError = params.get('googleError');
@@ -17,11 +17,16 @@ export default function LoginPage() {
 
     const { title, description } = getGoogleErrorToast(googleError);
     if (description) {
-      toast.error(title, { description, duration: 9000 });
+      toast.error(title, { description, duration: 10000 });
     } else {
-      toast.error(title);
+      toast.error(title, { duration: 8000 });
     }
-  }, [params]);
+
+    // Remove error from URL so refresh does not re-show the toast
+    const next = new URLSearchParams(params);
+    next.delete('googleError');
+    setSearchParams(next, { replace: true });
+  }, [params, setSearchParams]);
 
   return (
     <PublicRoute>
@@ -71,7 +76,7 @@ export default function LoginPage() {
                   <div className="h-px flex-1 bg-border-subtle" />
                 </div>
 
-                <GoogleAuthButton label="Continue with Google" />
+                <GoogleAuthButton label="Continue with Google" inviteOnly />
 
                 <p className="text-center text-[12px] leading-relaxed text-text-muted">
                   Google sign-in is available after your Super Admin invites you to this workspace.

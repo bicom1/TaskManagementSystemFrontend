@@ -54,7 +54,7 @@ export default function RegisterPage() {
                 </span>
                 <div className="h-px flex-1 bg-border-subtle" />
               </div>
-              <GoogleAuthButton label="Sign up with Google" />
+              <GoogleAuthButton label="Sign up with Google" inviteOnly />
               <p className="text-center text-sm text-graphite">
                 Already have an account?{' '}
                 <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">

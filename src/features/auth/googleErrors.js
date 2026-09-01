@@ -12,9 +12,9 @@ const GOOGLE_ERROR_MESSAGES = {
 /** Rich toast copy for invite-gated Google sign-in */
 const GOOGLE_ERROR_TOASTS = {
   not_invited: {
-    title: 'Invitation required',
+    title: 'You need an invitation first',
     description:
-      'This workspace is invite-only. Your Super Admin must invite you first and assign your role. Once you receive the invitation email, return here and sign in with Google using the same email address.',
+      'Ask your Super Admin to invite you to this workspace. Once invited, come back and sign in with Google using the same email address they invited.',
   },
   invite_expired: {
     title: 'Invitation expired',
@@ -27,6 +27,8 @@ const NOT_INVITED_MARKERS = new Set([
   'You are not invited to this workspace.',
   'not_invited',
 ]);
+
+const INVITE_EXPIRED_MARKERS = new Set(['invite_expired']);
 
 function isLocalDev() {
   if (typeof window === 'undefined') return false;
@@ -47,6 +49,7 @@ function isNotInvitedError(decoded) {
 
 function isInviteExpiredError(decoded) {
   return (
+    INVITE_EXPIRED_MARKERS.has(decoded) ||
     decoded.startsWith('Your invitation has expired') ||
     decoded === GOOGLE_ERROR_MESSAGES.invite_expired
   );

@@ -101,6 +101,14 @@ export function TopBar({ onMenuClick, onInvite, onCreate, panelOpen, onTogglePan
     if (p === '/approvals') return 'Approval Queue';
     if (p === '/reports') return 'Overview';
     if (p === '/audit') return 'System Logs';
+    if (p.startsWith('/ai/chat')) return 'Chat';
+    if (p === '/ai/skills') return 'Skills';
+    if (p === '/ai/analytics') return 'Analytics';
+    if (p === '/ai/connections') return 'Connections';
+    if (p === '/ai/agents/new') return 'Create Agent';
+    if (p === '/ai/agents/mine') return 'My Agents';
+    if (p === '/ai/agents') return 'All Agents';
+    if (p === '/ai') return 'Ask or Create';
     if (p === '/settings') return 'Preferences';
     return null;
   };

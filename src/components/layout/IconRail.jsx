@@ -34,6 +34,14 @@ export function getSectionFromPath(pathname) {
   if (pathname.startsWith('/projects') || pathname.startsWith('/spaces')) return 'home';
   if (pathname.startsWith('/boards') || pathname.startsWith('/reports')) return 'dashboard';
   if (pathname.startsWith('/teams')) return 'teams';
+  if (
+    pathname.startsWith('/ai/chat') ||
+    pathname.startsWith('/ai/skills') ||
+    pathname.startsWith('/ai/analytics') ||
+    pathname.startsWith('/ai/connections') ||
+    pathname.startsWith('/ai/agents')
+  )
+    return 'ai';
   if (pathname.startsWith('/ai')) return 'ai';
   if (pathname.startsWith('/audit') || pathname.startsWith('/approvals') || pathname.startsWith('/settings'))
     return 'more';

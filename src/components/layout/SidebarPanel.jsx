@@ -23,6 +23,10 @@ import {
   FolderKanban,
   Building2,
   GitBranch,
+  SquarePen,
+  Zap,
+  Link2,
+  Glasses,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
@@ -38,6 +42,9 @@ import { DeleteProjectModal } from '@/features/projects/components/DeleteProject
 import { UserAvatar } from '@/components/UserAvatar';
 import { canManageOrg } from '@/lib/roles';
 import { cn } from '@/lib/utils';
+import { BrainLogo } from '@/features/ai/components/BrainLogo';
+import { AiUsageRing } from '@/features/ai/components/AiUsageRing';
+import { useAiStore } from '@/features/ai/aiStore';
 
 /* ============================================================
    SidebarPanel — ClickUp 3.0 Real Dynamic Detail Panel
@@ -327,10 +334,19 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
 }
 
 /* ────────────────────────────────────────────────────────────
-   2. AI VIEW (Real Tools & Workflows)
+   2. AI VIEW (ClickUp Brain-style dynamic panel)
    ──────────────────────────────────────────────────────────── */
-function AIView({ onCreateClick }) {
+function AIView() {
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+  const chats = useAiStore((s) => s.chats);
+  const brainUses = useAiStore((s) => s.brainUses);
+  const creditsUsed = useAiStore((s) => s.creditsUsed);
+  const creditsTotal = useAiStore((s) => s.creditsTotal);
+  const creditsLeft = Math.max(0, creditsTotal - creditsUsed);
+  const myAgents = useAiStore((s) => s.myAgents);
+
+  const handleNewChat = () => navigate('/ai');
 
   return (
     <div className="flex flex-1 flex-col h-full overflow-hidden select-none">
@@ -340,11 +356,11 @@ function AIView({ onCreateClick }) {
           <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)] tracking-[-0.01em]">AI</h2>
           <button
             type="button"
-            onClick={onCreateClick}
-            className="flex items-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-2.5 py-1 text-[12px] font-semibold text-white transition-colors hover:bg-black"
+            onClick={handleNewChat}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            title="New chat"
           >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Create</span>
+            <SquarePen className="h-4 w-4" />
           </button>
         </div>
 
@@ -354,29 +370,77 @@ function AIView({ onCreateClick }) {
             to="/ai"
             end
             label="Ask or Create"
-            iconNode={
-              <Sparkles className="h-4 w-4 shrink-0 text-brand-500" />
-            }
+            iconNode={<BrainLogo size={18} />}
           />
-          <ClickUpNavItem to="/reports" label="Analytics &amp; Insights" icon={BarChart2} />
-          <ClickUpNavItem to="/settings" label="AI Integrations" icon={Settings} />
+          <ClickUpNavItem
+            to="/ai/skills"
+            label="Skills"
+            icon={Zap}
+            badge="Beta"
+            badgeColor="bg-amber-50 text-amber-700"
+          />
+          <ClickUpNavItem to="/ai/analytics" label="Analytics" icon={BarChart2} />
+          <ClickUpNavItem to="/ai/connections" label="Connections" icon={Link2} />
         </div>
 
-        {/* Workspace Assistant */}
-        <SectionTitle title="Smart Assistant" />
+        {/* Super Agents */}
+        <SectionTitle title="Super Agents" />
         <div className="space-y-0.5">
-          <ClickUpNavItem to="/ai" label="Workspace Chat" iconNode={<span className="text-sm">💬</span>} />
-          <ClickUpNavItem to="/all-tasks" label="Task Auto-Summary" iconNode={<span className="text-sm">📋</span>} />
-          <ClickUpNavItem to="/reports" label="Productivity Report" iconNode={<span className="text-sm">📊</span>} />
+          <ClickUpNavItem
+            to="/ai/agents/new"
+            label="Create Agent"
+            iconNode={<Glasses className="h-4 w-4 text-violet-600" />}
+          />
+          <ClickUpNavItem
+            to="/ai/agents"
+            end
+            label="All Agents"
+            iconNode={<span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] text-white">👤</span>}
+          />
+          <ClickUpNavItem
+            to="/ai/agents/mine"
+            label="My Agents"
+            iconNode={
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-fuchsia-600 text-[9px] font-bold text-white">
+                {user?.name?.[0]?.toUpperCase() || 'M'}
+              </span>
+            }
+            badge={myAgents.length > 0 ? myAgents.length : undefined}
+          />
         </div>
+
+        {/* Recent chats */}
+        {chats.length > 0 && (
+          <>
+            <SectionTitle title="Recent" />
+            <div className="space-y-0.5">
+              {chats.slice(0, 8).map((chat) => (
+                <ClickUpNavItem
+                  key={chat.id}
+                  to={`/ai/chat/${chat.id}`}
+                  label={chat.title}
+                  icon={MessageSquareText}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Account Info Footer */}
-      <div className="shrink-0 border-t border-gray-200 bg-gray-50/70 px-4 py-2.5 flex items-center justify-between text-[11.5px] text-gray-600">
-        <span className="font-semibold">{user?.name}</span>
-        <span className="rounded bg-brand-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-brand-700">
-          {user?.role || 'Member'}
-        </span>
+      {/* Usage footer */}
+      <div className="shrink-0 space-y-2 border-t border-gray-200 bg-gray-50/70 px-4 py-3">
+        <AiUsageRing
+          value={brainUses}
+          max={Math.max(brainUses, 20)}
+          color="#22c55e"
+          label={`${brainUses} Brain AI uses`}
+        />
+        <AiUsageRing
+          value={creditsLeft}
+          max={creditsTotal}
+          color="#f97316"
+          label={`${creditsLeft} Credits left`}
+        />
       </div>
     </div>
   );
@@ -599,7 +663,7 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
           user={user}
         />
       )}
-      {activeSection === 'ai' && <AIView onCreateClick={onCreateClick} />}
+      {activeSection === 'ai' && <AIView />}
       {activeSection === 'teams' && <TeamsView teamsData={teamsData} usersData={usersData} />}
       {activeSection === 'dashboard' && (
         <DashboardView

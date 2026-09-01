@@ -28,6 +28,7 @@ const AllTeamsPage = lazy(() => import('./pages/teams/AllTeamsPage'));
 const TeamDetailPage = lazy(() => import('./pages/teams/TeamDetailPage'));
 const OrgChartPage = lazy(() => import('./pages/teams/OrgChartPage'));
 const TeamsAnalyticsPage = lazy(() => import('./pages/teams/TeamsAnalyticsPage'));
+const AiPage = lazy(() => import('./pages/AiPage'));
 
 export default function App() {
   return (
@@ -48,7 +49,14 @@ export default function App() {
       >
         <Route index element={<HomePage />} />
         <Route path="home" element={<HomePage />} />
-        <Route path="ai" element={<HomePage />} />
+        <Route path="ai" element={<AiPage />} />
+        <Route path="ai/chat/:chatId" element={<AiPage />} />
+        <Route path="ai/skills" element={<AiPage />} />
+        <Route path="ai/analytics" element={<AiPage />} />
+        <Route path="ai/connections" element={<AiPage />} />
+        <Route path="ai/agents" element={<AiPage />} />
+        <Route path="ai/agents/mine" element={<AiPage />} />
+        <Route path="ai/agents/new" element={<AiPage />} />
         <Route path="home/my-tasks" element={<MyTasksPage />} />
         <Route path="all-tasks" element={<AllTasksPage />} />
         <Route path="home/assigned-comments" element={<AssignedCommentsPage />} />

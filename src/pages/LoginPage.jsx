@@ -22,7 +22,6 @@ export default function LoginPage() {
       toast.error(title, { duration: 1000 });
     }
 
-    // Remove error from URL so refresh does not re-show the toast
     const next = new URLSearchParams(params);
     next.delete('googleError');
     setSearchParams(next, { replace: true });

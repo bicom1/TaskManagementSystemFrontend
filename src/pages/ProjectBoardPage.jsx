@@ -68,6 +68,7 @@ import {
 } from '@/features/tasks/api/taskApi';
 import { useAuthStore } from '@/store/authStore';
 import { canApproveTasks } from '@/lib/roles';
+import { canManageTask } from '@/lib/taskPermissions';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
@@ -89,8 +90,8 @@ function getApprovalBadgeVariant(status) {
   return 'secondary';
 }
 
-function canDragTask(task, userRole) {
-  if (canApproveTasks(userRole)) return true;
+function canDragTask(task, user) {
+  if (!canManageTask(user, task)) return false;
   if (task.approvalStatus === 'pending') return false;
   if (task.approvalStatus === 'rejected') return false;
   return true;
@@ -167,8 +168,8 @@ function ApprovalActions({ task, projectId, compact = false }) {
   );
 }
 
-function TaskCard({ task, onClick, isDragging, userRole, projectId, showApprovalActions }) {
-  const dragEnabled = canDragTask(task, userRole);
+function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActions }) {
+  const dragEnabled = canDragTask(task, user);
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: task._id,
@@ -273,7 +274,7 @@ function KanbanColumn({
   tasks,
   onTaskClick,
   activeId,
-  userRole,
+  user,
   projectId,
   showApprovalActions,
 }) {
@@ -295,7 +296,7 @@ function KanbanColumn({
               task={task}
               onClick={() => onTaskClick(task._id)}
               isDragging={activeId === task._id}
-              userRole={userRole}
+              user={user}
               projectId={projectId}
               showApprovalActions={showApprovalActions}
             />
@@ -873,7 +874,7 @@ export default function ProjectBoardPage() {
       .flat()
       .find((t) => t._id === event.active.id);
 
-    if (task && !canDragTask(task, userRole)) {
+    if (task && !canDragTask(task, user)) {
       return;
     }
 
@@ -887,7 +888,7 @@ export default function ProjectBoardPage() {
 
     const activeId = active.id;
     const draggedTask = Object.values(board).flat().find((t) => t._id === activeId);
-    if (draggedTask && !canDragTask(draggedTask, userRole)) return;
+    if (draggedTask && !canDragTask(draggedTask, user)) return;
 
     const overId = over.id;
 
@@ -1084,7 +1085,7 @@ export default function ProjectBoardPage() {
                   tasks={board?.[status] ?? []}
                   onTaskClick={setSelectedTaskId}
                   activeId={activeTask?._id}
-                  userRole={userRole}
+                  user={user}
                   projectId={projectId}
                   showApprovalActions={showApprovalActions}
                 />

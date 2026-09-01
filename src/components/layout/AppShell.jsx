@@ -61,6 +61,7 @@ export function AppShell() {
             onInvite={() => setInviteOpen(true)}
             onToggleCollapse={() => setPanelOpen(false)}
             onCreateClick={() => setCreateOpen(true)}
+            onAddProject={() => setSpaceWizardOpen(true)}
           />
         )}
       </div>
@@ -95,6 +96,10 @@ export function AppShell() {
               onCreateClick={() => {
                 setMobileOpen(false);
                 setCreateOpen(true);
+              }}
+              onAddProject={() => {
+                setMobileOpen(false);
+                setSpaceWizardOpen(true);
               }}
             />
           </div>

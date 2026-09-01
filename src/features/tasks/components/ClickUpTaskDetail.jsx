@@ -25,9 +25,8 @@ import {
   X,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { ROLES } from '@/lib/roles';
-import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { getAvatarColor, getInitials } from '@/lib/avatar';
+import { canManageTask } from '@/lib/taskPermissions';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { LoadingScreen } from '@/components/ui/Spinner';
@@ -108,12 +107,8 @@ export function ClickUpTaskDetail({
   onClose,
 }) {
   const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
-  // Delete: Super Admin anywhere; Dept Head / Team Lead only in areas they manage (BE enforces)
-  const canDeleteTask =
-    isSuperAdmin || hasPermission(user, PERMISSIONS.TASK_DELETE);
-
   const { data: task, isLoading } = useTask(taskId);
+  const canEditTask = useMemo(() => canManageTask(user, task), [user, task]);
   const { data: activity = [] } = useTaskActivity(taskId);
   const { data: comments = [] } = useTaskComments(taskId);
   const updateTask = useUpdateTask(projectId, { silent: true });
@@ -143,7 +138,7 @@ export function ClickUpTaskDetail({
   }, [task?._id, task?.updatedAt]);
 
   const patch = (payload) => {
-    if (!taskId) return;
+    if (!taskId || !canEditTask) return;
     updateTask.mutate({ id: taskId, payload });
   };
 
@@ -417,7 +412,7 @@ export function ClickUpTaskDetail({
               </button>
               {moreOpen && (
                 <div className="absolute right-0 z-50 mt-1 w-44 overflow-hidden rounded-lg border border-hairline bg-paper shadow-[var(--shadow-soft-lift)]">
-                  {canDeleteTask ? (
+                  {canEditTask ? (
                     <button
                       type="button"
                       className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-cloud"
@@ -431,7 +426,7 @@ export function ClickUpTaskDetail({
                     </button>
                   ) : (
                     <p className="px-3 py-2 text-xs text-graphite">
-                      Delete is limited to Super Admin and managers in their own area
+                      You can only delete tasks assigned to you. Super Admin can delete any task.
                     </p>
                   )}
                 </div>
@@ -471,21 +466,31 @@ export function ClickUpTaskDetail({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 onBlur={saveTitle}
+                readOnly={!canEditTask}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     e.currentTarget.blur();
                   }
                 }}
-                className="w-full bg-transparent text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] text-ink outline-none placeholder:text-graphite/40"
+                className={cn(
+                  'w-full bg-transparent text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] text-ink outline-none placeholder:text-graphite/40',
+                  !canEditTask && 'cursor-default'
+                )}
                 placeholder="Task name"
               />
+
+              {!canEditTask && (
+                <p className="mt-2 text-xs text-graphite">
+                  View only — you can edit tasks assigned to you or any task as Super Admin.
+                </p>
+              )}
 
               <div className="mt-4 rounded-lg border border-hairline bg-cloud/60 px-3 py-2 text-sm text-graphite">
                 Ask Brain for a presentation, document or prototype
               </div>
 
-              <div className="mt-6 divide-y divide-hairline/70">
+              <div className={cn('mt-6 divide-y divide-hairline/70', !canEditTask && 'pointer-events-none opacity-75')}>
                 {/* Status */}
                 <FieldRow icon={Target} label="Status">
                   <div className="relative inline-flex items-center gap-2">
@@ -785,11 +790,12 @@ export function ClickUpTaskDetail({
                 </FieldRow>
               </div>
 
-              <div className="mt-8">
+              <div className={cn('mt-8', !canEditTask && 'pointer-events-none opacity-75')}>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   onBlur={saveDescription}
+                  readOnly={!canEditTask}
                   placeholder="Add a description…"
                   rows={8}
                   className="w-full resize-y rounded-lg border border-transparent bg-transparent px-0 py-2 text-sm text-ink outline-none placeholder:text-graphite/50 focus:border-hairline focus:px-3"

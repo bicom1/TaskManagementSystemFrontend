@@ -155,7 +155,7 @@ function SidebarProjectsList({ projects, canManageProjects, limit }) {
             />
           ))
         ) : (
-          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No channels yet</p>
+          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No projects yet</p>
         )}
       </div>
 
@@ -176,9 +176,10 @@ function SidebarProjectsList({ projects, canManageProjects, limit }) {
 /* ────────────────────────────────────────────────────────────
    1. HOME VIEW (100% Dynamic Data)
    ──────────────────────────────────────────────────────────── */
-function HomeView({ onCreateClick, unreadCount, projects, home, users, user }) {
+function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, users, user }) {
   const navigate = useNavigate();
   const isSuperAdmin = canManageOrg(user?.role);
+  const handleAddProject = onAddProject || onCreateClick;
 
   // Dynamic counts from live backend overview
   const assignedCount = home?.cards?.assigned_to_me?.length || 0;
@@ -239,33 +240,39 @@ function HomeView({ onCreateClick, unreadCount, projects, home, users, user }) {
         <ClickUpNavItem to="/all-tasks" label="All Tasks" icon={MoreHorizontal} />
       </div>
 
-      {/* Real Channels / Projects Section */}
+      {/* All Projects */}
       <SectionTitle
-        title="Channels &amp; Spaces"
+        title="All Projects"
         action={
           <button
             type="button"
-            onClick={onCreateClick}
+            onClick={handleAddProject}
             className="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-            title="Add Channel / Project"
+            title="Add project"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
         }
       />
       <div className="space-y-0.5">
+        <ClickUpNavItem
+          to="/projects"
+          end
+          label="All Projects"
+          icon={FolderKanban}
+          badge={projects.length > 0 ? projects.length : undefined}
+        />
         <SidebarProjectsList
           projects={projects}
           canManageProjects={isSuperAdmin}
-          limit={6}
         />
         <button
           type="button"
-          onClick={onCreateClick}
+          onClick={handleAddProject}
           className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-500 hover:bg-[#f4f5f7] hover:text-gray-900 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
-          <span>Add Channel / Space</span>
+          <span>Add Project</span>
         </button>
       </div>
 
@@ -301,22 +308,11 @@ function HomeView({ onCreateClick, unreadCount, projects, home, users, user }) {
         </NavLink>
       </div>
 
-      {/* Real Spaces / Teams Section */}
-      <SectionTitle
-        title="Teams &amp; Spaces"
-        action={
-          <button
-            type="button"
-            onClick={() => navigate('/projects')}
-            className="flex h-5 w-5 items-center justify-center rounded hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
-        }
-      />
+      {/* Teams */}
+      <SectionTitle title="Teams" />
       <div className="space-y-0.5 pb-4">
         <ClickUpNavItem to="/all-tasks" label="All Workspace Tasks" icon={Layers} />
-        <ClickUpNavItem to="/projects" label="All Spaces" icon={FolderKanban} />
+        <ClickUpNavItem to="/teams/all" label="All Teams" icon={Users} />
         {workspaceTeams.map((t) => (
           <ClickUpNavItem
             key={t._id}
@@ -444,8 +440,9 @@ function TeamsView({ teamsData, usersData }) {
 /* ────────────────────────────────────────────────────────────
    4. DASHBOARD VIEW (Real Boards & Projects)
    ──────────────────────────────────────────────────────────── */
-function DashboardView({ onCollapse, onCreateClick, projects, user }) {
+function DashboardView({ onCollapse, onCreateClick, onAddProject, projects, user }) {
   const isSuperAdmin = canManageOrg(user?.role);
+  const handleAddProject = onAddProject || onCreateClick;
 
   return (
     <div className="flex-1 overflow-y-auto px-2.5 py-3 select-none">
@@ -463,9 +460,9 @@ function DashboardView({ onCollapse, onCreateClick, projects, user }) {
           </button>
           <button
             type="button"
-            onClick={onCreateClick}
+            onClick={handleAddProject}
             className="flex h-6 w-6 items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-100"
-            title="New dashboard / project"
+            title="Add project"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
@@ -488,8 +485,8 @@ function DashboardView({ onCollapse, onCreateClick, projects, user }) {
         <ClickUpNavItem to="/reports" label="Analytics &amp; Velocity" icon={BarChart2} />
       </div>
 
-      {/* Active Project Boards */}
-      <SectionTitle title="Active Spaces &amp; Boards" />
+      {/* Project list */}
+      <SectionTitle title="All Projects" />
       {projects.length > 0 ? (
         <SidebarProjectsList projects={projects} canManageProjects={isSuperAdmin} />
       ) : (
@@ -498,8 +495,16 @@ function DashboardView({ onCollapse, onCreateClick, projects, user }) {
             <Star className="h-4 w-4 fill-amber-400" />
           </div>
           <p className="text-[12px] text-gray-500 leading-relaxed">
-            Create a Space or Board to see it here
+            Create a project to see it here
           </p>
+          <button
+            type="button"
+            onClick={handleAddProject}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-black"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Project
+          </button>
         </div>
       )}
     </div>
@@ -563,7 +568,7 @@ function MoreView() {
 /* ────────────────────────────────────────────────────────────
    MAIN EXPORT: SidebarPanel
    ──────────────────────────────────────────────────────────── */
-export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCreateClick }) {
+export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCreateClick, onAddProject }) {
   const user = useAuthStore((s) => s.user);
   const { data: unreadCount = 0 } = useUnreadCount();
   const { data: home } = useHomeOverview();
@@ -586,6 +591,7 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
       {activeSection === 'home' && (
         <HomeView
           onCreateClick={onCreateClick}
+          onAddProject={onAddProject}
           unreadCount={unreadCount}
           projects={projects}
           home={home}
@@ -599,6 +605,7 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
         <DashboardView
           onCollapse={onToggleCollapse}
           onCreateClick={onCreateClick}
+          onAddProject={onAddProject}
           projects={projects}
           user={user}
         />

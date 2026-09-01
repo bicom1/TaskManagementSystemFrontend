@@ -4,6 +4,8 @@ import { CalendarPlus, ChevronRight, Flag, GitBranch, Plus, UserPlus, X } from '
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/UserAvatar';
+import { canManageTask } from '@/lib/taskPermissions';
+import { useAuthStore } from '@/store/authStore';
 import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
 
 function priorityFlagClass(priority) {
@@ -222,6 +224,7 @@ export function ClickUpTasksList({
   statusLabels = STATUS_LABELS,
   defaultCreateStatus = 'todo',
 }) {
+  const user = useAuthStore((s) => s.user);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftStatus, setDraftStatus] = useState(defaultCreateStatus);
   const [draftMeta, setDraftMeta] = useState(EMPTY_DRAFT_META);
@@ -283,7 +286,10 @@ export function ClickUpTasksList({
     }));
   }, [displayTasks, groupByStatus, statusOrder, statusLabels]);
 
-  const applyUpdate = (taskId, apiPayload, displayPatch) => {
+  const applyUpdate = (taskId, apiPayload, displayPatch, taskRef) => {
+    const task =
+      taskRef || displayTasks.find((t) => String(t._id) === String(taskId));
+    if (!canManageTask(user, task)) return;
     setLocalPatches((prev) => ({
       ...prev,
       [taskId]: { ...prev[taskId], ...displayPatch },
@@ -330,6 +336,7 @@ export function ClickUpTasksList({
 
   const renderTaskRow = (task) => {
     const selected = selectedId === task._id;
+    const canEdit = canManageTask(user, task);
     const hasSubtasks = (task.subtaskCount || 0) > 0 || (task.checklist || []).length > 0;
     const menuOpen = menu?.taskId === task._id;
     const assignees = resolvePeople(
@@ -379,19 +386,20 @@ export function ClickUpTasksList({
           </div>
         </div>
 
-        <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
+        <div className={cn('relative z-10', !canEdit && 'pointer-events-none opacity-60')} onClick={(e) => e.stopPropagation()}>
           <AssigneeStack
             assignees={assignees}
-            onClick={(e) => openMenu(e, 'assignee', task._id)}
+            onClick={(e) => canEdit && openMenu(e, 'assignee', task._id)}
           />
         </div>
 
-        <div className="relative">
+        <div className={cn('relative', !canEdit && 'pointer-events-none opacity-60')}>
           <button
             type="button"
             className="inline-flex items-center gap-1 text-graphite/55 hover:text-ink"
-            onClick={(e) => openMenu(e, 'due', task._id)}
+            onClick={(e) => canEdit && openMenu(e, 'due', task._id)}
             title="Set due date"
+            disabled={!canEdit}
           >
             {task.dueDate ? (
               <span className="text-xs font-medium text-charcoal">
@@ -432,15 +440,16 @@ export function ClickUpTasksList({
           </Popover>
         </div>
 
-        <div className="relative">
+        <div className={cn('relative', !canEdit && 'pointer-events-none opacity-60')}>
           <button
             type="button"
             className={cn(
               'inline-flex max-w-full items-center gap-1 truncate text-xs font-medium',
               priorityFlagClass(task.priority || 'medium')
             )}
-            onClick={(e) => openMenu(e, 'priority', task._id)}
+            onClick={(e) => canEdit && openMenu(e, 'priority', task._id)}
             title={`Priority: ${PRIORITY_LABELS[task.priority] || PRIORITY_LABELS.medium}`}
+            disabled={!canEdit}
           >
             <Flag className="h-3.5 w-3.5 shrink-0 fill-current" />
             <span className="truncate">

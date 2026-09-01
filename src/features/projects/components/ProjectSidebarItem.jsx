@@ -6,9 +6,10 @@ import { projectPath } from '@/features/spaces/spaceKinds';
 
 export function ProjectSidebarItem({
   project,
+  canManage: canManageProp,
   isActive,
-  activeClassName = 'bg-cloud font-medium text-ink',
-  idleClassName = 'text-charcoal hover:bg-cloud/80',
+  activeClassName = 'bg-[var(--color-surface-2)] font-semibold text-[var(--color-text-primary)]',
+  idleClassName = 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-1)] hover:text-[var(--color-text-primary)]',
   onEdit,
   onDelete,
   onArchive,
@@ -16,7 +17,7 @@ export function ProjectSidebarItem({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
-  const canManage = Boolean(project?.canManage);
+  const canManage = canManageProp ?? Boolean(project?.canManage);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -38,19 +39,19 @@ export function ProjectSidebarItem({
       <NavLink
         to={projectPath(project._id)}
         className={cn(
-          'flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+          'flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-colors',
           isActive ? activeClassName : idleClassName
         )}
       >
         <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-          style={{ backgroundColor: project.color || '#292524' }}
+          className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white shadow-2xs"
+          style={{ backgroundColor: project.color || '#4f46e5' }}
         >
           {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
         </span>
         <span className="min-w-0 flex-1 truncate">{project.name}</span>
         {project.openTaskCount > 0 && (
-          <span className="shrink-0 tabular-nums text-[10px] font-semibold text-graphite">
+          <span className="flex shrink-0 items-center justify-center rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums text-[var(--color-text-secondary)]">
             {project.openTaskCount}
           </span>
         )}
@@ -66,7 +67,7 @@ export function ProjectSidebarItem({
               setMenuOpen((v) => !v);
             }}
             className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md text-graphite transition hover:bg-cloud hover:text-ink',
+              'flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-1)] hover:text-[var(--color-text-primary)]',
               menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
             )}
             aria-label={`Project options for ${project.name}`}

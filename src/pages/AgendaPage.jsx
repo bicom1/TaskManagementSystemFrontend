@@ -1,8 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import {
   CalendarDays,
-  MapPin,
   Mic,
   MoreHorizontal,
   Plus,
@@ -12,14 +10,13 @@ import {
   ExternalLink,
   Video,
 } from 'lucide-react';
-import { format, differenceInMinutes, isSameDay, setHours, setMinutes, startOfDay } from 'date-fns';
+import { format, addHours, differenceInMinutes, isSameDay, setHours, setMinutes, startOfDay } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview, useUpdateHomePreferences } from '@/features/home/hooks/useHome';
 import {
   useAskMeetingAi,
   useCreateMeeting,
-  useCreateLocation,
 } from '@/features/meetings/hooks/useMeetings';
 import { MentionAtButton, MentionPicker } from '@/features/meetings/components/MentionPicker';
 import { useUsers } from '@/features/users/hooks/useUsers';
@@ -52,6 +49,28 @@ function minutesLabel(startsAt) {
   return format(new Date(startsAt), 'MMM d');
 }
 
+function defaultMeetingTimes() {
+  const start = addHours(new Date(), 1);
+  start.setMinutes(0, 0, 0);
+  const end = addHours(start, 1);
+  const toLocal = (d) => format(d, "yyyy-MM-dd'T'HH:mm");
+  return { startsAt: toLocal(start), endsAt: toLocal(end) };
+}
+
+function openScheduleForm(setMeetingForm, setScheduleOpen) {
+  const defaults = defaultMeetingTimes();
+  setMeetingForm({
+    title: '',
+    description: '',
+    startsAt: defaults.startsAt,
+    endsAt: defaults.endsAt,
+    team: '',
+    meetingUrl: '',
+    attendees: [],
+  });
+  setScheduleOpen(true);
+}
+
 /** Find trailing @query at cursor for mention filtering */
 function getMentionContext(text, cursor) {
   const before = String(text || '').slice(0, cursor ?? text?.length ?? 0);
@@ -66,15 +85,12 @@ function getMentionContext(text, cursor) {
 
 export default function AgendaPage() {
   const user = useAuthStore((s) => s.user);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') === 'locations' ? 'locations' : 'meetings';
   const { data, isLoading } = useHomeOverview();
   const { data: peopleRes } = useUsers({ limit: 100 });
   const { data: teamsData } = useTeams({ limit: 50 });
   const updatePrefs = useUpdateHomePreferences();
   const askAi = useAskMeetingAi();
   const createMeeting = useCreateMeeting();
-  const createLocation = useCreateLocation();
 
   const [prompt, setPrompt] = useState('');
   const [answer, setAnswer] = useState(null);
@@ -85,7 +101,6 @@ export default function AgendaPage() {
   const [mentionQuery, setMentionQuery] = useState('');
   const [cursor, setCursor] = useState(0);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [locationOpen, setLocationOpen] = useState(false);
   const [meetingForm, setMeetingForm] = useState({
     title: '',
     description: '',
@@ -94,12 +109,6 @@ export default function AgendaPage() {
     team: '',
     meetingUrl: '',
     attendees: [],
-  });
-  const [locationForm, setLocationForm] = useState({
-    name: '',
-    address: '',
-    city: '',
-    type: 'office',
   });
   const textareaRef = useRef(null);
 
@@ -137,7 +146,6 @@ export default function AgendaPage() {
     }));
     return fromRecents.length ? fromRecents : fromProjects;
   }, [data]);
-  const locations = data?.cards?.locations ?? [];
   const channels = data?.workspace?.teams ?? [];
 
   const provider = data?.preferences?.calendarProvider || 'none';
@@ -157,8 +165,20 @@ export default function AgendaPage() {
     return list;
   }, []);
 
+  const toggleAttendee = (personId) => {
+    const id = String(personId);
+    setMeetingForm((f) => {
+      const has = f.attendees.some((a) => String(a) === id);
+      return {
+        ...f,
+        attendees: has
+          ? f.attendees.filter((a) => String(a) !== id)
+          : [...f.attendees, personId],
+      };
+    });
+  };
+
   const syncMentionFromText = (text, nextCursor) => {
-    const ctx = getMentionContext(text, nextCursor);
     if (ctx) {
       setMentionOpen(true);
       setMentionQuery(ctx.query);
@@ -297,78 +317,18 @@ export default function AgendaPage() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-graphite">
             Workspace
           </p>
-          <div className="mt-2 flex gap-1">
-            <button
-              type="button"
-              onClick={() => setSearchParams({}, { replace: true })}
-              className={cn(
-                'rounded-lg px-3 py-1.5 text-sm font-medium',
-                activeTab === 'meetings'
-                  ? 'bg-ink text-on-ink'
-                  : 'text-graphite hover:bg-cloud hover:text-ink'
-              )}
-            >
-              Meetings
-            </button>
-            <button
-              type="button"
-              onClick={() => setSearchParams({ tab: 'locations' }, { replace: true })}
-              className={cn(
-                'rounded-lg px-3 py-1.5 text-sm font-medium',
-                activeTab === 'locations'
-                  ? 'bg-ink text-on-ink'
-                  : 'text-graphite hover:bg-cloud hover:text-ink'
-              )}
-            >
-              Locations
-            </button>
-          </div>
+          <h1 className="mt-1 text-[1.5rem] font-semibold text-ink">Meetings</h1>
+          <p className="mt-1 text-sm text-graphite">
+            Schedule meetings with your team — attendees and Super Admin are notified automatically.
+          </p>
         </div>
-        {activeTab === 'meetings' ? (
-          <Button size="sm" onClick={() => setScheduleOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Schedule meeting
-          </Button>
-        ) : (
-          <Button size="sm" onClick={() => setLocationOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Add location
-          </Button>
-        )}
+        <Button size="sm" onClick={() => openScheduleForm(setMeetingForm, setScheduleOpen)}>
+          <Plus className="h-4 w-4" />
+          Schedule meeting
+        </Button>
       </div>
 
-      {activeTab === 'locations' ? (
-        <section className="mx-auto max-w-3xl">
-          <h1 className="voice-line text-[1.5rem] text-ink">Locations</h1>
-          <p className="mt-1 text-sm text-graphite">
-            Offices and places your team meets — shown in the sidebar.
-          </p>
-          <div className="mt-6 space-y-2">
-            {locations.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-hairline bg-paper px-4 py-8 text-center text-sm text-graphite">
-                No locations yet. Add your first office or client site.
-              </p>
-            ) : (
-              locations.map((loc) => (
-                <div
-                  key={loc._id}
-                  className="flex items-start gap-3 rounded-xl border border-hairline bg-paper px-4 py-3"
-                >
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-ink">{loc.name}</p>
-                    <p className="text-sm text-graphite">
-                      {[loc.address, loc.city].filter(Boolean).join(' · ') || loc.type}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-      ) : (
-        <>
-      <div className="mx-auto mt-4 max-w-3xl text-center">
+      <div className="mx-auto max-w-3xl text-center">
         <h1 className="voice-line text-[1.75rem] text-ink sm:text-[2rem]">
           Hey {name} — ready to dive into your meetings?
         </h1>
@@ -441,7 +401,6 @@ export default function AgendaPage() {
             people={people}
             tasks={tasks}
             docs={docs}
-            locations={locations}
             channels={channels}
             onSelect={applyMention}
           />
@@ -479,7 +438,7 @@ export default function AgendaPage() {
             Upcoming Meetings
           </div>
           <div className="flex items-center gap-4 text-sm font-medium text-[var(--color-text-secondary)]">
-            <button type="button" onClick={() => setScheduleOpen(true)} className="hover:text-ink hover:underline">
+            <button type="button" onClick={() => openScheduleForm(setMeetingForm, setScheduleOpen)} className="hover:text-ink hover:underline">
               Schedule meeting
             </button>
             <button type="button" onClick={sendNotetaker} className="hover:text-ink hover:underline">
@@ -498,69 +457,66 @@ export default function AgendaPage() {
         <div className="overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-white shadow-xs">
           <div className="grid lg:grid-cols-2">
             <div className="flex flex-col justify-center border-b border-[var(--color-border-subtle)] px-8 py-10 lg:border-b-0 lg:border-r">
-              {!connected ? (
-                <>
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--color-border-base)] bg-[var(--color-surface-1)] text-sm font-semibold text-ink">
-                    <span className="relative">
-                      <CalendarDays className="h-6 w-6 text-[var(--color-text-muted)]" />
-                      <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 text-[10px] font-bold leading-none">
-                        {format(new Date(), 'd')}
-                      </span>
-                    </span>
-                  </div>
-                  <h2 className="text-lg font-semibold text-ink">
-                    AI Notetaker works best with Calendar
-                  </h2>
-                  <p className="mt-2 max-w-sm text-sm leading-relaxed text-graphite">
-                    Connect your calendar to manage your events and get the most out of AI Notetaker
-                  </p>
-                  <Button
-                    variant="ink"
-                    className="mt-6 w-fit normal-case tracking-normal"
-                    onClick={() => setConnectOpen(true)}
-                  >
-                    Connect Calendar
-                  </Button>
-                </>
+              <p className="text-xs font-semibold uppercase tracking-wide text-graphite">
+                {connected
+                  ? `Calendar connected · ${provider === 'google' ? 'Google' : 'Outlook'}`
+                  : 'Workspace meetings'}
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-ink">
+                {meetings.length
+                  ? `${meetings.length} upcoming meeting${meetings.length === 1 ? '' : 's'}`
+                  : 'No upcoming meetings'}
+              </h2>
+              <p className="mt-2 text-sm text-graphite">
+                {meetings.length
+                  ? 'Click a meeting to view details, join, or invite more people.'
+                  : 'Schedule your first meeting — attendees and Super Admin will be notified.'}
+              </p>
+              {meetings.length > 0 ? (
+                <ul className="mt-5 space-y-2">
+                  {meetings.slice(0, 4).map((m) => (
+                    <li key={m._id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelected(m)}
+                        className="flex w-full items-start justify-between rounded-xl border border-hairline px-3 py-2.5 text-left transition hover:bg-cloud"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-ink">{m.title}</p>
+                          <p className="text-xs text-graphite">
+                            {format(new Date(m.startsAt), 'EEE, MMM d · h:mm a')}
+                            {m.team?.name ? ` · ${m.team.name}` : ''}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-xs font-medium text-teal-700">
+                          {minutesLabel(m.startsAt)}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               ) : (
-                <>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-graphite">
-                    Connected · {provider === 'google' ? 'Google' : 'Outlook'}
-                  </p>
-                  <h2 className="mt-2 text-lg font-semibold text-ink">
-                    {meetings.length
-                      ? `${meetings.length} upcoming meeting${meetings.length === 1 ? '' : 's'}`
-                      : 'No upcoming meetings'}
-                  </h2>
-                  <p className="mt-2 text-sm text-graphite">
-                    Events are loaded from your teams in MongoDB
-                    {meetings.length ? ' — click one in the preview to open details.' : '.'}
-                  </p>
-                  <ul className="mt-5 space-y-2">
-                    {meetings.slice(0, 4).map((m) => (
-                      <li key={m._id}>
-                        <button
-                          type="button"
-                          onClick={() => setSelected(m)}
-                          className="flex w-full items-start justify-between rounded-xl border border-hairline px-3 py-2.5 text-left transition hover:bg-cloud"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-ink">{m.title}</p>
-                            <p className="text-xs text-graphite">
-                              {format(new Date(m.startsAt), 'EEE, MMM d · h:mm a')}
-                              {m.team?.name ? ` · ${m.team.name}` : ''}
-                            </p>
-                          </div>
-                          <span className="shrink-0 text-xs font-medium text-teal-700">
-                            {minutesLabel(m.startsAt)}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                <Button
+                  variant="ink"
+                  className="mt-6 w-fit normal-case tracking-normal"
+                  onClick={() => openScheduleForm(setMeetingForm, setScheduleOpen)}
+                >
+                  Schedule meeting
+                </Button>
+              )}
+              <div className="mt-4 flex flex-wrap gap-3">
+                {!connected ? (
                   <button
                     type="button"
-                    className="mt-4 text-sm font-medium text-graphite underline-offset-2 hover:text-ink hover:underline"
+                    className="text-sm font-medium text-graphite underline-offset-2 hover:text-ink hover:underline"
+                    onClick={() => setConnectOpen(true)}
+                  >
+                    Connect external calendar
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-graphite underline-offset-2 hover:text-ink hover:underline"
                     onClick={() =>
                       updatePrefs.mutate({ calendarProvider: 'none' }, {
                         onSuccess: () => toast.message('Calendar disconnected'),
@@ -569,8 +525,8 @@ export default function AgendaPage() {
                   >
                     Disconnect calendar
                   </button>
-                </>
-              )}
+                )}
+              </div>
             </div>
 
             <div className="relative min-h-[320px] bg-[var(--color-surface-1)] p-4">
@@ -880,9 +836,6 @@ export default function AgendaPage() {
         )}
       </Modal>
 
-        </>
-      )}
-
       <Modal
         open={scheduleOpen}
         onClose={() => setScheduleOpen(false)}
@@ -981,6 +934,35 @@ export default function AgendaPage() {
             </Select>
           </div>
           <div className="space-y-1.5">
+            <Label>Attendees</Label>
+            <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-hairline bg-paper p-2">
+              {people
+                .filter((p) => String(p._id) !== String(user?._id))
+                .map((person) => {
+                  const selected = meetingForm.attendees.some(
+                    (id) => String(id) === String(person._id)
+                  );
+                  return (
+                    <label
+                      key={person._id}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-cloud"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleAttendee(person._id)}
+                        className="rounded border-hairline"
+                      />
+                      <span className="text-ink">{person.name}</span>
+                    </label>
+                  );
+                })}
+              {people.filter((p) => String(p._id) !== String(user?._id)).length === 0 && (
+                <p className="px-2 py-1 text-xs text-graphite">No other teammates to invite yet.</p>
+              )}
+            </div>
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor="mtg-url">Meeting link</Label>
             <Input
               id="mtg-url"
@@ -995,63 +977,6 @@ export default function AgendaPage() {
             </Button>
             <Button type="submit" disabled={createMeeting.isPending}>
               {createMeeting.isPending ? 'Scheduling…' : 'Schedule'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal
-        open={locationOpen}
-        onClose={() => setLocationOpen(false)}
-        title="Add location"
-        description="Locations appear in the sidebar for your workspace."
-        size="sm"
-      >
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!locationForm.name.trim()) return;
-            createLocation.mutate(locationForm, {
-              onSuccess: () => {
-                setLocationOpen(false);
-                setLocationForm({ name: '', address: '', city: '', type: 'office' });
-                setSearchParams({ tab: 'locations' }, { replace: true });
-              },
-            });
-          }}
-        >
-          <div className="space-y-1.5">
-            <Label htmlFor="loc-name">Name</Label>
-            <Input
-              id="loc-name"
-              value={locationForm.name}
-              onChange={(e) => setLocationForm((f) => ({ ...f, name: e.target.value }))}
-              required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="loc-address">Address</Label>
-            <Input
-              id="loc-address"
-              value={locationForm.address}
-              onChange={(e) => setLocationForm((f) => ({ ...f, address: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="loc-city">City</Label>
-            <Input
-              id="loc-city"
-              value={locationForm.city}
-              onChange={(e) => setLocationForm((f) => ({ ...f, city: e.target.value }))}
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setLocationOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={createLocation.isPending}>
-              {createLocation.isPending ? 'Saving…' : 'Save location'}
             </Button>
           </div>
         </form>

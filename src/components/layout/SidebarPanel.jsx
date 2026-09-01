@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Inbox,
@@ -22,17 +23,20 @@ import {
   FolderKanban,
   Building2,
   GitBranch,
-  MapPin,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
-import { useProjects } from '@/features/projects/hooks/useProjects';
+import { useArchiveProject, useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
 import { usePendingApprovals } from '@/features/tasks/hooks/useTasks';
 import { projectPath } from '@/features/spaces/spaceKinds';
+import { ProjectSidebarItem } from '@/features/projects/components/ProjectSidebarItem';
+import { EditProjectModal } from '@/features/projects/components/EditProjectModal';
+import { DeleteProjectModal } from '@/features/projects/components/DeleteProjectModal';
 import { UserAvatar } from '@/components/UserAvatar';
+import { canManageOrg } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 
 /* ============================================================
@@ -125,14 +129,59 @@ function SectionTitle({ title, action }) {
   );
 }
 
+function SidebarProjectsList({ projects, canManageProjects, limit }) {
+  const location = useLocation();
+  const archiveProject = useArchiveProject();
+  const [editProject, setEditProject] = useState(null);
+  const [deleteProject, setDeleteProject] = useState(null);
+
+  const activeProjects = (limit ? projects.slice(0, limit) : projects).filter(
+    (p) => p.status !== 'archived'
+  );
+
+  return (
+    <>
+      <div className="space-y-0.5">
+        {activeProjects.length > 0 ? (
+          activeProjects.map((project) => (
+            <ProjectSidebarItem
+              key={project._id}
+              project={project}
+              canManage={canManageProjects}
+              isActive={location.pathname.startsWith(projectPath(project._id))}
+              onEdit={setEditProject}
+              onDelete={setDeleteProject}
+              onArchive={(p) => archiveProject.mutate(p._id)}
+            />
+          ))
+        ) : (
+          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No channels yet</p>
+        )}
+      </div>
+
+      <EditProjectModal
+        project={editProject}
+        open={Boolean(editProject)}
+        onClose={() => setEditProject(null)}
+      />
+      <DeleteProjectModal
+        project={deleteProject}
+        open={Boolean(deleteProject)}
+        onClose={() => setDeleteProject(null)}
+      />
+    </>
+  );
+}
+
 /* ────────────────────────────────────────────────────────────
    1. HOME VIEW (100% Dynamic Data)
    ──────────────────────────────────────────────────────────── */
 function HomeView({ onCreateClick, unreadCount, projects, home, users, user }) {
   const navigate = useNavigate();
+  const isSuperAdmin = canManageOrg(user?.role);
 
   // Dynamic counts from live backend overview
-  const assignedCount = home?.cards?.assignedToMe?.length || 0;
+  const assignedCount = home?.cards?.assigned_to_me?.length || 0;
   const meetingsCount = home?.cards?.meetings?.length || 0;
   const commentsCount = home?.cards?.commentNotifs?.length || 0;
 
@@ -181,12 +230,6 @@ function HomeView({ onCreateClick, unreadCount, projects, home, users, user }) {
           badge={meetingsCount > 0 ? meetingsCount : undefined}
         />
         <ClickUpNavItem
-          to="/home/meetings?tab=locations"
-          label="Locations"
-          icon={MapPin}
-          badge={(home?.cards?.locations?.length || 0) > 0 ? home.cards.locations.length : undefined}
-        />
-        <ClickUpNavItem
           to="/home/my-tasks"
           label="My Tasks"
           icon={UserCheck}
@@ -211,26 +254,11 @@ function HomeView({ onCreateClick, unreadCount, projects, home, users, user }) {
         }
       />
       <div className="space-y-0.5">
-        {projects.length > 0 ? (
-          projects.slice(0, 6).map((project) => (
-            <ClickUpNavItem
-              key={project._id}
-              to={projectPath(project._id)}
-              label={project.name}
-              iconNode={
-                <span
-                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white shadow-2xs"
-                  style={{ backgroundColor: project.color || '#4f46e5' }}
-                >
-                  {(project.icon || project.name?.[0] || 'P').slice(0, 1)}
-                </span>
-              }
-              badge={project.openTaskCount > 0 ? project.openTaskCount : undefined}
-            />
-          ))
-        ) : (
-          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No channels yet</p>
-        )}
+        <SidebarProjectsList
+          projects={projects}
+          canManageProjects={isSuperAdmin}
+          limit={6}
+        />
         <button
           type="button"
           onClick={onCreateClick}
@@ -416,8 +444,8 @@ function TeamsView({ teamsData, usersData }) {
 /* ────────────────────────────────────────────────────────────
    4. DASHBOARD VIEW (Real Boards & Projects)
    ──────────────────────────────────────────────────────────── */
-function DashboardView({ onCollapse, onCreateClick, projects }) {
-  const user = useAuthStore((s) => s.user);
+function DashboardView({ onCollapse, onCreateClick, projects, user }) {
+  const isSuperAdmin = canManageOrg(user?.role);
 
   return (
     <div className="flex-1 overflow-y-auto px-2.5 py-3 select-none">
@@ -463,24 +491,7 @@ function DashboardView({ onCollapse, onCreateClick, projects }) {
       {/* Active Project Boards */}
       <SectionTitle title="Active Spaces &amp; Boards" />
       {projects.length > 0 ? (
-        <div className="space-y-0.5">
-          {projects.map((p) => (
-            <ClickUpNavItem
-              key={p._id}
-              to={projectPath(p._id)}
-              label={p.name}
-              iconNode={
-                <span
-                  className="flex h-4.5 w-4.5 items-center justify-center rounded text-[10px] font-bold text-white shadow-2xs"
-                  style={{ backgroundColor: p.color || '#4f46e5' }}
-                >
-                  {(p.icon || p.name?.[0] || 'P').slice(0, 1)}
-                </span>
-              }
-              badge={p.openTaskCount > 0 ? p.openTaskCount : undefined}
-            />
-          ))}
-        </div>
+        <SidebarProjectsList projects={projects} canManageProjects={isSuperAdmin} />
       ) : (
         <div className="rounded-xl border border-gray-200 bg-white p-5 text-center shadow-2xs">
           <div className="mx-auto mb-2 flex h-6 w-6 items-center justify-center text-amber-400">
@@ -499,7 +510,7 @@ function DashboardView({ onCollapse, onCreateClick, projects }) {
    5. PLANNER VIEW (Real Meetings & Tasks)
    ──────────────────────────────────────────────────────────── */
 function PlannerView({ home }) {
-  const assignedCount = home?.cards?.assignedToMe?.length || 0;
+  const assignedCount = home?.cards?.assigned_to_me?.length || 0;
   const meetingsCount = home?.cards?.meetings?.length || 0;
 
   return (
@@ -520,12 +531,6 @@ function PlannerView({ home }) {
           label="Meetings Schedule"
           icon={Phone}
           badge={meetingsCount > 0 ? meetingsCount : undefined}
-        />
-        <ClickUpNavItem
-          to="/home/meetings?tab=locations"
-          label="Locations"
-          icon={MapPin}
-          badge={(home?.cards?.locations?.length || 0) > 0 ? home.cards.locations.length : undefined}
         />
         <ClickUpNavItem to="/home/my-tasks?view=assigned" label="Assigned Tasks" icon={UserCheck} />
       </div>
@@ -566,6 +571,8 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
   const { data: teamsData } = useTeams({ limit: 50 });
   const { data: usersData } = useUsers({ limit: 30 });
 
+  useLiveSpaces();
+
   const projects = projectsData?.data ?? [];
   const users = usersData?.data ?? [];
 
@@ -589,7 +596,12 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
       {activeSection === 'ai' && <AIView onCreateClick={onCreateClick} />}
       {activeSection === 'teams' && <TeamsView teamsData={teamsData} usersData={usersData} />}
       {activeSection === 'dashboard' && (
-        <DashboardView onCollapse={onToggleCollapse} onCreateClick={onCreateClick} projects={projects} />
+        <DashboardView
+          onCollapse={onToggleCollapse}
+          onCreateClick={onCreateClick}
+          projects={projects}
+          user={user}
+        />
       )}
       {activeSection === 'planner' && <PlannerView home={home} />}
       {activeSection === 'more' && <MoreView />}

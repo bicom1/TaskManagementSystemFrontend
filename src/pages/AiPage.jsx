@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Glasses, HardDrive, X } from 'lucide-react';
 import { BrainLogo, BrainWordmark } from '@/features/ai/components/BrainLogo';
 import { AiInputBar } from '@/features/ai/components/AiInputBar';
@@ -13,7 +14,7 @@ import {
   AiSkillsView,
 } from '@/features/ai/components/AiSubViews';
 import { useAiStore } from '@/features/ai/aiStore';
-import { buildAiResponse, useAiContext } from '@/features/ai/hooks/useAiContext';
+import { aiApi } from '@/features/ai/api/aiApi';
 import { cn } from '@/lib/utils';
 
 function CreditsBanner({ creditsUsed, creditsTotal, onDismiss }) {
@@ -74,12 +75,11 @@ function AiAskWorkspace() {
 
   const creditsUsed = useAiStore((s) => s.creditsUsed);
   const creditsTotal = useAiStore((s) => s.creditsTotal);
+  const model = useAiStore((s) => s.model);
   const chats = useAiStore((s) => s.chats);
   const createChat = useAiStore((s) => s.createChat);
   const addMessage = useAiStore((s) => s.addMessage);
   const incrementUsage = useAiStore((s) => s.incrementUsage);
-
-  const aiContext = useAiContext();
   const activeChat = useMemo(
     () => (chatId ? chats.find((c) => c.id === chatId) : null),
     [chatId, chats]
@@ -97,18 +97,45 @@ function AiAskWorkspace() {
         navigate(`/ai/chat/${id}`, { replace: true });
       }
 
+      const priorMessages = (id === chatId ? activeChat?.messages : []) || [];
+
       addMessage(id, 'user', trimmed);
       setPrompt('');
       setIsThinking(true);
       incrementUsage();
 
-      await new Promise((r) => setTimeout(r, 900));
-
-      const reply = buildAiResponse(trimmed, aiContext);
-      addMessage(id, 'assistant', reply);
-      setIsThinking(false);
+      try {
+        const { reply } = await aiApi.chat({
+          message: trimmed,
+          messages: priorMessages.map((m) => ({ role: m.role, content: m.content })),
+          model,
+        });
+        addMessage(id, 'assistant', reply);
+      } catch (error) {
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          'AI request failed. Please try again.';
+        toast.error(message);
+        addMessage(
+          id,
+          'assistant',
+          `Sorry, I could not complete that request.\n\n${message}`
+        );
+      } finally {
+        setIsThinking(false);
+      }
     },
-    [chatId, isThinking, createChat, navigate, addMessage, incrementUsage, aiContext]
+    [
+      chatId,
+      isThinking,
+      activeChat?.messages,
+      createChat,
+      navigate,
+      addMessage,
+      incrementUsage,
+      model,
+    ]
   );
 
   return (

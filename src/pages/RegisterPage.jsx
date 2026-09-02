@@ -1,16 +1,12 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ChevronDecoration } from '@/components/layout/ChevronDecoration';
 import { GradientBlobs } from '@/components/layout/GradientBlobs';
 import { BrandLogo } from '@/components/BrandLogo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { RegisterForm } from '@/features/auth/components/RegisterForm';
 import { GoogleAuthButton } from '@/features/auth/components/GoogleAuthButton';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 
 export default function RegisterPage() {
-  const [params] = useSearchParams();
-  const fromInvite = params.get('invite') === '1';
-
   return (
     <PublicRoute>
       <div className="relative flex min-h-screen flex-col overflow-hidden bg-cloud">
@@ -31,22 +27,26 @@ export default function RegisterPage() {
               <BrandLogo asLink={false} size="md" />
               <div>
                 <CardTitle className="voice-line text-[24px] font-normal leading-tight tracking-[-0.01em] sm:text-[26px]">
-                  {fromInvite ? 'Join BIWORKSPACE' : 'Create account'}
+                  Join BIWORKSPACE
                 </CardTitle>
                 <CardDescription className="mt-2">
-                  {fromInvite
-                    ? 'You were invited via a share link. Create your account to get started.'
-                    : "Join your organization's workspace to track delivery."}
+                  Workspace access is invite-only. Each person gets one account tied to their email.
                 </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
-              {fromInvite && (
-                <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-text-secondary">
-                  Invite link accepted — fill in your details below, or continue with Google.
-                </div>
-              )}
-              <RegisterForm />
+              <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-text-secondary">
+                Open self-registration is disabled. Use the invite link from your Super Admin, or sign
+                in if you already joined.
+              </div>
+
+              <Link
+                to="/accept-invite"
+                className="flex w-full items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+              >
+                Accept invite
+              </Link>
+
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-border-subtle" />
                 <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-disabled">
@@ -54,7 +54,9 @@ export default function RegisterPage() {
                 </span>
                 <div className="h-px flex-1 bg-border-subtle" />
               </div>
-              <GoogleAuthButton label="Sign up with Google" inviteOnly />
+
+              <GoogleAuthButton label="Continue with Google" inviteOnly />
+
               <p className="text-center text-sm text-graphite">
                 Already have an account?{' '}
                 <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">

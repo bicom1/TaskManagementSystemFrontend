@@ -12,7 +12,7 @@ export const WORKFLOW_TEMPLATES = {
     id: 'starter',
     name: 'Starter',
     description: 'For everyday tasks.',
-    defaultViews: ['channel', 'list', 'board'],
+    defaultViews: ['list', 'board'],
     statuses: [
       { key: 'todo', label: 'TO DO', color: '#9ca3af' },
       { key: 'in_progress', label: 'IN PROGRESS', color: '#7c3aed' },
@@ -33,7 +33,7 @@ export const WORKFLOW_TEMPLATES = {
     id: 'marketing',
     name: 'Marketing Teams',
     description: 'Run effective campaigns.',
-    defaultViews: ['channel', 'list', 'board'],
+    defaultViews: ['list', 'board'],
     statuses: [
       { key: 'backlog', label: 'IDEAS', color: '#9ca3af' },
       { key: 'todo', label: 'PLANNED', color: '#3b82f6' },
@@ -47,7 +47,7 @@ export const WORKFLOW_TEMPLATES = {
     id: 'project_management',
     name: 'Project Management',
     description: 'Plan, manage, and execute projects.',
-    defaultViews: ['channel', 'list', 'board'],
+    defaultViews: ['list', 'board'],
     statuses: [
       { key: 'backlog', label: 'BACKLOG', color: '#9ca3af' },
       { key: 'todo', label: 'TO DO', color: '#3b82f6' },
@@ -70,7 +70,7 @@ export const WORKFLOW_TEMPLATES = {
     id: 'product_engineering',
     name: 'Product + Engineering',
     description: 'Streamline your product lifecycle.',
-    defaultViews: ['channel', 'list', 'board'],
+    defaultViews: ['list', 'board'],
     statuses: [
       { key: 'backlog', label: 'BACKLOG', color: '#9ca3af' },
       { key: 'todo', label: 'READY', color: '#3b82f6' },
@@ -94,7 +94,6 @@ export const WORKFLOW_TEMPLATES = {
 export const WORKFLOW_TEMPLATE_LIST = Object.values(WORKFLOW_TEMPLATES);
 
 export const VIEW_LABELS = {
-  channel: 'Channel',
   list: 'List',
   board: 'Board',
 };

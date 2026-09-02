@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -56,7 +56,10 @@ const SECTION_NAMES = {
  * TopBar — ClickUp 3.0 Header
  * Contains sidebar toggle, breadcrumb path, universal search, quick create, and user profile.
  */
-export function TopBar({ onMenuClick, onInvite, onCreate, panelOpen, onTogglePanel, activeSection = 'home' }) {
+export const TopBar = forwardRef(function TopBar(
+  { onMenuClick, onInvite, onCreate, panelOpen, onTogglePanel, activeSection = 'home', createButtonRef },
+  _ref
+) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
   const location = useLocation();
@@ -178,6 +181,7 @@ export function TopBar({ onMenuClick, onInvite, onCreate, panelOpen, onTogglePan
         {/* "+ New" */}
         {onCreate && (
           <Button
+            ref={createButtonRef}
             size="sm"
             className="h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold"
             onClick={onCreate}
@@ -285,4 +289,4 @@ export function TopBar({ onMenuClick, onInvite, onCreate, panelOpen, onTogglePan
       </div>
     </header>
   );
-}
+});

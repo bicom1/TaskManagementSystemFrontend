@@ -348,23 +348,6 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
         </div>
       </CollapsibleSection>
 
-      {/* Channels — below projects (was All Projects slot) */}
-      <CollapsibleSection title="Channels">
-        <div className="space-y-0.5">
-          {projects.filter((p) => p.status !== 'archived').slice(0, 8).map((project) => (
-            <ClickUpNavItem
-              key={project._id}
-              to={`/projects/${project._id}?view=channel`}
-              label={project.name}
-              icon={Hash}
-            />
-          ))}
-          {projects.filter((p) => p.status !== 'archived').length === 0 && (
-            <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No channels yet</p>
-          )}
-        </div>
-      </CollapsibleSection>
-
       {/* Real Direct Messages Section */}
       <SectionTitle title="Direct Messages" />
       <div className="space-y-0.5">

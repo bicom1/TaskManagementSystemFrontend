@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FolderKanban, Plus } from 'lucide-react';
 import { useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingScreen, EmptyState } from '@/components/ui/Spinner';
 import { PROJECT_STATUS_LABELS } from '@/features/projects/api/projectApi';
-import { CreateSpaceWizard } from '@/features/spaces/components/CreateSpaceWizard';
+import { useCreateProjectUiStore } from '@/features/spaces/createProjectUiStore';
 import { projectPath } from '@/features/spaces/spaceKinds';
 import { useAuthStore } from '@/store/authStore';
 
@@ -24,10 +24,9 @@ function sortByName(items) {
 export default function ProjectsPage() {
   const user = useAuthStore((s) => s.user);
   const canCreate = Boolean(user);
+  const openCreateMenu = useCreateProjectUiStore((s) => s.openCreateMenu);
   const { data, isLoading } = useProjects({ limit: 100 });
   useLiveSpaces();
-
-  const [wizardOpen, setWizardOpen] = useState(false);
 
   const projects = useMemo(
     () => sortByName(data?.data ?? []),
@@ -55,7 +54,7 @@ export default function ProjectsPage() {
           </p>
         </div>
         {canCreate && (
-          <Button onClick={() => setWizardOpen(true)}>
+          <Button onClick={() => openCreateMenu({ centered: true })}>
             <Plus className="h-4 w-4" />
             New Project
           </Button>
@@ -69,7 +68,7 @@ export default function ProjectsPage() {
           description="Create a project to organize tasks and collaborate with your team."
           action={
             canCreate ? (
-              <Button onClick={() => setWizardOpen(true)}>
+              <Button onClick={() => openCreateMenu({ centered: true })}>
                 <Plus className="h-4 w-4" />
                 New Project
               </Button>
@@ -120,10 +119,6 @@ export default function ProjectsPage() {
             </Link>
           ))}
         </div>
-      )}
-
-      {canCreate && (
-        <CreateSpaceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
       )}
     </div>
   );

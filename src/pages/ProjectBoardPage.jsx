@@ -26,7 +26,6 @@ import {
   List,
   Trash2,
   Activity,
-  Hash,
   Search,
   Settings,
   Filter,
@@ -81,7 +80,6 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ClickUpTasksList } from '@/features/tasks/components/ClickUpTasksList';
 import { ClickUpTaskDetail } from '@/features/tasks/components/ClickUpTaskDetail';
-import { ProjectChannelView } from '@/features/spaces/components/ProjectChannelView';
 
 function getApprovalBadgeVariant(status) {
   if (status === 'pending') return 'warning';
@@ -734,17 +732,20 @@ export default function ProjectBoardPage() {
 
   const [viewMode, setViewMode] = useState(() => {
     const v = searchParams.get('view');
-    if (v === 'board' || v === 'list' || v === 'channel') return v;
-    return 'channel';
+    if (v === 'board' || v === 'list') return v;
+    return 'list';
   });
 
   useEffect(() => {
     const v = searchParams.get('view');
-    if (v === 'board' || v === 'list' || v === 'channel') setViewMode(v);
+    if (v === 'board' || v === 'list') setViewMode(v);
     else if (project?.activeView === 'board' || project?.activeView === 'list') {
       setViewMode(project.activeView);
+    } else if (v === 'channel') {
+      setViewMode('list');
+      setSearchParams({ view: 'list' }, { replace: true });
     }
-  }, [searchParams, project?.activeView]);
+  }, [searchParams, project?.activeView, setSearchParams]);
 
   useEffect(() => {
     const taskId = searchParams.get('task');
@@ -916,7 +917,7 @@ export default function ProjectBoardPage() {
     }
   };
 
-  if (projectLoading || (viewMode !== 'channel' && boardLoading)) {
+  if (projectLoading || boardLoading) {
     return (
       <div className="px-4 py-8">
         <LoadingScreen />
@@ -971,7 +972,6 @@ export default function ProjectBoardPage() {
 
         <div className="mt-3 flex items-center gap-0.5 overflow-x-auto">
           {[
-            { id: 'channel', label: 'Channel', icon: Hash, enabled: true },
             { id: 'list', label: 'List', icon: List, enabled: true },
             { id: 'board', label: 'Board', icon: LayoutGrid, enabled: true },
           ].map((tab) => {
@@ -1010,7 +1010,6 @@ export default function ProjectBoardPage() {
         </div>
       </div>
 
-      {viewMode !== 'channel' && (
       <div className="flex items-center justify-between gap-2 border-b border-hairline bg-paper px-4 py-2 sm:px-5">
         <div className="flex items-center gap-1.5 text-xs text-graphite">
           <span className="inline-flex h-7 items-center gap-1 rounded-lg border border-hairline bg-cloud/60 px-2.5 font-medium text-ink">
@@ -1056,19 +1055,8 @@ export default function ProjectBoardPage() {
           </Button>
         </div>
       </div>
-      )}
 
-      {viewMode === 'channel' ? (
-        <ProjectChannelView
-          project={project}
-          projectId={projectId}
-          people={assignablePeople}
-          onTrackTasks={() => setView('list')}
-          onAddDoc={() =>
-            createQuickTask({ title: 'Untitled document' }, { onSuccess: () => setView('list') })
-          }
-        />
-      ) : viewMode === 'board' ? (
+      {viewMode === 'board' ? (
         <div className="flex-1 overflow-x-auto bg-cloud/60 p-4 sm:p-5">
           <DndContext
             sensors={sensors}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronDown, Filter, Hash, LayoutGrid, List, Plus, Search, Settings } from 'lucide-react';
+import { ChevronDown, Filter, LayoutGrid, List, Plus, Search, Settings } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMyTasks } from '@/features/home/hooks/useHome';
 import { useProjects } from '@/features/projects/hooks/useProjects';
@@ -13,7 +13,6 @@ import {
   getProjectAssignablePeople,
   mergeAssignablePeople,
 } from '@/features/tasks/components/TaskFormFields';
-import { ProjectChannelView } from '@/features/spaces/components/ProjectChannelView';
 import { STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useAuthStore } from '@/store/authStore';
@@ -26,7 +25,6 @@ import { canApproveTasks } from '@/lib/roles';
 import { projectPath } from '@/features/spaces/spaceKinds';
 
 const VIEW_TABS = [
-  { id: 'channel', label: 'Channel', icon: Hash },
   { id: 'list', label: 'List', icon: List },
   { id: 'board', label: 'Board', icon: LayoutGrid },
 ];
@@ -91,7 +89,7 @@ export default function AllTasksPage() {
   const projects = projectsData?.data ?? [];
   const { data: usersRes } = useUsers({ limit: 200 });
 
-  const viewMode = ['channel', 'list', 'board'].includes(searchParams.get('view'))
+  const viewMode = ['list', 'board'].includes(searchParams.get('view'))
     ? searchParams.get('view')
     : 'list';
 
@@ -99,17 +97,10 @@ export default function AllTasksPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ ...EMPTY_TASK_FORM });
   const [createProjectId, setCreateProjectId] = useState('');
-  const [channelProjectId, setChannelProjectId] = useState('');
 
   const activeProjectId = createProjectId || projects[0]?._id || '';
   const createTask = useCreateTask(activeProjectId);
   const updateTask = useUpdateTask(activeProjectId, { silent: true });
-
-  useEffect(() => {
-    if (!channelProjectId && projects[0]?._id) {
-      setChannelProjectId(projects[0]._id);
-    }
-  }, [projects, channelProjectId]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -288,59 +279,30 @@ export default function AllTasksPage() {
         </div>
       </div>
 
-      {viewMode !== 'channel' && (
-        <div className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-2">
-          <div className="flex items-center gap-2 text-xs text-graphite">
-            <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1 font-medium text-ink">
-              Group: {viewMode === 'board' ? 'Status' : 'None'}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1">
-              {tasks.length} tasks
-            </span>
-          </div>
-          <div className="flex items-center gap-1 text-graphite">
-            <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Filter">
-              <Filter className="h-4 w-4" />
-            </button>
-            <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Search">
-              <Search className="h-4 w-4" />
-            </button>
-            <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Settings">
-              <Settings className="h-4 w-4" />
-            </button>
-          </div>
+      <div className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-2">
+        <div className="flex items-center gap-2 text-xs text-graphite">
+          <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1 font-medium text-ink">
+            Group: {viewMode === 'board' ? 'Status' : 'None'}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1">
+            {tasks.length} tasks
+          </span>
         </div>
-      )}
+        <div className="flex items-center gap-1 text-graphite">
+          <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Filter">
+            <Filter className="h-4 w-4" />
+          </button>
+          <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Search">
+            <Search className="h-4 w-4" />
+          </button>
+          <button type="button" className="rounded p-1.5 hover:bg-cloud" title="Settings">
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
       <div className="flex-1 overflow-auto">
-        {viewMode === 'channel' ? (
-          <div className="flex h-full flex-col">
-            <div className="flex items-center gap-2 border-b border-hairline px-4 py-2">
-              <label className="text-xs font-medium text-graphite" htmlFor="channel-project">
-                Channel project
-              </label>
-              <select
-                id="channel-project"
-                className="h-8 rounded-md border border-hairline bg-paper px-2 text-sm"
-                value={channelProjectId || ''}
-                onChange={(e) => setChannelProjectId(e.target.value)}
-              >
-                {projects.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {channelProjectId ? (
-              <div className="min-h-0 flex-1">
-                <ProjectChannelView projectId={channelProjectId} />
-              </div>
-            ) : (
-              <p className="p-6 text-sm text-graphite">Create a project to open its channel.</p>
-            )}
-          </div>
-        ) : viewMode === 'board' ? (
+        {viewMode === 'board' ? (
           <AllTasksBoard tasks={tasks} onTaskClick={onTaskClick} />
         ) : (
           <ClickUpTasksList

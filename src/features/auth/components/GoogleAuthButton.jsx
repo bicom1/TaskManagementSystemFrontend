@@ -1,20 +1,7 @@
-import { toast } from 'sonner';
-
-export function GoogleAuthButton({
-  label = 'Continue with Google',
-  inviteOnly = false,
-}) {
+export function GoogleAuthButton({ label = 'Continue with Google' }) {
   const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api/v1';
 
   const handleClick = () => {
-    if (inviteOnly) {
-      toast.info('Invite-only sign-in', {
-        description:
-          'You must be invited by your Super Admin before you can sign in with Google. After you receive your invitation, use the same email address here.',
-        duration: 6000,
-      });
-    }
-
     const clientUrl = encodeURIComponent(window.location.origin);
     window.location.href = `${apiBase}/auth/google?clientUrl=${clientUrl}`;
   };

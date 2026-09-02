@@ -1,25 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/BrandLogo';
 import { LoginForm } from '@/features/auth/components/LoginForm';
 import { GoogleAuthButton } from '@/features/auth/components/GoogleAuthButton';
-import { getGoogleErrorToast } from '@/features/auth/googleErrors';
+import { getGoogleErrorToast, isInviteGateError } from '@/features/auth/googleErrors';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 
 
 export default function LoginPage() {
   const [params, setSearchParams] = useSearchParams();
+  const [showInviteHint, setShowInviteHint] = useState(false);
 
   useEffect(() => {
     const googleError = params.get('googleError');
     if (!googleError) return;
 
+    const inviteBlocked = isInviteGateError(googleError);
+    setShowInviteHint(inviteBlocked);
+
     const { title, description } = getGoogleErrorToast(googleError);
-    if (description) {
+    if (inviteBlocked && description) {
+      toast.error(title, { description, duration: 12000 });
+    } else if (description) {
       toast.error(title, { description, duration: 12000 });
     } else {
-      toast.error(title, { duration: 1000 });
+      toast.error(title, { duration: 6000 });
     }
 
     const next = new URLSearchParams(params);
@@ -75,18 +81,21 @@ export default function LoginPage() {
                   <div className="h-px flex-1 bg-border-subtle" />
                 </div>
 
-                <GoogleAuthButton label="Continue with Google" inviteOnly />
+                <GoogleAuthButton label="Continue with Google" />
 
-                <p className="text-center text-[12px] leading-relaxed text-text-muted">
-                  Google sign-in is available after your Super Admin invites you to this workspace.
-                </p>
-
-                <p className="pt-1 text-center text-[13px] text-text-muted">
-                  Need access?{' '}
-                  <span className="text-text-secondary">
-                    Ask your Super Admin to send you a workspace invitation.
-                  </span>
-                </p>
+                {showInviteHint && (
+                  <>
+                    <p className="text-center text-[12px] leading-relaxed text-text-muted">
+                      Google sign-in is available after your Super Admin invites you to this workspace.
+                    </p>
+                    <p className="pt-1 text-center text-[13px] text-text-muted">
+                      Need access?{' '}
+                      <span className="text-text-secondary">
+                        Ask your Super Admin to send you a workspace invitation.
+                      </span>
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>

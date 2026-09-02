@@ -55,6 +55,13 @@ function isInviteExpiredError(decoded) {
   );
 }
 
+/** True when Google sign-in failed because the user is not invited / invite expired */
+export function isInviteGateError(code) {
+  if (!code) return false;
+  const decoded = decodeGoogleError(code);
+  return isNotInvitedError(decoded) || isInviteExpiredError(decoded);
+}
+
 /**
  * Returns { title, description? } for sonner toasts.
  * Use description when present for clearer invite-only messaging.

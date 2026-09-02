@@ -55,7 +55,7 @@ export default function RegisterPage() {
                 <div className="h-px flex-1 bg-border-subtle" />
               </div>
 
-              <GoogleAuthButton label="Continue with Google" inviteOnly />
+              <GoogleAuthButton label="Continue with Google" />
 
               <p className="text-center text-sm text-graphite">
                 Already have an account?{' '}

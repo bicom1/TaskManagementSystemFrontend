@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Archive, ExternalLink, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { MoreHorizontal, Star } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { projectPath } from '@/features/spaces/spaceKinds';
+import { useProjectFavoritesStore } from '../projectFavoritesStore';
+import { ProjectContextMenu } from './ProjectContextMenu';
 
 export function ProjectSidebarItem({
   project,
@@ -10,14 +13,16 @@ export function ProjectSidebarItem({
   isActive,
   activeClassName = 'bg-[var(--color-surface-2)] font-semibold text-[var(--color-text-primary)]',
   idleClassName = 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-1)] hover:text-[var(--color-text-primary)]',
+  onRename,
   onEdit,
+  onUpdate,
   onDelete,
-  onArchive,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const navigate = useNavigate();
   const canManage = canManageProp ?? Boolean(project?.canManage);
+  const isFavorite = useProjectFavoritesStore((s) => s.isFavorite(project._id));
+  const toggleFavorite = useProjectFavoritesStore((s) => s.toggleFavorite);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -32,7 +37,18 @@ export function ProjectSidebarItem({
     return () => document.removeEventListener('mousedown', close);
   }, [menuOpen]);
 
-  const isArchived = project?.status === 'archived';
+  const closeMenu = () => setMenuOpen(false);
+
+  const copyProjectLink = async () => {
+    const url = `${window.location.origin}${projectPath(project._id)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Project link copied');
+    } catch {
+      toast.error('Could not copy link');
+    }
+    closeMenu();
+  };
 
   return (
     <div className="group relative flex items-center gap-0.5">
@@ -50,6 +66,9 @@ export function ProjectSidebarItem({
           {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
         </span>
         <span className="min-w-0 flex-1 truncate">{project.name}</span>
+        {isFavorite && (
+          <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" aria-label="Favorite" />
+        )}
         {project.openTaskCount > 0 && (
           <span className="flex shrink-0 items-center justify-center rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums text-[var(--color-text-secondary)]">
             {project.openTaskCount}
@@ -76,54 +95,31 @@ export function ProjectSidebarItem({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 z-50 mt-1 w-44 overflow-hidden rounded-lg border border-hairline bg-paper shadow-[var(--shadow-soft-lift)]">
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-charcoal hover:bg-cloud"
-                onClick={() => {
-                  setMenuOpen(false);
-                  navigate(projectPath(project._id));
-                }}
-              >
-                <ExternalLink className="h-4 w-4 shrink-0" />
-                Open project
-              </button>
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-charcoal hover:bg-cloud"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onEdit?.(project);
-                }}
-              >
-                <Pencil className="h-4 w-4 shrink-0" />
-                Edit project
-              </button>
-              {!isArchived && (
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-charcoal hover:bg-cloud"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onArchive?.(project);
-                  }}
-                >
-                  <Archive className="h-4 w-4 shrink-0" />
-                  Archive
-                </button>
-              )}
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 border-t border-hairline px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDelete?.(project);
-                }}
-              >
-                <Trash2 className="h-4 w-4 shrink-0" />
-                Delete project
-              </button>
-            </div>
+            <ProjectContextMenu
+              isFavorite={isFavorite}
+              onFavorite={() => {
+                toggleFavorite(project._id);
+                toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+                closeMenu();
+              }}
+              onRename={() => {
+                closeMenu();
+                onRename?.(project);
+              }}
+              onCopyLink={copyProjectLink}
+              onEdit={() => {
+                closeMenu();
+                onEdit?.(project);
+              }}
+              onUpdate={() => {
+                closeMenu();
+                onUpdate?.(project);
+              }}
+              onDelete={() => {
+                closeMenu();
+                onDelete?.(project);
+              }}
+            />
           )}
         </div>
       )}

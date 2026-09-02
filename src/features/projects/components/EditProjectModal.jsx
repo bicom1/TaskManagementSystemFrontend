@@ -10,7 +10,13 @@ import { PROJECT_STATUS_LABELS } from '../api/projectApi';
 
 const COLOR_PRESETS = ['#292524', '#2563eb', '#7c3aed', '#db2777', '#ea580c', '#16a34a', '#0891b2'];
 
-export function EditProjectModal({ project, open, onClose }) {
+export function EditProjectModal({
+  project,
+  open,
+  onClose,
+  title = 'Edit project',
+  description = 'Update project details visible in the sidebar and board.',
+}) {
   const updateProject = useUpdateProject();
   const [form, setForm] = useState({ name: '', description: '', color: '#292524', status: 'active' });
 
@@ -46,8 +52,8 @@ export function EditProjectModal({ project, open, onClose }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Edit project"
-      description="Update project details visible in the sidebar and board."
+      title={title}
+      description={description}
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -118,7 +124,7 @@ export function EditProjectModal({ project, open, onClose }) {
             Cancel
           </Button>
           <Button type="submit" disabled={updateProject.isPending || !form.name.trim()}>
-            {updateProject.isPending ? 'Saving…' : 'Save changes'}
+            {updateProject.isPending ? 'Saving…' : title.startsWith('Update') ? 'Update' : 'Save changes'}
           </Button>
         </div>
       </form>

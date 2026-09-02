@@ -16,6 +16,8 @@ import {
   Star,
   Layers,
   ChevronLeft,
+  ChevronUp,
+  ChevronDown,
   Settings,
   Shield,
   Clock,
@@ -30,7 +32,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
-import { useArchiveProject, useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
+import { useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
@@ -38,7 +40,12 @@ import { usePendingApprovals } from '@/features/tasks/hooks/useTasks';
 import { projectPath } from '@/features/spaces/spaceKinds';
 import { ProjectSidebarItem } from '@/features/projects/components/ProjectSidebarItem';
 import { EditProjectModal } from '@/features/projects/components/EditProjectModal';
+import { RenameProjectModal } from '@/features/projects/components/RenameProjectModal';
 import { DeleteProjectModal } from '@/features/projects/components/DeleteProjectModal';
+import {
+  sortProjectsByFavorite,
+  useProjectFavoritesStore,
+} from '@/features/projects/projectFavoritesStore';
 import { UserAvatar } from '@/components/UserAvatar';
 import { canManageOrg } from '@/lib/roles';
 import { cn } from '@/lib/utils';
@@ -136,14 +143,49 @@ function SectionTitle({ title, action }) {
   );
 }
 
+function CollapsibleSection({ title, defaultOpen = true, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div>
+      <div className="mb-1 mt-5 flex items-center justify-between px-2.5">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+        >
+          <span
+            className="text-[10.5px] font-semibold uppercase tracking-[0.09em]"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            {title}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+          aria-label={open ? `Collapse ${title}` : `Expand ${title}`}
+        >
+          {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+      {open && children}
+    </div>
+  );
+}
+
 function SidebarProjectsList({ projects, canManageProjects, limit }) {
   const location = useLocation();
-  const archiveProject = useArchiveProject();
+  const favoriteIds = useProjectFavoritesStore((s) => s.favoriteIds);
+  const [renameProject, setRenameProject] = useState(null);
   const [editProject, setEditProject] = useState(null);
+  const [updateProject, setUpdateProject] = useState(null);
   const [deleteProject, setDeleteProject] = useState(null);
 
-  const activeProjects = (limit ? projects.slice(0, limit) : projects).filter(
-    (p) => p.status !== 'archived'
+  const activeProjects = sortProjectsByFavorite(
+    (limit ? projects.slice(0, limit) : projects).filter((p) => p.status !== 'archived'),
+    favoriteIds
   );
 
   return (
@@ -156,9 +198,10 @@ function SidebarProjectsList({ projects, canManageProjects, limit }) {
               project={project}
               canManage={canManageProjects}
               isActive={location.pathname.startsWith(projectPath(project._id))}
+              onRename={setRenameProject}
               onEdit={setEditProject}
+              onUpdate={setUpdateProject}
               onDelete={setDeleteProject}
-              onArchive={(p) => archiveProject.mutate(p._id)}
             />
           ))
         ) : (
@@ -166,10 +209,23 @@ function SidebarProjectsList({ projects, canManageProjects, limit }) {
         )}
       </div>
 
+      <RenameProjectModal
+        project={renameProject}
+        open={Boolean(renameProject)}
+        onClose={() => setRenameProject(null)}
+      />
       <EditProjectModal
         project={editProject}
         open={Boolean(editProject)}
         onClose={() => setEditProject(null)}
+        title="Edit project"
+      />
+      <EditProjectModal
+        project={updateProject}
+        open={Boolean(updateProject)}
+        onClose={() => setUpdateProject(null)}
+        title="Update project"
+        description="Update project details, status, and appearance."
       />
       <DeleteProjectModal
         project={deleteProject}
@@ -267,69 +323,47 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
         />
       </div>
 
-      {/* Project channels */}
-      <SectionTitle
-        title="Channels"
-        action={
-          <button
-            type="button"
-            onClick={handleAddProject}
-            className="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-            title="Add channel"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
-        }
-      />
-      <div className="space-y-0.5">
-        {projects.filter((p) => p.status !== 'archived').slice(0, 8).map((project) => (
+      {/* All Projects — top slot (was Channels) */}
+      <CollapsibleSection title="All Projects">
+        <div className="space-y-0.5">
           <ClickUpNavItem
-            key={project._id}
-            to={`/projects/${project._id}?view=channel`}
-            label={project.name}
-            icon={Hash}
+            to="/projects"
+            end
+            label="All Projects"
+            icon={FolderKanban}
+            badge={projects.length > 0 ? projects.length : undefined}
           />
-        ))}
-        {projects.filter((p) => p.status !== 'archived').length === 0 && (
-          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No channels yet</p>
-        )}
-      </div>
-
-      {/* All Projects — moved below channels */}
-      <SectionTitle
-        title="All Projects"
-        action={
+          <SidebarProjectsList
+            projects={projects}
+            canManageProjects={isSuperAdmin}
+          />
           <button
             type="button"
             onClick={handleAddProject}
-            className="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-            title="Add project"
+            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-500 hover:bg-[#f4f5f7] hover:text-gray-900 transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
+            <span>Add Project</span>
           </button>
-        }
-      />
-      <div className="space-y-0.5">
-        <ClickUpNavItem
-          to="/projects"
-          end
-          label="All Projects"
-          icon={FolderKanban}
-          badge={projects.length > 0 ? projects.length : undefined}
-        />
-        <SidebarProjectsList
-          projects={projects}
-          canManageProjects={isSuperAdmin}
-        />
-        <button
-          type="button"
-          onClick={handleAddProject}
-          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-500 hover:bg-[#f4f5f7] hover:text-gray-900 transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>Add Project</span>
-        </button>
-      </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Channels — below projects (was All Projects slot) */}
+      <CollapsibleSection title="Channels">
+        <div className="space-y-0.5">
+          {projects.filter((p) => p.status !== 'archived').slice(0, 8).map((project) => (
+            <ClickUpNavItem
+              key={project._id}
+              to={`/projects/${project._id}?view=channel`}
+              label={project.name}
+              icon={Hash}
+            />
+          ))}
+          {projects.filter((p) => p.status !== 'archived').length === 0 && (
+            <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No channels yet</p>
+          )}
+        </div>
+      </CollapsibleSection>
 
       {/* Real Direct Messages Section */}
       <SectionTitle title="Direct Messages" />

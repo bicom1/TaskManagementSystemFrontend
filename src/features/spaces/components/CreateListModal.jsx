@@ -51,7 +51,16 @@ export function CreateListModal({ open, onClose, onUseTemplates }) {
   const canCreate = name.trim().length >= 2 && Boolean(team);
 
   return (
-    <Modal open={open} onClose={onClose} title="Create List" size="md" bodyClassName="min-h-[320px]">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Create List"
+      description="Track tasks, projects, and people in a focused list workspace."
+      size="md"
+      variant="premium"
+      badge="New list"
+      tone="brand"
+    >
       <form
         className="space-y-4 animate-fade-in"
         onSubmit={(e) => {
@@ -92,7 +101,7 @@ export function CreateListModal({ open, onClose, onUseTemplates }) {
 
         <PrivateToggle checked={isPrivate} onChange={setIsPrivate} />
 
-        <div className="flex items-center justify-between gap-2 border-t border-hairline pt-4">
+        <div className="flex items-center justify-between gap-2 border-t border-hairline/80 pt-4">
           <Button type="button" variant="ghost" className="gap-2" onClick={onUseTemplates}>
             <Wand2 className="h-4 w-4" />
             Use Templates

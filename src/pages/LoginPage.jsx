@@ -46,23 +46,13 @@ export default function LoginPage() {
           style={{ background: 'radial-gradient(circle, var(--color-brand-500), transparent 70%)' }}
         />
 
-        {/* Top banner */}
-        <div className="relative z-10 flex h-11 items-center border-b border-white/5 px-4">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/45">
-              BIWORKSPACE
-            </span>
-            <span className="hidden text-[12px] text-white/25 sm:inline">Plan · Track · Ship</span>
-          </div>
-        </div>
-
         {/* Main */}
         <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-12 sm:py-16">
           <div className="w-full max-w-[392px] animate-slide-up">
             <div className="overflow-hidden rounded-2xl border border-border-subtle bg-surface-0 shadow-[var(--shadow-2xl)]">
               <div className="px-7 pb-5 pt-7">
                 <BrandLogo asLink={false} size="md" />
-                <h1 className="voice-line mt-5 text-[24px] text-text-primary">Welcome back</h1>
+                <h1 className="voice-line mt-5 text-center text-[24px] text-text-primary">Welcome back</h1>
                 <p className="mt-1.5 text-[13px] text-text-muted">
                   Sign in to your projects, tasks, and team workspace.
                 </p>
@@ -101,7 +91,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 px-4 py-5 text-center text-[11px] text-white/20">
+        <div className="relative z-10 px-4 py-5 text-center text-[11px] text-white">
           © {new Date().getFullYear()} BIWORKSPACE
         </div>
       </div>

@@ -47,11 +47,13 @@ export function CreateSprintFolderModal({ open, onClose }) {
       title={step === 1 ? 'Create Sprint folder' : 'Review Sprint folder'}
       description={
         step === 1
-          ? 'Sprint folders help keep your Sprints organized and let you manage Sprint-specific settings.'
+          ? 'Sprint folders help keep your sprints organized and let you manage sprint-specific settings.'
           : 'Confirm settings before creating your sprint folder.'
       }
       size="md"
-      bodyClassName="min-h-[420px]"
+      variant="premium"
+      badge="Sprint folder"
+      tone="emerald"
     >
       {step === 1 ? (
         <div className="space-y-4 animate-fade-in">

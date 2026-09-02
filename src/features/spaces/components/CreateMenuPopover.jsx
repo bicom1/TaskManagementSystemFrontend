@@ -51,13 +51,13 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
       className={cn(
         'z-[80] flex w-full flex-col overflow-hidden border border-white/60 bg-paper shadow-[0_24px_80px_rgba(15,15,19,0.22)] animate-scale-in',
         centered
-          ? 'min-h-[520px] max-w-[420px] rounded-[22px]'
+          ? 'max-w-[420px] rounded-[22px]'
           : 'w-[300px] rounded-2xl border-hairline bg-paper/95 shadow-[0_12px_40px_rgba(0,0,0,0.14)] backdrop-blur-md',
         className
       )}
     >
       {centered ? (
-        <div className="relative overflow-hidden border-b border-hairline/80 px-6 pb-5 pt-6">
+        <div className="relative overflow-hidden border-b border-hairline/80 px-5 pb-4 pt-5">
           <div
             className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full opacity-40 blur-3xl"
             style={{ background: 'radial-gradient(circle, var(--color-brand-300), transparent 70%)' }}
@@ -68,12 +68,12 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
           />
           <div className="relative flex items-start justify-between gap-3">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand-200/60 bg-brand-50/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-700">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-brand-200/60 bg-brand-50/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-700">
                 <Sparkles className="h-3 w-3" />
                 New workspace item
               </div>
-              <h2 className="text-xl font-semibold tracking-tight text-ink">What would you like to create?</h2>
-              <p className="mt-1.5 max-w-[280px] text-sm leading-relaxed text-graphite">
+              <h2 className="text-lg font-semibold tracking-tight text-ink">What would you like to create?</h2>
+              <p className="mt-1 max-w-[280px] text-sm leading-snug text-graphite">
                 Pick a structure for your work — lists, folders, or sprint groups.
               </p>
             </div>
@@ -93,7 +93,7 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
         </div>
       )}
 
-      <div className={cn('flex-1', centered ? 'space-y-2.5 p-5' : 'space-y-1 p-2')}>
+      <div className={cn('flex-1', centered ? 'space-y-2 p-4' : 'space-y-1 p-2')}>
         {CREATE_MENU_PRIMARY.map((item) => {
           const Icon = item.icon;
           return (
@@ -106,7 +106,7 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
                 'group flex w-full items-center gap-3.5 text-left transition-all',
                 centered
                   ? cn(
-                      'rounded-2xl border border-hairline/80 bg-gradient-to-br from-white to-surface-1/80 p-4 shadow-sm ring-1 ring-transparent hover:-translate-y-0.5 hover:border-hairline hover:shadow-md',
+                      'rounded-xl border border-hairline/80 bg-gradient-to-br from-white to-surface-1/80 p-3 shadow-sm ring-1 ring-transparent hover:-translate-y-0.5 hover:border-hairline hover:shadow-md',
                       item.ring
                     )
                   : 'rounded-xl px-3 py-2.5 hover:bg-cloud'
@@ -115,7 +115,7 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
               <span
                 className={cn(
                   'relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-sm',
-                  centered ? 'h-12 w-12' : 'h-9 w-9 rounded-lg border border-hairline bg-cloud',
+                  centered ? 'h-10 w-10' : 'h-9 w-9 rounded-lg border border-hairline bg-cloud',
                   centered && item.iconBg
                 )}
               >
@@ -127,13 +127,13 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
                     )}
                   />
                 )}
-                <Icon className={cn('relative z-[1]', centered ? 'h-5 w-5' : 'h-4 w-4 text-ink')} />
+                <Icon className={cn('relative z-[1]', centered ? 'h-4 w-4' : 'h-4 w-4 text-ink')} />
               </span>
               <span className="min-w-0 flex-1">
                 <span
                   className={cn(
                     'block font-semibold text-ink transition-colors group-hover:text-brand-700',
-                    centered ? 'text-[15px]' : 'text-sm'
+                    centered ? 'text-sm' : 'text-sm'
                   )}
                 >
                   {item.label}
@@ -153,15 +153,15 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
       <div
         className={cn(
           'border-t border-hairline/80',
-          centered ? 'bg-surface-1/40 px-5 py-4' : 'p-2'
+          centered ? 'bg-surface-1/40 px-4 py-3' : 'p-2'
         )}
       >
         {centered ? (
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-graphite">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-graphite">
             More options
           </p>
         ) : null}
-        <div className={cn(centered ? 'grid grid-cols-2 gap-2.5' : 'space-y-0.5')}>
+        <div className={cn(centered ? 'grid grid-cols-2 gap-2' : 'space-y-0.5')}>
           {CREATE_MENU_FOOTER.map((item) => {
             const Icon = item.icon;
             return (
@@ -173,7 +173,7 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
                 className={cn(
                   'flex items-center gap-2.5 text-left transition-colors',
                   centered
-                    ? 'rounded-xl border border-hairline/80 bg-white px-3.5 py-3 hover:border-brand-200 hover:bg-brand-50/40'
+                    ? 'rounded-xl border border-hairline/80 bg-white px-3 py-2.5 hover:border-brand-200 hover:bg-brand-50/40'
                     : 'w-full rounded-lg px-3 py-2 hover:bg-cloud'
                 )}
               >
@@ -264,7 +264,7 @@ export function CreateMenuPopover({ open, onClose, onSelect, anchorRef, centered
 
   if (useModal) {
     return (
-      <div className="fixed inset-0 z-[75] flex items-center justify-center px-4 py-8">
+      <div className="fixed inset-0 z-[75] flex items-center justify-center px-4 py-6">
         <div
           className="absolute inset-0 bg-[rgba(8,8,12,0.55)] backdrop-blur-[6px]"
           onClick={onClose}

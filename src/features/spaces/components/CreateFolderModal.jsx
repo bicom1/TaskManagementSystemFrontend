@@ -62,9 +62,11 @@ export function CreateFolderModal({ open, onClose, onUseTemplates }) {
       open={open}
       onClose={onClose}
       title="Create Folder"
-      description="Use Folders to organize your Lists and projects."
+      description="Use folders to organize your lists and related projects."
       size="md"
-      bodyClassName="min-h-[380px]"
+      variant="premium"
+      badge="New folder"
+      tone="amber"
     >
       <form
         className="space-y-4 animate-fade-in"
@@ -142,7 +144,7 @@ export function CreateFolderModal({ open, onClose, onUseTemplates }) {
 
         <PrivateToggle checked={isPrivate} onChange={setIsPrivate} />
 
-        <div className="flex items-center justify-between gap-2 border-t border-hairline pt-4">
+        <div className="flex items-center justify-between gap-2 border-t border-hairline/80 pt-4">
           <Button type="button" variant="ghost" className="gap-2" onClick={onUseTemplates}>
             <Wand2 className="h-4 w-4" />
             Use Templates

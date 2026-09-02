@@ -137,11 +137,14 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
       open={open}
       onClose={onClose}
       size="lg"
-      title={step === 1 ? 'Create a Project' : 'Define your workflow.'}
+      variant="premium"
+      badge="Templates"
+      tone="brand"
+      title={step === 1 ? 'Create a Project' : 'Define your workflow'}
       description={
         step === 1
           ? 'A project groups tasks, workflows, and views for a team or initiative.'
-          : 'Choose a pre-configured solution or customize to your liking with apps, required views, and task statuses.'
+          : 'Choose a pre-configured solution or customize apps, views, and task statuses.'
       }
       bodyClassName="pb-2"
     >

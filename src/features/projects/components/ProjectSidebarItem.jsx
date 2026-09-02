@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { MoreHorizontal, Star } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,23 +19,9 @@ export function ProjectSidebarItem({
   onDelete,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
   const canManage = canManageProp ?? Boolean(project?.canManage);
   const isFavorite = useProjectFavoritesStore((s) => s.isFavorite(project._id));
   const toggleFavorite = useProjectFavoritesStore((s) => s.toggleFavorite);
-
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-
-    const close = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [menuOpen]);
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -77,16 +63,16 @@ export function ProjectSidebarItem({
       </NavLink>
 
       {canManage && (
-        <div className="relative shrink-0" ref={menuRef}>
+        <>
           <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              setMenuOpen((v) => !v);
+              setMenuOpen(true);
             }}
             className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-1)] hover:text-[var(--color-text-primary)]',
+              'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-1)] hover:text-[var(--color-text-primary)]',
               menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
             )}
             aria-label={`Project options for ${project.name}`}
@@ -94,34 +80,35 @@ export function ProjectSidebarItem({
             <MoreHorizontal className="h-4 w-4" />
           </button>
 
-          {menuOpen && (
-            <ProjectContextMenu
-              isFavorite={isFavorite}
-              onFavorite={() => {
-                toggleFavorite(project._id);
-                toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
-                closeMenu();
-              }}
-              onRename={() => {
-                closeMenu();
-                onRename?.(project);
-              }}
-              onCopyLink={copyProjectLink}
-              onEdit={() => {
-                closeMenu();
-                onEdit?.(project);
-              }}
-              onUpdate={() => {
-                closeMenu();
-                onUpdate?.(project);
-              }}
-              onDelete={() => {
-                closeMenu();
-                onDelete?.(project);
-              }}
-            />
-          )}
-        </div>
+          <ProjectContextMenu
+            open={menuOpen}
+            onClose={closeMenu}
+            project={project}
+            isFavorite={isFavorite}
+            onFavorite={() => {
+              toggleFavorite(project._id);
+              toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+              closeMenu();
+            }}
+            onRename={() => {
+              closeMenu();
+              onRename?.(project);
+            }}
+            onCopyLink={copyProjectLink}
+            onEdit={() => {
+              closeMenu();
+              onEdit?.(project);
+            }}
+            onUpdate={() => {
+              closeMenu();
+              onUpdate?.(project);
+            }}
+            onDelete={() => {
+              closeMenu();
+              onDelete?.(project);
+            }}
+          />
+        </>
       )}
     </div>
   );

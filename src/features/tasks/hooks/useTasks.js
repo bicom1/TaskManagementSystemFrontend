@@ -7,6 +7,68 @@ import { getSocket } from '@/api/socketClient';
 const BOARD_KEY = 'task-board';
 const TASK_KEY = 'task';
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Coalesce rapid assignee toggles into one PATCH per task */
+const assigneeDebounceWaiters = new Map();
+const assigneeDebounceTimers = new Map();
+
+function makeSupersededError() {
+  const err = new Error('assignee-update-superseded');
+  err.isSuperseded = true;
+  err.silent = true;
+  return err;
+}
+
+function debounceAssigneeUpdate(taskId, buildRequest) {
+  const key = String(taskId);
+  return new Promise((resolve, reject) => {
+    const existing = assigneeDebounceWaiters.get(key);
+    if (existing) {
+      // Drop older in-flight mutate() calls without rolling UI back
+      existing.rejecters.forEach((r) => r(makeSupersededError()));
+    }
+
+    assigneeDebounceWaiters.set(key, {
+      resolvers: [resolve],
+      rejecters: [reject],
+      buildRequest,
+    });
+
+    const prevTimer = assigneeDebounceTimers.get(key);
+    if (prevTimer) clearTimeout(prevTimer);
+
+    assigneeDebounceTimers.set(
+      key,
+      setTimeout(async () => {
+        const batch = assigneeDebounceWaiters.get(key);
+        assigneeDebounceWaiters.delete(key);
+        assigneeDebounceTimers.delete(key);
+        if (!batch?.buildRequest) return;
+        try {
+          const result = await batch.buildRequest();
+          batch.resolvers.forEach((r) => r(result));
+        } catch (err) {
+          batch.rejecters.forEach((r) => r(err));
+        }
+      }, 450)
+    );
+  });
+}
+
+async function patchTaskWithRetry(id, body, { retries = 2 } = {}) {
+  try {
+    return await taskApi.update(id, body);
+  } catch (error) {
+    const status = error?.response?.status;
+    if (status === 429 && retries > 0) {
+      await sleep(700 * (3 - retries));
+      return patchTaskWithRetry(id, body, { retries: retries - 1 });
+    }
+    throw error;
+  }
+}
+
 function collectPeopleMap(queryClient, previousAssignees = []) {
   const map = new Map();
   for (const a of previousAssignees || []) {
@@ -185,7 +247,16 @@ export function useUpdateTask(projectId, { silent = false } = {}) {
       if (Array.isArray(body.assignees)) {
         body.assignees = body.assignees.map((a) => String(a?._id || a));
       }
-      return taskApi.update(id, body);
+
+      const keys = Object.keys(body);
+      const assigneeOnly = keys.length === 1 && Array.isArray(body.assignees);
+
+      // Rapid assignee clicks → one network request after a short pause
+      if (assigneeOnly) {
+        return debounceAssigneeUpdate(id, () => patchTaskWithRetry(id, body));
+      }
+
+      return patchTaskWithRetry(id, body);
     },
 
     onMutate: async ({ id, payload, optimistic }) => {
@@ -215,16 +286,26 @@ export function useUpdateTask(projectId, { silent = false } = {}) {
         );
       }
 
-      return { previousBoard, previousTask, detailKey };
+      return { previousBoard, previousTask, detailKey, payload };
     },
 
-    onError: (error, _variables, context) => {
+    onError: (error, variables, context) => {
+      // Older assignee clicks replaced by a newer one — keep optimistic UI
+      if (error?.isSuperseded || error?.silent) return;
+
       if (context?.previousBoard && projectId) {
         queryClient.setQueryData(boardKey, context.previousBoard);
       }
       if (context?.previousTask && context?.detailKey) {
         queryClient.setQueryData(context.detailKey, context.previousTask);
       }
+
+      const status = error?.response?.status;
+      if (status === 429) {
+        toast.error('Please wait a moment, then try again');
+        return;
+      }
+
       const data = error?.response?.data;
       const details = data?.errors?.map((err) => err.message).filter(Boolean).join(', ');
       toast.error(details || data?.message || 'Failed to update task');

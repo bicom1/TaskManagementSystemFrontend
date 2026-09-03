@@ -7,10 +7,14 @@ export function isOwnTask(user, task) {
   return (task.assignees || []).some((a) => String(a._id || a) === uid);
 }
 
-/** Super Admin can manage any task; others only their own (assignee/reporter). */
+/**
+ * Any authenticated user who can open a task can edit it
+ * (status, assignees, details). Backend mirrors this via getTaskAccess.
+ */
 export function canManageTask(user, task) {
   if (!user || !task) return false;
   if (user.role === ROLES.SUPER_ADMIN) return true;
   if (task.canManage != null) return Boolean(task.canManage);
-  return isOwnTask(user, task);
+  // Fallback when API has not attached canManage yet — allow edit for viewers.
+  return true;
 }

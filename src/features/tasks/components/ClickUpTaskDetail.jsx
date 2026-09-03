@@ -482,7 +482,7 @@ export function ClickUpTaskDetail({
 
               {!canEditTask && (
                 <p className="mt-2 text-xs text-graphite">
-                  View only — you can edit tasks assigned to you or any task as Super Admin.
+                  View only — you do not have permission to edit this task.
                 </p>
               )}
 

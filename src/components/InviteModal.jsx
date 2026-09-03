@@ -56,7 +56,7 @@ export function InviteModal({
   const teams = teamsData?.data ?? [];
 
   const [result, setResult] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(null);
 
   const invitableByActor = useMemo(() => getInvitableRoles(role), [role]);
 
@@ -267,7 +267,7 @@ export function InviteModal({
       setAsTeamLead: false,
     });
     setResult(null);
-    setCopied(false);
+    setCopied(null);
   };
 
   const handleClose = () => {
@@ -341,7 +341,11 @@ export function InviteModal({
           email: values.email,
           name: values.name || data?.user?.name,
           temporaryPassword: data?.temporaryPassword,
-          acceptUrl: data?.acceptUrl,
+          inviteToken: data?.inviteToken,
+          acceptUrl:
+            data?.inviteToken
+              ? `${window.location.origin}/accept-invite?token=${data.inviteToken}`
+              : data?.acceptUrl,
           loginUrl: data?.loginUrl || `${window.location.origin}/login`,
           emailSent: data?.emailSent,
           emailError: data?.emailError,
@@ -367,12 +371,12 @@ export function InviteModal({
     });
   };
 
-  const copyText = async (text) => {
+  const copyText = async (text, kind = 'credentials') => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
-      toast.success('Copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
+      setCopied(kind);
+      toast.success(kind === 'link' ? 'Invite link copied' : 'Copied to clipboard');
+      setTimeout(() => setCopied(null), 2000);
     } catch {
       toast.error('Could not copy — select and copy manually');
     }
@@ -425,10 +429,33 @@ export function InviteModal({
               </p>
             ) : null}
             {result.acceptUrl && (
-              <div className="mt-3 space-y-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-graphite">Direct invite link</p>
-                <p className="break-all rounded-md bg-paper px-3 py-2 text-sm font-medium text-ink">
-                  {result.acceptUrl}
+              <div className="mt-3 space-y-1.5">
+                <p className="text-xs font-medium uppercase tracking-wide text-graphite">
+                  Direct invite link
+                </p>
+                <div className="flex items-stretch gap-2">
+                  <a
+                    href={result.acceptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="min-w-0 flex-1 break-all rounded-md border border-hairline bg-paper px-3 py-2 text-sm font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:bg-cloud hover:decoration-primary"
+                  >
+                    {result.acceptUrl}
+                  </a>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-auto shrink-0 px-3"
+                    title="Copy invite link"
+                    onClick={() => copyText(result.acceptUrl, 'link')}
+                  >
+                    {copied === 'link' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied === 'link' ? 'Copied' : 'Copy'}
+                  </Button>
+                </div>
+                <p className="text-xs leading-relaxed text-graphite">
+                  Click the link to open it, or copy and send it. They set a new password on that
+                  page and can sign in — email is not required.
                 </p>
               </div>
             )}
@@ -464,11 +491,12 @@ export function InviteModal({
                     `Password: ${result.temporaryPassword || ''}`,
                   ]
                     .filter(Boolean)
-                    .join('\n')
+                    .join('\n'),
+                  'credentials'
                 )
               }
             >
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied === 'credentials' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               Copy credentials
             </Button>
           </div>

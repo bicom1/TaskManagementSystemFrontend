@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { userApi } from '@/features/users/api/userApi';
+import { authApi } from '@/features/auth/api/authApi';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -14,6 +16,7 @@ export default function AcceptInvitePage() {
   const [params] = useSearchParams();
   const token = params.get('token') || '';
   const navigate = useNavigate();
+  const setAuth = useAuthStore((s) => s.setAuth);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,8 +59,22 @@ export default function AcceptInvitePage() {
         password: values.password,
         name: values.name || undefined,
       });
-      toast.success('Invite accepted — you can sign in now');
-      navigate('/login', { replace: true });
+      try {
+        const { user, accessToken } = await authApi.login({
+          email: preview?.email,
+          password: values.password,
+        });
+        setAuth(user, accessToken);
+        toast.success('Password saved — you are signed in');
+        navigate('/', { replace: true });
+        return;
+      } catch {
+        toast.success('Password saved — sign in with your new password');
+        navigate(
+          `/login?email=${encodeURIComponent(preview?.email || '')}`,
+          { replace: true }
+        );
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Could not accept invite');
     }
@@ -77,7 +94,7 @@ export default function AcceptInvitePage() {
         <BrandLogo size="lg" />
       </div>
       <div className="w-full max-w-md rounded-2xl border border-hairline bg-paper p-6 shadow-[var(--shadow-soft-lift)]">
-        <h1 className="text-xl font-semibold text-ink">Accept invite</h1>
+        <h1 className="text-xl font-semibold text-ink">Set your password</h1>
         {error ? (
           <div className="mt-4 space-y-4">
             <p className="text-sm text-bloom-coral">{error}</p>
@@ -88,10 +105,11 @@ export default function AcceptInvitePage() {
         ) : (
           <>
             <p className="mt-2 text-sm text-graphite">
-              Welcome{preview?.name ? `, ${preview.name}` : ''}. Set a password to activate your
+              Welcome{preview?.name ? `, ${preview.name}` : ''}. Choose a password to activate your
               account
               {preview?.role ? ` as ${getRoleLabel(preview.role)}` : ''}
-              {preview?.department?.name ? ` in ${preview.department.name}` : ''}.
+              {preview?.department?.name ? ` in ${preview.department.name}` : ''}. You can sign in
+              right after this — no email needed.
             </p>
             <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
               <div className="space-y-2">
@@ -109,10 +127,11 @@ export default function AcceptInvitePage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="accept-password">Password</Label>
+                <Label htmlFor="accept-password">New password</Label>
                 <Input
                   id="accept-password"
                   type="password"
+                  autoComplete="new-password"
                   {...register('password', {
                     required: 'Password is required',
                     minLength: { value: 8, message: 'At least 8 characters' },
@@ -131,11 +150,12 @@ export default function AcceptInvitePage() {
                 <Input
                   id="accept-confirm"
                   type="password"
+                  autoComplete="new-password"
                   {...register('confirm', { required: 'Confirm your password' })}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Activating…' : 'Activate account'}
+                {isSubmitting ? 'Saving…' : 'Save password & continue'}
               </Button>
             </form>
           </>

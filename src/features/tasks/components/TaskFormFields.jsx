@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
 import {
   TASK_STATUSES,
   STATUS_LABELS,
@@ -228,6 +229,7 @@ export function TaskFormFields({
   value,
   onChange,
   people = [],
+  parentTasks = [],
   showStatus = true,
   compact = false,
   idPrefix = 'task',
@@ -286,6 +288,58 @@ export function TaskFormFields({
           required
         />
       </div>
+
+      {parentTasks.length > 0 && (
+        <div className="space-y-2">
+          <Label>Create as</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => patch({ createAs: 'task', parentTask: '' })}
+              className={cn(
+                'rounded-xl border px-3 py-2.5 text-left text-sm',
+                (value.createAs || 'task') === 'task'
+                  ? 'border-ink bg-cloud font-semibold text-ink'
+                  : 'border-hairline text-graphite hover:bg-cloud'
+              )}
+            >
+              Main task
+              <span className="mt-0.5 block text-[11px] font-normal text-graphite">
+                Standalone parent
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => patch({ createAs: 'subtask' })}
+              className={cn(
+                'rounded-xl border px-3 py-2.5 text-left text-sm',
+                value.createAs === 'subtask'
+                  ? 'border-ink bg-cloud font-semibold text-ink'
+                  : 'border-hairline text-graphite hover:bg-cloud'
+              )}
+            >
+              Subtask
+              <span className="mt-0.5 block text-[11px] font-normal text-graphite">
+                Inside an existing task
+              </span>
+            </button>
+          </div>
+          {value.createAs === 'subtask' && (
+            <Select
+              id={`${idPrefix}-parent`}
+              value={value.parentTask || ''}
+              onChange={(e) => patch({ parentTask: e.target.value })}
+            >
+              <option value="">Select parent task</option>
+              {parentTasks.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.title}
+                </option>
+              ))}
+            </Select>
+          )}
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor={`${idPrefix}-description`}>Description</Label>
@@ -469,12 +523,98 @@ export function TaskFormFields({
           </button>
         </div>
       </div>
+
+      {(value.createAs || 'task') !== 'subtask' && (
+        <div className="space-y-3 rounded-xl border border-hairline bg-cloud/30 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-ink">Subtasks inside this task</p>
+              <p className="text-xs text-graphite">Optional — each gets its own name, description, assignees, and due date</p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="gap-1"
+              onClick={() =>
+                patch({
+                  nestedSubtasks: [
+                    ...(value.nestedSubtasks || []),
+                    {
+                      key: `${Date.now()}`,
+                      title: '',
+                      description: '',
+                      assignees: [],
+                      dueDateLocal: '',
+                    },
+                  ],
+                })
+              }
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add
+            </Button>
+          </div>
+          {(value.nestedSubtasks || []).map((sub, index) => (
+            <div key={sub.key || index} className="space-y-2 rounded-lg border border-hairline bg-paper p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-graphite">
+                  Subtask {index + 1}
+                </p>
+                <button
+                  type="button"
+                  className="text-xs text-graphite hover:text-ink"
+                  onClick={() =>
+                    patch({
+                      nestedSubtasks: (value.nestedSubtasks || []).filter((_, i) => i !== index),
+                    })
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+              <Input
+                value={sub.title}
+                onChange={(e) => {
+                  const next = [...(value.nestedSubtasks || [])];
+                  next[index] = { ...sub, title: e.target.value };
+                  patch({ nestedSubtasks: next });
+                }}
+                placeholder="Subtask name"
+              />
+              <Textarea
+                rows={2}
+                value={sub.description}
+                onChange={(e) => {
+                  const next = [...(value.nestedSubtasks || [])];
+                  next[index] = { ...sub, description: e.target.value };
+                  patch({ nestedSubtasks: next });
+                }}
+                placeholder="Description"
+              />
+              <Input
+                type="datetime-local"
+                value={sub.dueDateLocal || ''}
+                onChange={(e) => {
+                  const next = [...(value.nestedSubtasks || [])];
+                  next[index] = { ...sub, dueDateLocal: e.target.value };
+                  patch({ nestedSubtasks: next });
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export function buildTaskPayload(formValue) {
   const title = String(formValue.title || '').trim();
+  const parentTask =
+    formValue.createAs === 'subtask' && formValue.parentTask
+      ? String(formValue.parentTask)
+      : undefined;
   return {
     title,
     description: String(formValue.description || '').trim() || '',
@@ -483,6 +623,7 @@ export function buildTaskPayload(formValue) {
     assignees: (formValue.assignees || []).map(String),
     labels: formValue.labels || [],
     dueDate: fromDatetimeLocalValue(formValue.dueDateLocal),
+    ...(parentTask ? { parentTask } : {}),
   };
 }
 
@@ -494,6 +635,9 @@ export const EMPTY_TASK_FORM = {
   assignees: [],
   labels: [],
   dueDateLocal: '',
+  createAs: 'task',
+  parentTask: '',
+  nestedSubtasks: [],
 };
 
 export const NEXT_STATUS = {

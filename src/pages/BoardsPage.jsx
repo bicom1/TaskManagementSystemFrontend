@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { PROJECT_STATUS_LABELS } from '@/features/projects/api/projectApi';
 
 export default function BoardsPage() {
-  const { data, isLoading } = useProjects({ limit: 50 });
+  const { data, isLoading } = useProjects({ limit: 500 });
   const projects = data?.data ?? [];
 
   if (isLoading) {

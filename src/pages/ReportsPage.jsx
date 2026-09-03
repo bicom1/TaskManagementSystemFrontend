@@ -39,7 +39,7 @@ function toChartEntries(map, labels = {}) {
 }
 
 export default function ReportsPage() {
-  const { data: projectsData, isLoading: projectsLoading } = useProjects({ limit: 100 });
+  const { data: projectsData, isLoading: projectsLoading } = useProjects({ limit: 500 });
   const projects = projectsData?.data ?? [];
   const [scope, setScope] = useState('workspace');
   const [projectId, setProjectId] = useState('');

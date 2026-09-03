@@ -31,8 +31,12 @@ export const userApi = {
     axiosClient.patch('/users/me/password', payload).then((r) => r.data),
 
   previewInvite: (token) =>
-    axiosClient.get('/users/invite/preview', { params: { token } }).then((r) => r.data.data),
+    axiosClient
+      .get('/users/invite/preview', { params: { token }, skipAuthRefresh: true, skipAuth: true })
+      .then((r) => r.data.data),
 
   acceptInvite: (payload) =>
-    axiosClient.post('/users/invite/accept', payload).then((r) => r.data.data),
+    axiosClient
+      .post('/users/invite/accept', payload, { skipAuthRefresh: true, skipAuth: true })
+      .then((r) => r.data.data),
 };

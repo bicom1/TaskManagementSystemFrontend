@@ -25,7 +25,7 @@ export default function ProjectsPage() {
   const user = useAuthStore((s) => s.user);
   const canCreate = Boolean(user);
   const openCreateMenu = useCreateProjectUiStore((s) => s.openCreateMenu);
-  const { data, isLoading } = useProjects({ limit: 100 });
+  const { data, isLoading } = useProjects({ limit: 500 });
   useLiveSpaces();
 
   const projects = useMemo(

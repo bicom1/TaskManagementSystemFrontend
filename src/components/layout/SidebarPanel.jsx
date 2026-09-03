@@ -708,7 +708,7 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
   const user = useAuthStore((s) => s.user);
   const { data: unreadCount = 0 } = useUnreadCount();
   const { data: home } = useHomeOverview();
-  const { data: projectsData } = useProjects({ limit: 50 });
+  const { data: projectsData } = useProjects({ limit: 500 });
   const { data: teamsData } = useTeams({ limit: 50 });
   const { data: usersData } = useUsers({ limit: 30 });
 

@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -9,12 +9,15 @@ import { useLogin } from '../hooks/useAuth';
 
 export function LoginForm() {
   const login = useLogin();
+  const [params] = useSearchParams();
+  const invitedEmail = params.get('email') || '';
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
+    defaultValues: { email: invitedEmail, password: '' },
   });
 
   const onSubmit = (values) => {

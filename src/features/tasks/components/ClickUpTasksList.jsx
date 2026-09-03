@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarPlus, ChevronRight, Flag, GitBranch, Plus, UserPlus, X } from 'lucide-react';
+import { CalendarPlus, Flag, GitBranch, Plus, UserPlus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/UserAvatar';
 import { canManageTask } from '@/lib/taskPermissions';
 import { useAuthStore } from '@/store/authStore';
 import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
+import { StatusGroupHeader } from '@/features/tasks/components/StatusGroupHeader';
 
 function priorityFlagClass(priority) {
   if (priority === 'urgent') return 'text-danger-500';
@@ -223,6 +224,9 @@ export function ClickUpTasksList({
   statusOrder = TASK_STATUSES,
   statusLabels = STATUS_LABELS,
   defaultCreateStatus = 'todo',
+  subtaskMode = 'collapsed',
+  projectId,
+  projectStatuses,
 }) {
   const user = useAuthStore((s) => s.user);
   const [draftTitle, setDraftTitle] = useState('');
@@ -231,7 +235,15 @@ export function ClickUpTasksList({
   const [menu, setMenu] = useState(null);
   const [collapsed, setCollapsed] = useState({});
   const [localPatches, setLocalPatches] = useState({});
+  const [addingUnder, setAddingUnder] = useState(null);
+  const [subtaskDraft, setSubtaskDraft] = useState('');
   const inputRef = useRef(null);
+  const subtaskInputRef = useRef(null);
+
+  const parentIdOf = (task) => {
+    if (!task?.parentTask) return null;
+    return String(task.parentTask._id || task.parentTask);
+  };
 
   // Drop local patches once server data catches up
   useEffect(() => {
@@ -275,16 +287,39 @@ export function ClickUpTasksList({
     [tasks, localPatches]
   );
 
-  const groups = useMemo(() => {
-    if (!groupByStatus) {
-      return [{ key: 'all', label: 'Tasks', tasks: displayTasks }];
+  const childrenByParent = useMemo(() => {
+    const map = new Map();
+    for (const t of displayTasks) {
+      const pid = parentIdOf(t);
+      if (!pid) continue;
+      if (!map.has(pid)) map.set(pid, []);
+      map.get(pid).push(t);
     }
-    return statusOrder.map((key) => ({
-      key,
-      label: (statusLabels[key] || STATUS_LABELS[key] || key).toUpperCase(),
-      tasks: displayTasks.filter((t) => t.status === key),
-    }));
-  }, [displayTasks, groupByStatus, statusOrder, statusLabels]);
+    return map;
+  }, [displayTasks]);
+
+  const groups = useMemo(() => {
+    const byStatus = (list) =>
+      statusOrder.map((key) => ({
+        key,
+        label: (statusLabels[key] || STATUS_LABELS[key] || key).toUpperCase(),
+        tasks: list.filter((t) => t.status === key),
+      }));
+
+    if (!groupByStatus) {
+      const list =
+        subtaskMode === 'separate'
+          ? displayTasks
+          : displayTasks.filter((t) => !parentIdOf(t));
+      return [{ key: 'all', label: 'Tasks', tasks: list }];
+    }
+
+    if (subtaskMode === 'separate') {
+      return byStatus(displayTasks);
+    }
+
+    return byStatus(displayTasks.filter((t) => !parentIdOf(t)));
+  }, [displayTasks, groupByStatus, statusOrder, statusLabels, subtaskMode]);
 
   const applyUpdate = (taskId, apiPayload, displayPatch, taskRef) => {
     const task =
@@ -334,10 +369,31 @@ export function ClickUpTasksList({
     [menu?.anchorEl]
   );
 
-  const renderTaskRow = (task) => {
+  const submitSubtask = (parentTask) => {
+    const title = subtaskDraft.trim();
+    if (title.length < 2 || creating || !parentTask?._id) return;
+    onCreateTask?.(
+      {
+        title,
+        status: parentTask.status || defaultCreateStatus,
+        parentTask: parentTask._id,
+      },
+      {
+        onSuccess: () => {
+          setSubtaskDraft('');
+          setAddingUnder(parentTask._id);
+          subtaskInputRef.current?.focus();
+        },
+      }
+    );
+  };
+
+  const renderTaskRow = (task, { depth = 0 } = {}) => {
     const selected = selectedId === task._id;
     const canEdit = canManageTask(user, task);
-    const hasSubtasks = (task.subtaskCount || 0) > 0 || (task.checklist || []).length > 0;
+    const childCount = (childrenByParent.get(String(task._id)) || []).length || task.subtaskCount || 0;
+    const hasSubtasks = childCount > 0;
+    const isSubtask = Boolean(parentIdOf(task));
     const menuOpen = menu?.taskId === task._id;
     const assignees = resolvePeople(
       (task.assignees || []).map((a) => a._id || a),
@@ -373,14 +429,17 @@ export function ClickUpTasksList({
         </div>
 
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" style={{ paddingLeft: depth ? depth * 18 : 0 }}>
+            {isSubtask ? (
+              <GitBranch className="h-3 w-3 shrink-0 text-graphite/70" />
+            ) : null}
             <span className="truncate text-[13px] text-ink group-hover:underline">
               {task.title}
             </span>
-            {hasSubtasks ? (
+            {hasSubtasks && !isSubtask ? (
               <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-graphite">
                 <GitBranch className="h-3 w-3" />
-                {task.subtaskCount || (task.checklist || []).length}
+                {childCount}
               </span>
             ) : null}
           </div>
@@ -482,8 +541,80 @@ export function ClickUpTasksList({
         </div>
 
         <div className="text-right">
-          <span className="invisible text-xs text-graphite group-hover:visible">···</span>
+          {!isSubtask && canEdit ? (
+            <button
+              type="button"
+              className="invisible text-[11px] font-medium text-graphite hover:text-ink group-hover:visible"
+              onClick={(e) => {
+                e.stopPropagation();
+                setAddingUnder(String(task._id));
+                setSubtaskDraft('');
+                requestAnimationFrame(() => subtaskInputRef.current?.focus());
+              }}
+            >
+              + Subtask
+            </button>
+          ) : (
+            <span className="invisible text-xs text-graphite group-hover:visible">···</span>
+          )}
         </div>
+      </div>
+    );
+  };
+
+  const renderAddSubtaskRow = (parent) => {
+    const active = String(addingUnder) === String(parent._id);
+    return (
+      <div
+        key={`add-subtask-${parent._id}`}
+        className={cn(ROW_COLS, 'px-3 py-1 sm:px-4')}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div />
+        <div className="flex min-w-0 items-center gap-2 pl-[18px]">
+          <GitBranch className="h-3 w-3 shrink-0 text-graphite/50" />
+          <input
+            ref={active ? subtaskInputRef : undefined}
+            value={active ? subtaskDraft : ''}
+            onFocus={() => setAddingUnder(String(parent._id))}
+            onChange={(e) => {
+              setAddingUnder(String(parent._id));
+              setSubtaskDraft(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submitSubtask(parent);
+              }
+              if (e.key === 'Escape') {
+                setAddingUnder(null);
+                setSubtaskDraft('');
+              }
+            }}
+            placeholder="Add subtask"
+            className="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-graphite/50"
+            disabled={creating}
+          />
+        </div>
+        <div />
+        <div />
+        <div />
+        <div />
+      </div>
+    );
+  };
+
+  const renderTaskBlock = (task) => {
+    const children = childrenByParent.get(String(task._id)) || [];
+    const isParent = !parentIdOf(task);
+    const showChildren = subtaskMode === 'expanded' && isParent;
+    const showAdd =
+      isParent && (showChildren || String(addingUnder) === String(task._id));
+    return (
+      <div key={task._id}>
+        {renderTaskRow(task, { depth: isParent ? 0 : 1 })}
+        {showChildren && children.map((child) => renderTaskRow(child, { depth: 1 }))}
+        {showAdd ? renderAddSubtaskRow(task) : null}
       </div>
     );
   };
@@ -636,30 +767,33 @@ export function ClickUpTasksList({
         <div className="space-y-1.5 py-2">
           {groups.map((group) => {
             const isCollapsed = Boolean(collapsed[group.key]);
+            const statusColor = (projectStatuses || []).find((s) => s.key === group.key)?.color;
             return (
               <div key={group.key} className="px-1 sm:px-2">
-                <button
-                  type="button"
-                  className="mb-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-cloud"
-                  onClick={() =>
+                <StatusGroupHeader
+                  status={group.key}
+                  label={group.label}
+                  color={statusColor}
+                  count={group.tasks.length}
+                  collapsed={isCollapsed}
+                  onToggleCollapse={() =>
                     setCollapsed((c) => ({ ...c, [group.key]: !c[group.key] }))
                   }
-                >
-                  <ChevronRight
-                    className={cn(
-                      'h-3.5 w-3.5 text-graphite transition-transform',
-                      !isCollapsed && 'rotate-90'
-                    )}
-                  />
-                  <span className="inline-flex h-3.5 w-3.5 rounded-full border-2 border-primary/40 bg-primary-soft" />
-                  <span className="text-xs font-bold tracking-wide text-ink">{group.label}</span>
-                  <span className="rounded-md bg-cloud px-1.5 py-0.5 text-[11px] tabular-nums text-graphite">
-                    {group.tasks.length}
-                  </span>
-                </button>
+                  onAdd={() => {
+                    setCollapsed((c) => ({ ...c, [group.key]: false }));
+                    setDraftStatus(group.key);
+                    requestAnimationFrame(() => inputRef.current?.focus());
+                  }}
+                  projectId={projectId}
+                  projectStatuses={projectStatuses}
+                  variant="list"
+                  className="mb-1 px-1 py-1"
+                />
                 {!isCollapsed && (
                   <div className="overflow-hidden rounded-xl border border-hairline/70 bg-paper">
-                    {group.tasks.map(renderTaskRow)}
+                    {group.tasks.map((task) =>
+                      subtaskMode === 'separate' ? renderTaskRow(task, { depth: parentIdOf(task) ? 1 : 0 }) : renderTaskBlock(task)
+                    )}
                     {renderInlineCreate(group.key)}
                   </div>
                 )}
@@ -674,7 +808,13 @@ export function ClickUpTasksList({
               No tasks yet — set assignee, due date, and priority, then press Enter.
             </p>
           ) : null}
-          {displayTasks.map(renderTaskRow)}
+          {displayTasks
+            .filter((t) => (subtaskMode === 'separate' ? true : !parentIdOf(t)))
+            .map((task) =>
+              subtaskMode === 'separate'
+                ? renderTaskRow(task, { depth: parentIdOf(task) ? 1 : 0 })
+                : renderTaskBlock(task)
+            )}
           {renderInlineCreate(defaultCreateStatus)}
         </div>
       )}

@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   Flag,
+  GitBranch,
   Hourglass,
   Link2,
   MessageSquareText,
@@ -46,6 +47,7 @@ import {
   STATUS_LABELS,
   TASK_STATUSES,
 } from '@/features/tasks/api/taskApi';
+import { SubtasksPanel } from '@/features/tasks/components/SubtasksPanel';
 
 function priorityFlagClass(priority) {
   if (priority === 'urgent') return 'text-danger-500';
@@ -105,6 +107,7 @@ export function ClickUpTaskDetail({
   assignablePeople = [],
   statusLabels = STATUS_LABELS,
   onClose,
+  onOpenTask,
 }) {
   const user = useAuthStore((s) => s.user);
   const { data: task, isLoading } = useTask(taskId);
@@ -350,6 +353,9 @@ export function ClickUpTaskDetail({
     [comments]
   );
 
+  const parentTask = task?.parentTask && typeof task.parentTask === 'object' ? task.parentTask : null;
+  const isSubtask = Boolean(parentTask?._id || (task?.parentTask && typeof task.parentTask === 'string'));
+
   const assignees = task?.assignees || [];
 
   return (
@@ -378,6 +384,18 @@ export function ClickUpTaskDetail({
               {(project?.icon || project?.name?.[0] || 'P').toString().slice(0, 1)}
             </span>
             <span className="truncate font-medium text-ink">{project?.name || 'Project'}</span>
+            {parentTask?.title ? (
+              <>
+                <span className="text-graphite">/</span>
+                <button
+                  type="button"
+                  className="truncate font-medium text-graphite hover:text-ink hover:underline"
+                  onClick={() => onOpenTask?.(parentTask._id)}
+                >
+                  {parentTask.title}
+                </button>
+              </>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-2 text-sm text-graphite">
@@ -464,13 +482,35 @@ export function ClickUpTaskDetail({
             <>
               <div className="mb-3 flex items-center gap-2 text-sm text-graphite">
                 <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1 font-medium text-ink">
-                  Task
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  {isSubtask ? (
+                    <>
+                      <GitBranch className="h-3.5 w-3.5" />
+                      Subtask
+                    </>
+                  ) : (
+                    <>
+                      Task
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </>
+                  )}
                 </span>
                 {task.key ? (
                   <span className="font-mono text-xs text-graphite">{task.key}</span>
                 ) : null}
               </div>
+
+              {isSubtask && parentTask?.title ? (
+                <p className="mb-2 text-xs text-graphite">
+                  Inside{' '}
+                  <button
+                    type="button"
+                    className="font-semibold text-ink hover:underline"
+                    onClick={() => onOpenTask?.(parentTask._id)}
+                  >
+                    {parentTask.title}
+                  </button>
+                </p>
+              ) : null}
 
               <input
                 value={title}
@@ -811,6 +851,17 @@ export function ClickUpTaskDetail({
                   className="w-full resize-y rounded-lg border border-transparent bg-transparent px-0 py-2 text-sm text-ink outline-none placeholder:text-graphite/50 focus:border-hairline focus:px-3"
                 />
               </div>
+
+              {!isSubtask && (
+                <SubtasksPanel
+                  parentTask={task}
+                  projectId={projectId}
+                  people={assignablePeople}
+                  statusLabels={statusLabels}
+                  canEdit={canEditTask}
+                  onOpenTask={onOpenTask}
+                />
+              )}
             </>
           )}
         </div>

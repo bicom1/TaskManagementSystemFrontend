@@ -1,25 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronDown, Filter, LayoutGrid, List, Plus, Search, Settings } from 'lucide-react';
+import { Calendar, ChevronDown, Filter, Flag, LayoutGrid, List, Plus, Search, Settings } from 'lucide-react';
+import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMyTasks } from '@/features/home/hooks/useHome';
 import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useCreateTask, useUpdateTask } from '@/features/tasks/hooks/useTasks';
 import { ClickUpTasksList } from '@/features/tasks/components/ClickUpTasksList';
+import { SubtasksMenu, readSubtaskMode } from '@/features/tasks/components/SubtasksMenu';
+import { ClickUpBoardColumn, GROUP_LABELS } from '@/features/tasks/components/StatusGroupHeader';
+import { BoardTaskComposer } from '@/features/tasks/components/BoardTaskComposer';
 import {
   TaskFormFields,
   buildTaskPayload,
   EMPTY_TASK_FORM,
   getProjectAssignablePeople,
   mergeAssignablePeople,
+  fromDatetimeLocalValue,
 } from '@/features/tasks/components/TaskFormFields';
-import { STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
+import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useAuthStore } from '@/store/authStore';
 import { getSocket } from '@/api/socketClient';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { ListSkeleton } from '@/components/ui/Spinner';
+import { UserAvatar } from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { canApproveTasks } from '@/lib/roles';
 import { projectPath } from '@/features/spaces/spaceKinds';
@@ -29,7 +35,105 @@ const VIEW_TABS = [
   { id: 'board', label: 'Board', icon: LayoutGrid },
 ];
 
-function AllTasksBoard({ tasks, onTaskClick }) {
+function AllTasksColumn({ status, tasks, onTaskClick, onAdd, onQuickCreate, people = [], creating = false }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  const startAdd = () => {
+    setCollapsed(false);
+    if (onQuickCreate) {
+      setAdding(true);
+      return;
+    }
+    onAdd?.(status);
+  };
+
+  return (
+    <ClickUpBoardColumn
+      status={status}
+      label={GROUP_LABELS[status] || STATUS_LABELS[status] || status}
+      count={tasks.length}
+      collapsed={collapsed}
+      onToggleCollapse={() => setCollapsed((v) => !v)}
+      onAdd={startAdd}
+    >
+      {adding ? (
+        <div className="mb-2">
+          <BoardTaskComposer
+            people={people}
+            saving={creating}
+            onSave={(fields) => {
+              onQuickCreate?.(status, fields);
+              setAdding(false);
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        </div>
+      ) : null}
+      <div className="flex min-h-[48px] max-h-[calc(100vh-16rem)] flex-1 flex-col gap-2 overflow-y-auto">
+        {tasks.map((task) => (
+          <button
+            key={task._id}
+            type="button"
+            onClick={() => onTaskClick(task._id)}
+            className="w-full rounded-xl bg-paper p-3 text-left shadow-sm transition hover:shadow-md"
+          >
+            <p className="mb-3 text-[13px] font-medium leading-snug text-ink">{task.title}</p>
+            <div className="flex items-center gap-1.5 text-graphite">
+              {task.assignees?.length ? (
+                <div className="flex -space-x-1.5">
+                  {task.assignees.slice(0, 3).map((a) => (
+                    <UserAvatar
+                      key={String(a._id || a)}
+                      user={typeof a === 'object' ? a : null}
+                      name={a.name || '?'}
+                      size="xs"
+                      className="ring-1 ring-paper"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <span className="truncate text-[11px] text-graphite">
+                  {task.project?.name || 'Project'}
+                </span>
+              )}
+              <span
+                className={cn(
+                  'ml-auto inline-flex h-6 w-6 items-center justify-center',
+                  task.dueDate ? 'text-graphite' : 'text-graphite/40'
+                )}
+                title={task.dueDate ? format(new Date(task.dueDate), 'MMM d') : 'Due date'}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+              </span>
+              <span
+                className={cn(
+                  'inline-flex h-6 w-6 items-center justify-center',
+                  task.priority === 'urgent' && 'text-danger-500',
+                  task.priority === 'high' && 'text-warning-500',
+                  task.priority === 'medium' && 'text-brand-400',
+                  (!task.priority || task.priority === 'low') && 'text-graphite/40'
+                )}
+                title={PRIORITY_LABELS[task.priority] ?? 'Priority'}
+              >
+                <Flag className="h-3.5 w-3.5 fill-current" />
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={startAdd}
+        className="mt-1.5 rounded-lg px-2 py-1.5 text-left text-[13px] font-medium text-graphite hover:bg-paper/70 hover:text-ink"
+      >
+        + Add Task
+      </button>
+    </ClickUpBoardColumn>
+  );
+}
+
+function AllTasksBoard({ tasks, onTaskClick, onAdd, onQuickCreate, people = [], creating = false }) {
   const columns = useMemo(() => {
     const map = Object.fromEntries(TASK_STATUSES.map((s) => [s, []]));
     for (const task of tasks) {
@@ -40,39 +144,18 @@ function AllTasksBoard({ tasks, onTaskClick }) {
   }, [tasks]);
 
   return (
-    <div className="flex h-full gap-3 overflow-x-auto p-4">
+    <div className="flex h-full items-start gap-3 overflow-x-auto bg-cloud/60 p-4">
       {TASK_STATUSES.map((status) => (
-        <div
+        <AllTasksColumn
           key={status}
-          className="flex w-64 shrink-0 flex-col rounded-xl border border-hairline bg-cloud/40"
-        >
-          <div className="flex items-center justify-between border-b border-hairline px-3 py-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-graphite">
-              {STATUS_LABELS[status] || status}
-            </span>
-            <span className="text-[11px] font-semibold tabular-nums text-graphite">
-              {columns[status].length}
-            </span>
-          </div>
-          <div className="flex-1 space-y-2 overflow-y-auto p-2">
-            {columns[status].map((task) => (
-              <button
-                key={task._id}
-                type="button"
-                onClick={() => onTaskClick(task._id)}
-                className="w-full rounded-lg border border-hairline bg-paper px-3 py-2.5 text-left shadow-sm transition hover:border-primary/30"
-              >
-                <p className="truncate text-sm font-medium text-ink">{task.title}</p>
-                <p className="mt-1 truncate text-[11px] text-graphite">
-                  {task.project?.name || 'Project'}
-                </p>
-              </button>
-            ))}
-            {columns[status].length === 0 && (
-              <p className="px-1 py-4 text-center text-[11px] text-graphite">No tasks</p>
-            )}
-          </div>
-        </div>
+          status={status}
+          tasks={columns[status]}
+          onTaskClick={onTaskClick}
+          onAdd={onAdd}
+          onQuickCreate={onQuickCreate}
+          people={people}
+          creating={creating}
+        />
       ))}
     </div>
   );
@@ -85,7 +168,7 @@ export default function AllTasksPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const { data: tasks = [], isLoading } = useMyTasks('all');
-  const { data: projectsData } = useProjects({ limit: 50 });
+  const { data: projectsData } = useProjects({ limit: 500 });
   const projects = projectsData?.data ?? [];
   const { data: usersRes } = useUsers({ limit: 200 });
 
@@ -95,6 +178,7 @@ export default function AllTasksPage() {
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [subtaskMode, setSubtaskMode] = useState(readSubtaskMode);
   const [createForm, setCreateForm] = useState({ ...EMPTY_TASK_FORM });
   const [createProjectId, setCreateProjectId] = useState('');
 
@@ -123,7 +207,7 @@ export default function AllTasksPage() {
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return undefined;
-    const ids = projects.slice(0, 20).map((p) => p._id);
+    const ids = projects.slice(0, 80).map((p) => p._id);
     ids.forEach((id) => socket.emit('project:join', id));
     return () => {
       ids.forEach((id) => socket.emit('project:leave', id));
@@ -145,8 +229,8 @@ export default function AllTasksPage() {
     setSearchParams({ view: mode }, { replace: true });
   };
 
-  const openCreate = () => {
-    setCreateForm({ ...EMPTY_TASK_FORM });
+  const openCreate = (status) => {
+    setCreateForm({ ...EMPTY_TASK_FORM, status: status || 'todo' });
     setCreateProjectId(projects[0]?._id || '');
     setCreateOpen(true);
   };
@@ -168,6 +252,7 @@ export default function AllTasksPage() {
         status: fields.status || 'todo',
         ...(fields.dueDate ? { dueDate: fields.dueDate } : {}),
         ...(fields.assignees?.length ? { assignees: fields.assignees } : {}),
+        ...(fields.parentTask ? { parentTask: fields.parentTask } : {}),
       },
       {
         onSuccess: (task) => {
@@ -179,23 +264,35 @@ export default function AllTasksPage() {
     );
   };
 
-  const onCreateSubmit = (e) => {
+  const onCreateSubmit = async (e) => {
     e.preventDefault();
     const payload = buildTaskPayload(createForm);
     if (!payload.title || payload.title.length < 2) return;
+    if (createForm.createAs === 'subtask' && !payload.parentTask) return;
     const projectId = createProjectId || projects[0]?._id;
     if (!projectId) return;
-    createTask.mutate(
-      { ...payload, project: projectId },
-      {
-        onSuccess: (task) => {
-          setCreateOpen(false);
-          setCreateForm({ ...EMPTY_TASK_FORM });
-          queryClient.invalidateQueries({ queryKey: ['home', 'my-tasks', 'all'] });
-          if (task?._id) setSelectedTaskId(task._id);
-        },
+    try {
+      const task = await createTask.mutateAsync({ ...payload, project: projectId });
+      const nested = (createForm.nestedSubtasks || []).filter((s) => String(s.title || '').trim().length >= 2);
+      if (!payload.parentTask && nested.length) {
+        for (const sub of nested) {
+          await createTask.mutateAsync({
+            title: String(sub.title).trim(),
+            description: String(sub.description || '').trim(),
+            project: projectId,
+            parentTask: task._id,
+            status: payload.status,
+            dueDate: fromDatetimeLocalValue(sub.dueDateLocal),
+          });
+        }
       }
-    );
+      setCreateOpen(false);
+      setCreateForm({ ...EMPTY_TASK_FORM });
+      queryClient.invalidateQueries({ queryKey: ['home', 'my-tasks', 'all'] });
+      if (task?._id) setSelectedTaskId(task._id);
+    } catch {
+      /* mutation toast */
+    }
   };
 
   const onInlineUpdate = (taskId, payload) => {
@@ -282,8 +379,9 @@ export default function AllTasksPage() {
       <div className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-2">
         <div className="flex items-center gap-2 text-xs text-graphite">
           <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1 font-medium text-ink">
-            Group: {viewMode === 'board' ? 'Status' : 'None'}
+            Group: Status
           </span>
+          <SubtasksMenu value={subtaskMode} onChange={setSubtaskMode} />
           <span className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1">
             {tasks.length} tasks
           </span>
@@ -303,7 +401,19 @@ export default function AllTasksPage() {
 
       <div className="flex-1 overflow-auto">
         {viewMode === 'board' ? (
-          <AllTasksBoard tasks={tasks} onTaskClick={onTaskClick} />
+          <AllTasksBoard
+            tasks={tasks}
+            onTaskClick={onTaskClick}
+            onAdd={openCreate}
+            people={people}
+            creating={createTask.isPending}
+            onQuickCreate={(status, fields) =>
+              createQuickTask({
+                ...(typeof fields === 'string' ? { title: fields } : fields),
+                status,
+              })
+            }
+          />
         ) : (
           <ClickUpTasksList
             tasks={tasks}
@@ -313,8 +423,11 @@ export default function AllTasksPage() {
             creating={createTask.isPending}
             people={people}
             onUpdateTask={onInlineUpdate}
-            groupByStatus={false}
+            groupByStatus
+            statusOrder={TASK_STATUSES}
+            statusLabels={{ ...STATUS_LABELS, ...GROUP_LABELS }}
             defaultCreateStatus="todo"
+            subtaskMode={subtaskMode}
           />
         )}
       </div>
@@ -345,6 +458,7 @@ export default function AllTasksPage() {
             value={createForm}
             onChange={setCreateForm}
             people={people}
+            parentTasks={tasks.filter((t) => !t.parentTask)}
           />
           {!canApproveTasks(user?.role) && (
             <p className="text-xs text-graphite">
@@ -357,7 +471,12 @@ export default function AllTasksPage() {
             </Button>
             <Button
               type="submit"
-              disabled={createTask.isPending || !createForm.title?.trim() || !projects.length}
+              disabled={
+                createTask.isPending ||
+                !createForm.title?.trim() ||
+                !projects.length ||
+                (createForm.createAs === 'subtask' && !createForm.parentTask)
+              }
             >
               {createTask.isPending ? 'Creating…' : 'Create task'}
             </Button>

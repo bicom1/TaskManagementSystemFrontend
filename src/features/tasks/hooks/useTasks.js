@@ -204,13 +204,26 @@ export function useCreateTask(projectId) {
             col.unshift(task);
           }
           next[status] = col;
+
+          const parentId = task.parentTask?._id || task.parentTask;
+          if (parentId) {
+            for (const key of Object.keys(next)) {
+              if (!Array.isArray(next[key])) continue;
+              next[key] = next[key].map((t) =>
+                String(t._id) === String(parentId)
+                  ? { ...t, subtaskCount: (t.subtaskCount || 0) + 1 }
+                  : t
+              );
+            }
+            queryClient.invalidateQueries({ queryKey: [TASK_KEY, String(parentId), 'subtasks'] });
+          }
           return next;
         });
       }
       queryClient.invalidateQueries({ queryKey: boardKey });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toast.success('Task created');
+      toast.success(task?.parentTask ? 'Subtask created' : 'Task created');
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message ?? 'Failed to create task');

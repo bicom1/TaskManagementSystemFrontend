@@ -31,8 +31,11 @@ import {
   Filter,
   ChevronDown,
   Star,
+  Calendar,
+  Flag,
 } from 'lucide-react';
-import { useProject } from '@/features/projects/hooks/useProjects';
+import { toast } from 'sonner';
+import { useProject, useUpdateProject } from '@/features/projects/hooks/useProjects';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import {
   useTaskBoard,
@@ -53,6 +56,7 @@ import {
   getProjectAssignablePeople,
   mergeAssignablePeople,
   toDatetimeLocalValue,
+  fromDatetimeLocalValue,
 } from '@/features/tasks/components/TaskFormFields';
 import { useTaskComments, useCreateComment } from '@/features/comments/hooks/useComments';
 import {
@@ -80,6 +84,14 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ClickUpTasksList } from '@/features/tasks/components/ClickUpTasksList';
 import { ClickUpTaskDetail } from '@/features/tasks/components/ClickUpTaskDetail';
+import { SubtasksMenu, readSubtaskMode } from '@/features/tasks/components/SubtasksMenu';
+import {
+  ClickUpBoardColumn,
+  GROUP_LABELS,
+  nextUnusedStatus,
+  resolveStatusTone,
+} from '@/features/tasks/components/StatusGroupHeader';
+import { BoardTaskComposer } from '@/features/tasks/components/BoardTaskComposer';
 
 function getApprovalBadgeVariant(status) {
   if (status === 'pending') return 'warning';
@@ -180,13 +192,6 @@ function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActi
     transition,
   };
 
-  const priorityVariant = {
-    urgent: 'destructive',
-    high: 'warning',
-    medium: 'secondary',
-    low: 'outline',
-  };
-
   const approvalStatus = task.approvalStatus;
 
   return (
@@ -194,73 +199,67 @@ function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActi
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group rounded-xl border border-hairline bg-paper p-3 shadow-soft-lift transition hover:border-steel hover:shadow-md',
+        'group relative rounded-xl bg-paper p-3 shadow-sm transition hover:shadow-md',
         isDragging && 'opacity-50 ring-2 ring-primary/30',
         !dragEnabled && 'opacity-90'
       )}
       onClick={onClick}
     >
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
-          {task.key}
-        </span>
-        {dragEnabled ? (
-          <button
-            type="button"
-            className="cursor-grab rounded p-0.5 text-steel opacity-0 transition group-hover:opacity-100 hover:bg-cloud hover:text-charcoal"
-            {...attributes}
-            {...listeners}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-        ) : (
-          <span className="text-[10px] font-medium text-graphite" title="Awaiting approval">
-            Locked
-          </span>
-        )}
-      </div>
-      <p className="mb-2.5 text-sm font-medium leading-snug text-ink">{task.title}</p>
-      <div className="mb-2 flex flex-wrap gap-1.5">
-        <Badge variant={priorityVariant[task.priority] || 'secondary'}>
-          {PRIORITY_LABELS[task.priority] ?? task.priority}
-        </Badge>
-        {approvalStatus && approvalStatus !== 'approved' && (
+      {dragEnabled ? (
+        <button
+          type="button"
+          className="absolute right-1.5 top-1.5 cursor-grab rounded p-0.5 text-steel opacity-0 transition group-hover:opacity-100 hover:bg-cloud hover:text-charcoal"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      ) : null}
+      <p className="mb-3 text-[13px] font-medium leading-snug text-ink">{task.title}</p>
+      {approvalStatus && approvalStatus !== 'approved' ? (
+        <div className="mb-2">
           <Badge variant={getApprovalBadgeVariant(approvalStatus)}>
             {APPROVAL_STATUS_LABELS[approvalStatus]}
           </Badge>
-        )}
-        {(task.labels || []).slice(0, 2).map((label) => (
-          <Badge key={label} variant="outline">
-            {label}
-          </Badge>
-        ))}
-      </div>
-      {(task.dueDate || task.assignees?.length) && (
-        <div className="mb-1 space-y-1 text-[11px] text-graphite">
-          {task.dueDate ? (
-            <p>Due {format(new Date(task.dueDate), 'MMM d · h:mm a')}</p>
-          ) : null}
-          {task.assignees?.length ? (
-            <div className="flex items-center gap-1.5 pt-0.5">
-              <div className="flex -space-x-1.5">
-                {task.assignees.slice(0, 3).map((a) => (
-                  <UserAvatar
-                    key={String(a._id || a)}
-                    user={typeof a === 'object' ? a : null}
-                    name={a.name || '?'}
-                    size="xs"
-                    className="ring-1 ring-paper"
-                  />
-                ))}
-              </div>
-              {task.assignees.length > 3 ? (
-                <span className="text-[10px]">+{task.assignees.length - 3}</span>
-              ) : null}
-            </div>
-          ) : null}
         </div>
-      )}
+      ) : null}
+      <div className="flex items-center gap-1.5 text-graphite">
+        {task.assignees?.length ? (
+          <div className="flex -space-x-1.5">
+            {task.assignees.slice(0, 3).map((a) => (
+              <UserAvatar
+                key={String(a._id || a)}
+                user={typeof a === 'object' ? a : null}
+                name={a.name || '?'}
+                size="xs"
+                className="ring-1 ring-paper"
+              />
+            ))}
+          </div>
+        ) : null}
+        <span
+          className={cn(
+            'ml-auto inline-flex h-6 w-6 items-center justify-center rounded-md',
+            task.dueDate ? 'text-graphite' : 'text-graphite/40'
+          )}
+          title={task.dueDate ? format(new Date(task.dueDate), 'MMM d') : 'Due date'}
+        >
+          <Calendar className="h-3.5 w-3.5" />
+        </span>
+        <span
+          className={cn(
+            'inline-flex h-6 w-6 items-center justify-center',
+            task.priority === 'urgent' && 'text-danger-500',
+            task.priority === 'high' && 'text-warning-500',
+            task.priority === 'medium' && 'text-brand-400',
+            (!task.priority || task.priority === 'low') && 'text-graphite/40'
+          )}
+          title={PRIORITY_LABELS[task.priority] ?? 'Priority'}
+        >
+          <Flag className="h-3.5 w-3.5 fill-current" />
+        </span>
+      </div>
       {showApprovalActions && <ApprovalActions task={task} projectId={projectId} compact />}
     </div>
   );
@@ -269,25 +268,53 @@ function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActi
 function KanbanColumn({
   status,
   label,
+  color,
   tasks,
   onTaskClick,
   activeId,
   user,
   projectId,
+  projectStatuses,
   showApprovalActions,
+  onQuickCreate,
+  people = [],
+  creating = false,
 }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  const startAdd = () => {
+    setCollapsed(false);
+    setAdding(true);
+  };
+
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-2xl border border-hairline/80 bg-cloud/80 p-3">
-      <div className="mb-3 flex items-center justify-between px-0.5">
-        <h3 className="text-[13px] font-semibold tracking-tight text-ink">
-          {label || STATUS_LABELS[status]}
-        </h3>
-        <span className="rounded-md bg-paper px-2 py-0.5 text-[11px] font-semibold tabular-nums text-graphite shadow-soft-lift">
-          {tasks.length}
-        </span>
-      </div>
+    <ClickUpBoardColumn
+      status={status}
+      label={label}
+      color={color}
+      count={tasks.length}
+      collapsed={collapsed}
+      onToggleCollapse={() => setCollapsed((v) => !v)}
+      onAdd={startAdd}
+      projectId={projectId}
+      projectStatuses={projectStatuses}
+    >
+      {adding ? (
+        <div className="mb-2">
+          <BoardTaskComposer
+            people={people}
+            saving={creating}
+            onSave={(fields) => {
+              onQuickCreate?.({ ...fields, status });
+              setAdding(false);
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        </div>
+      ) : null}
       <SortableContext items={tasks.map((t) => t._id)} strategy={verticalListSortingStrategy}>
-        <div className="flex min-h-[120px] flex-1 flex-col gap-2.5 overflow-y-auto">
+        <div className="flex min-h-[48px] max-h-[calc(100vh-16rem)] flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
           {tasks.map((task) => (
             <TaskCard
               key={task._id}
@@ -301,7 +328,14 @@ function KanbanColumn({
           ))}
         </div>
       </SortableContext>
-    </div>
+      <button
+        type="button"
+        onClick={startAdd}
+        className="mt-1.5 rounded-lg px-2 py-1.5 text-left text-[13px] font-medium text-graphite hover:bg-paper/70 hover:text-ink"
+      >
+        + Add Task
+      </button>
+    </ClickUpBoardColumn>
   );
 }
 
@@ -714,6 +748,7 @@ export default function ProjectBoardPage() {
   const createTask = useCreateTask(projectId);
   const updateTask = useUpdateTask(projectId, { silent: true });
   const moveTask = useMoveTask(projectId);
+  const updateProject = useUpdateProject();
 
   const catalogHref = '/projects';
   const catalogLabel = 'All Projects';
@@ -726,6 +761,7 @@ export default function ProjectBoardPage() {
   }, [location.pathname, location.search, projectId, navigate]);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [subtaskMode, setSubtaskMode] = useState(readSubtaskMode);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [activeTask, setActiveTask] = useState(null);
   const [createForm, setCreateForm] = useState(EMPTY_TASK_FORM);
@@ -758,9 +794,17 @@ export default function ProjectBoardPage() {
   };
 
   const statusLabels = useMemo(() => {
-    const map = { ...STATUS_LABELS };
+    const map = { ...STATUS_LABELS, ...GROUP_LABELS };
     for (const s of project?.statuses || []) {
       if (s?.key) map[s.key] = s.label;
+    }
+    return map;
+  }, [project?.statuses]);
+
+  const statusColors = useMemo(() => {
+    const map = {};
+    for (const s of project?.statuses || []) {
+      if (s?.key) map[s.key] = s.color;
     }
     return map;
   }, [project?.statuses]);
@@ -809,9 +853,14 @@ export default function ProjectBoardPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  const openCreate = () => {
-    setView('list');
-    setCreateForm({ ...EMPTY_TASK_FORM });
+  const openCreate = (status) => {
+    setCreateForm({
+      ...EMPTY_TASK_FORM,
+      status:
+        status ||
+        (boardStatuses.includes('todo') ? 'todo' : boardStatuses[0]) ||
+        'todo',
+    });
     setCreateModalOpen(true);
   };
 
@@ -830,32 +879,76 @@ export default function ProjectBoardPage() {
         status,
         ...(fields.dueDate ? { dueDate: fields.dueDate } : {}),
         ...(fields.assignees?.length ? { assignees: fields.assignees } : {}),
+        ...(fields.parentTask ? { parentTask: fields.parentTask } : {}),
       },
       {
         onSuccess: (task) => {
-          setView('list');
-          if (task?._id) setSelectedTaskId(task._id);
+          if (options.open !== false && task?._id) setSelectedTaskId(task._id);
           options.onSuccess?.(task);
         },
       }
     );
   };
 
-  const onCreateTask = (e) => {
+  const addStatusGroup = () => {
+    const existing = project?.statuses?.length
+      ? project.statuses.map((s) => ({
+          key: s.key,
+          label: s.label,
+          color: s.color || resolveStatusTone(s.key).bg,
+        }))
+      : boardStatuses.map((key) => ({
+          key,
+          label: statusLabels[key] || GROUP_LABELS[key] || key,
+          color: resolveStatusTone(key).bg,
+        }));
+    const next = nextUnusedStatus(existing);
+    if (!next) {
+      toast.message('All status groups are already on this board.');
+      return;
+    }
+    updateProject.mutate({
+      id: projectId,
+      payload: {
+        statuses: [
+          ...existing,
+          {
+            key: next,
+            label: GROUP_LABELS[next] || STATUS_LABELS[next] || next,
+            color: resolveStatusTone(next).bg,
+          },
+        ],
+      },
+      successMessage: 'Group added',
+    });
+  };
+
+  const onCreateTask = async (e) => {
     e.preventDefault();
     const payload = buildTaskPayload(createForm);
     if (!payload.title || payload.title.length < 2) return;
-    createTask.mutate(
-      { ...payload, project: projectId },
-      {
-        onSuccess: (task) => {
-          setCreateModalOpen(false);
-          setCreateForm({ ...EMPTY_TASK_FORM });
-          setView('list');
-          if (task?._id) setSelectedTaskId(task._id);
-        },
+    if (createForm.createAs === 'subtask' && !payload.parentTask) return;
+    try {
+      const task = await createTask.mutateAsync({ ...payload, project: projectId });
+      const nested = (createForm.nestedSubtasks || []).filter((s) => String(s.title || '').trim().length >= 2);
+      if (!payload.parentTask && nested.length) {
+        for (const sub of nested) {
+          await createTask.mutateAsync({
+            title: String(sub.title).trim(),
+            description: String(sub.description || '').trim(),
+            project: projectId,
+            parentTask: task._id,
+            status: payload.status,
+            dueDate: fromDatetimeLocalValue(sub.dueDateLocal),
+          });
+        }
       }
-    );
+      setCreateModalOpen(false);
+      setCreateForm({ ...EMPTY_TASK_FORM });
+      if (task?._id) setSelectedTaskId(task._id);
+    } catch {
+      /* toast handled by mutation */
+    }
   };
 
   const onInlineUpdateTask = (taskId, payload) => {
@@ -1015,12 +1108,7 @@ export default function ProjectBoardPage() {
           <span className="inline-flex h-7 items-center gap-1 rounded-lg border border-hairline bg-cloud/60 px-2.5 font-medium text-ink">
             Group: Status
           </span>
-          <span className="inline-flex h-7 items-center gap-1 rounded-lg border border-hairline px-2.5 hover:bg-cloud">
-            Subtasks
-          </span>
-          <span className="hidden h-7 items-center gap-1 rounded-lg border border-hairline px-2.5 hover:bg-cloud sm:inline-flex">
-            Columns
-          </span>
+          <SubtasksMenu value={subtaskMode} onChange={setSubtaskMode} />
         </div>
         <div className="flex items-center gap-0.5 text-graphite">
           <button
@@ -1064,20 +1152,36 @@ export default function ProjectBoardPage() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex gap-4 pb-4">
+            <div className="flex items-start gap-3 pb-4">
               {boardStatuses.map((status) => (
                 <KanbanColumn
                   key={status}
                   status={status}
                   label={statusLabels[status]}
-                  tasks={board?.[status] ?? []}
+                  color={statusColors[status]}
+                  tasks={(board?.[status] ?? []).filter((t) =>
+                    subtaskMode === 'separate'
+                      ? true
+                      : !t.parentTask
+                  )}
                   onTaskClick={setSelectedTaskId}
                   activeId={activeTask?._id}
                   user={user}
                   projectId={projectId}
+                  projectStatuses={project?.statuses}
                   showApprovalActions={showApprovalActions}
+                  people={assignablePeople}
+                  creating={createTask.isPending}
+                  onQuickCreate={(fields) => createQuickTask(fields, { open: false })}
                 />
               ))}
+              <button
+                type="button"
+                onClick={addStatusGroup}
+                className="mt-1 shrink-0 rounded-lg px-3 py-2 text-[13px] font-medium text-graphite hover:bg-white/70 hover:text-ink"
+              >
+                + Add group
+              </button>
             </div>
             <DragOverlay>
               {activeTask ? (
@@ -1103,6 +1207,9 @@ export default function ProjectBoardPage() {
             statusOrder={boardStatuses}
             statusLabels={statusLabels}
             defaultCreateStatus={boardStatuses.includes('todo') ? 'todo' : boardStatuses[0]}
+            subtaskMode={subtaskMode}
+            projectId={projectId}
+            projectStatuses={project?.statuses}
           />
         </div>
       )}
@@ -1117,6 +1224,7 @@ export default function ProjectBoardPage() {
           assignablePeople={assignablePeople}
           statusLabels={statusLabels}
           onClose={() => setSelectedTaskId(null)}
+          onOpenTask={setSelectedTaskId}
         />
       )}
 
@@ -1145,6 +1253,7 @@ export default function ProjectBoardPage() {
             value={createForm}
             onChange={setCreateForm}
             people={assignablePeople}
+            parentTasks={allTasks.filter((t) => !t.parentTask)}
           />
           {!canApproveTasks(userRole) && (
             <p className="text-xs text-graphite">
@@ -1155,8 +1264,19 @@ export default function ProjectBoardPage() {
             <Button type="button" variant="outline" onClick={() => setCreateModalOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createTask.isPending || !createForm.title?.trim()}>
-              {createTask.isPending ? 'Creating…' : 'Create task'}
+            <Button
+              type="submit"
+              disabled={
+                createTask.isPending ||
+                !createForm.title?.trim() ||
+                (createForm.createAs === 'subtask' && !createForm.parentTask)
+              }
+            >
+              {createTask.isPending
+                ? 'Creating…'
+                : createForm.createAs === 'subtask'
+                  ? 'Create subtask'
+                  : 'Create task'}
             </Button>
           </div>
         </form>

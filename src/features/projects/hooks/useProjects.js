@@ -77,7 +77,7 @@ export function useUpdateProject() {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: [KEY, variables.id] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toast.success('Project updated');
+      toast.success(variables?.successMessage || 'Project updated');
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message ?? 'Failed to update project');

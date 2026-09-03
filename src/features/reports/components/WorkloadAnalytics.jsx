@@ -164,7 +164,7 @@ export function WorkloadAnalytics() {
   const { data: usersRes } = useUsers({ limit: 200 });
   const { data: teamsRes } = useTeams({ limit: 100 });
   const { data: deptsRes } = useDepartments({ limit: 50 });
-  const { data: projectsRes } = useProjects({ limit: 100 });
+  const { data: projectsRes } = useProjects({ limit: 500 });
 
   const users = usersRes?.data ?? [];
   const teams = teamsRes?.data ?? [];

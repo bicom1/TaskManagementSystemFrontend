@@ -137,9 +137,9 @@ export function ClickUpTaskDetail({
     setDescription(task.description || '');
   }, [task?._id, task?.updatedAt]);
 
-  const patch = (payload) => {
+  const patch = (payload, optimistic) => {
     if (!taskId || !canEditTask) return;
-    updateTask.mutate({ id: taskId, payload });
+    updateTask.mutate({ id: taskId, payload, optimistic });
   };
 
   const saveTitle = () => {
@@ -155,9 +155,19 @@ export function ClickUpTaskDetail({
 
   const toggleAssignee = (personId) => {
     const id = String(personId);
-    const current = (task?.assignees || []).map((a) => String(a._id || a));
-    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
-    patch({ assignees: next });
+    const current = task?.assignees || [];
+    const currentIds = current.map((a) => String(a._id || a));
+    const nextIds = currentIds.includes(id)
+      ? currentIds.filter((x) => x !== id)
+      : [...currentIds, id];
+
+    const byId = new Map();
+    for (const p of assignablePeople || []) byId.set(String(p._id), p);
+    for (const a of current) byId.set(String(a._id || a), a);
+    const nextPeople = nextIds.map((pid) => byId.get(pid) || { _id: pid });
+
+    // IDs go to API; full people objects update UI instantly
+    patch({ assignees: nextIds }, { assignees: nextPeople });
   };
 
   const addTag = () => {

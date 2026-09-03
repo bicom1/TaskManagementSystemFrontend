@@ -7,6 +7,92 @@ import { getSocket } from '@/api/socketClient';
 const BOARD_KEY = 'task-board';
 const TASK_KEY = 'task';
 
+function collectPeopleMap(queryClient, previousAssignees = []) {
+  const map = new Map();
+  for (const a of previousAssignees || []) {
+    const id = String(a?._id || a);
+    if (id) map.set(id, typeof a === 'object' ? a : { _id: id });
+  }
+
+  for (const [, data] of queryClient.getQueriesData({ queryKey: ['users'] })) {
+    const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    for (const u of list) {
+      if (u?._id) map.set(String(u._id), u);
+    }
+  }
+
+  for (const [, board] of queryClient.getQueriesData({ queryKey: [BOARD_KEY] })) {
+    if (!board || typeof board !== 'object') continue;
+    for (const col of Object.values(board)) {
+      if (!Array.isArray(col)) continue;
+      for (const task of col) {
+        for (const a of task?.assignees || []) {
+          const id = String(a?._id || a);
+          if (id && typeof a === 'object') map.set(id, a);
+        }
+      }
+    }
+  }
+
+  for (const [, task] of queryClient.getQueriesData({ queryKey: [TASK_KEY] })) {
+    if (!task || typeof task !== 'object' || Array.isArray(task)) continue;
+    for (const a of task.assignees || []) {
+      const id = String(a?._id || a);
+      if (id && typeof a === 'object') map.set(id, a);
+    }
+  }
+
+  return map;
+}
+
+function resolveAssignees(payloadAssignees, previousAssignees, queryClient) {
+  if (!Array.isArray(payloadAssignees)) return undefined;
+  const people = collectPeopleMap(queryClient, previousAssignees);
+  return payloadAssignees.map((a) => {
+    if (a && typeof a === 'object' && (a.name || a.email)) return a;
+    const sid = String(a?._id || a);
+    return people.get(sid) || { _id: sid, name: 'Updating…' };
+  });
+}
+
+function applyTaskPatch(existing, payload, queryClient) {
+  if (!existing) return existing;
+  const patched = { ...existing, ...payload, updatedAt: new Date().toISOString() };
+  if (Array.isArray(payload.assignees)) {
+    patched.assignees = resolveAssignees(payload.assignees, existing.assignees, queryClient);
+  }
+  return patched;
+}
+
+function patchBoardTask(previousBoard, id, payload, queryClient) {
+  if (!previousBoard) return previousBoard;
+
+  let found = null;
+  let fromStatus = null;
+  for (const col of Object.keys(previousBoard)) {
+    if (!Array.isArray(previousBoard[col])) continue;
+    const task = previousBoard[col].find((t) => String(t._id) === String(id));
+    if (task) {
+      found = task;
+      fromStatus = col;
+      break;
+    }
+  }
+  if (!found) return previousBoard;
+
+  const patched = applyTaskPatch(found, payload, queryClient);
+  const toStatus =
+    payload.status && previousBoard[payload.status] != null ? payload.status : fromStatus;
+
+  const next = { ...previousBoard };
+  for (const col of Object.keys(next)) {
+    if (!Array.isArray(next[col])) continue;
+    next[col] = next[col].filter((t) => String(t._id) !== String(id));
+  }
+  next[toStatus] = [...(next[toStatus] || []), { ...patched, status: toStatus }];
+  return next;
+}
+
 export function useTaskBoard(projectId) {
   return useQuery({
     queryKey: [BOARD_KEY, projectId],
@@ -90,55 +176,80 @@ export function useAdvanceTask(projectId) {
 export function useUpdateTask(projectId, { silent = false } = {}) {
   const queryClient = useQueryClient();
   const boardKey = [BOARD_KEY, projectId];
+  const taskKey = (id) => [TASK_KEY, id];
 
   return useMutation({
-    mutationFn: ({ id, payload }) => taskApi.update(id, payload),
-
-    onMutate: async ({ id, payload }) => {
-      if (!projectId) return {};
-      await queryClient.cancelQueries({ queryKey: boardKey });
-      const previousBoard = queryClient.getQueryData(boardKey);
-      if (previousBoard && payload) {
-        const next = { ...previousBoard };
-        for (const col of Object.keys(next)) {
-          if (!Array.isArray(next[col])) continue;
-          next[col] = next[col].map((task) => {
-            if (String(task._id) !== String(id)) return task;
-            const patched = { ...task, ...payload };
-            // Keep assignee objects when payload only has ids
-            if (Array.isArray(payload.assignees)) {
-              const prevMap = new Map(
-                (task.assignees || []).map((a) => [String(a._id || a), a])
-              );
-              patched.assignees = payload.assignees.map((a) => {
-                if (a && typeof a === 'object') return a;
-                const sid = String(a);
-                return prevMap.get(sid) || { _id: sid, name: 'User' };
-              });
-            }
-            return patched;
-          });
-        }
-        queryClient.setQueryData(boardKey, next);
+    mutationFn: ({ id, payload }) => {
+      const body = { ...payload };
+      // API expects assignee ObjectIds only
+      if (Array.isArray(body.assignees)) {
+        body.assignees = body.assignees.map((a) => String(a?._id || a));
       }
-      return { previousBoard };
+      return taskApi.update(id, body);
+    },
+
+    onMutate: async ({ id, payload, optimistic }) => {
+      const detailKey = taskKey(id);
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: boardKey }),
+        queryClient.cancelQueries({ queryKey: detailKey }),
+      ]);
+
+      const previousBoard = projectId ? queryClient.getQueryData(boardKey) : undefined;
+      const previousTask = queryClient.getQueryData(detailKey);
+
+      // Prefer optimistic display patch (full assignee objects) when provided
+      const displayPayload = optimistic ? { ...payload, ...optimistic } : payload;
+
+      if (previousTask && displayPayload) {
+        queryClient.setQueryData(
+          detailKey,
+          applyTaskPatch(previousTask, displayPayload, queryClient)
+        );
+      }
+
+      if (previousBoard && displayPayload) {
+        queryClient.setQueryData(
+          boardKey,
+          patchBoardTask(previousBoard, id, displayPayload, queryClient)
+        );
+      }
+
+      return { previousBoard, previousTask, detailKey };
     },
 
     onError: (error, _variables, context) => {
-      if (context?.previousBoard) {
+      if (context?.previousBoard && projectId) {
         queryClient.setQueryData(boardKey, context.previousBoard);
+      }
+      if (context?.previousTask && context?.detailKey) {
+        queryClient.setQueryData(context.detailKey, context.previousTask);
       }
       const data = error?.response?.data;
       const details = data?.errors?.map((err) => err.message).filter(Boolean).join(', ');
       toast.error(details || data?.message || 'Failed to update task');
     },
 
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: boardKey });
-      queryClient.invalidateQueries({ queryKey: [TASK_KEY, variables.id] });
-      queryClient.invalidateQueries({ queryKey: [TASK_KEY, variables.id, 'activity'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['home'] });
+    onSuccess: (data, variables) => {
+      // Apply server truth immediately — no waiting on refetch
+      if (data) {
+        queryClient.setQueryData(taskKey(variables.id), (prev) =>
+          prev ? { ...prev, ...data } : data
+        );
+        if (projectId) {
+          queryClient.setQueryData(boardKey, (prev) =>
+            patchBoardTask(prev, variables.id, data, queryClient)
+          );
+        }
+      }
+
+      // Background reconcile only (UI already updated)
+      queryClient.invalidateQueries({
+        queryKey: [TASK_KEY, variables.id, 'activity'],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({ queryKey: ['projects'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['home'], refetchType: 'none' });
       if (!silent) toast.success('Task updated');
     },
   });
@@ -171,6 +282,10 @@ export function useMoveTask(projectId) {
         queryClient.setQueryData(boardKey, next);
       }
 
+      queryClient.setQueryData([TASK_KEY, id], (prev) =>
+        prev ? { ...prev, status, position } : prev
+      );
+
       return { previousBoard };
     },
 
@@ -182,7 +297,7 @@ export function useMoveTask(projectId) {
     },
 
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: boardKey });
+      queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
     },
   });
 }
@@ -301,69 +416,93 @@ export function useLiveProjectBoard(projectId) {
     socket.emit('project:join', projectId);
     const boardKey = [BOARD_KEY, projectId];
 
-    const refresh = () => {
-      queryClient.invalidateQueries({ queryKey: boardKey });
-      queryClient.invalidateQueries({ queryKey: [TASK_KEY] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['home'] });
+    const softRefreshMeta = () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['home'], refetchType: 'none' });
     };
 
     const patchFromTask = (task) => {
-      if (!task?._id) {
-        refresh();
-        return;
-      }
+      if (!task?._id) return false;
+
+      queryClient.setQueryData([TASK_KEY, task._id], (prev) =>
+        prev ? { ...prev, ...task } : task
+      );
+
       const previousBoard = queryClient.getQueryData(boardKey);
-      if (!previousBoard) {
-        refresh();
-        return;
-      }
-      const next = { ...previousBoard };
-      let found = false;
-      for (const col of Object.keys(next)) {
-        if (!Array.isArray(next[col])) continue;
-        next[col] = next[col].map((t) => {
-          if (String(t._id) !== String(task._id)) return t;
-          found = true;
-          return { ...t, ...task };
-        });
-      }
-      // Status moved columns
-      if (found && task.status && previousBoard[task.status]) {
-        const cleaned = {};
-        for (const col of Object.keys(next)) {
-          cleaned[col] = (next[col] || []).filter((t) => String(t._id) !== String(task._id));
-        }
-        cleaned[task.status] = [...(cleaned[task.status] || []), { ...task }];
-        queryClient.setQueryData(boardKey, cleaned);
-      } else if (found) {
-        queryClient.setQueryData(boardKey, next);
-      } else {
-        refresh();
-      }
+      if (!previousBoard) return false;
+
+      const next = patchBoardTask(previousBoard, task._id, task, queryClient);
+      queryClient.setQueryData(boardKey, next);
+      return true;
     };
 
     const onUpdated = (payload) => {
       const task = payload?.task || payload;
-      patchFromTask(task);
-      refresh();
+      const patched = patchFromTask(task);
+      if (!patched) {
+        queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
+      }
+      softRefreshMeta();
+    };
+
+    const onCreated = (payload) => {
+      const task = payload?.task || payload;
+      if (task?._id && task?.status) {
+        queryClient.setQueryData(boardKey, (prev) => {
+          if (!prev) return prev;
+          const status = task.status || 'todo';
+          const next = { ...prev };
+          const col = [...(next[status] || [])];
+          if (!col.some((t) => String(t._id) === String(task._id))) {
+            col.unshift(task);
+          }
+          next[status] = col;
+          return next;
+        });
+        softRefreshMeta();
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
+      softRefreshMeta();
+    };
+
+    const onDeleted = (payload) => {
+      const id = payload?.taskId || payload?._id || payload?.task?._id;
+      if (id) {
+        queryClient.setQueryData(boardKey, (prev) => {
+          if (!prev) return prev;
+          const next = { ...prev };
+          for (const col of Object.keys(next)) {
+            if (!Array.isArray(next[col])) continue;
+            next[col] = next[col].filter((t) => String(t._id) !== String(id));
+          }
+          return next;
+        });
+        queryClient.removeQueries({ queryKey: [TASK_KEY, id] });
+        softRefreshMeta();
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
     };
 
     socket.on('task:changed', onUpdated);
-    socket.on('task:created', refresh);
+    socket.on('task:created', onCreated);
     socket.on('task:updated', onUpdated);
-    socket.on('task:moved', refresh);
-    socket.on('task:deleted', refresh);
-    socket.on('project:updated', refresh);
+    socket.on('task:moved', onUpdated);
+    socket.on('task:deleted', onDeleted);
+    socket.on('project:updated', () => {
+      queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
+      softRefreshMeta();
+    });
 
     return () => {
       socket.emit('project:leave', projectId);
       socket.off('task:changed', onUpdated);
-      socket.off('task:created', refresh);
+      socket.off('task:created', onCreated);
       socket.off('task:updated', onUpdated);
-      socket.off('task:moved', refresh);
-      socket.off('task:deleted', refresh);
-      socket.off('project:updated', refresh);
+      socket.off('task:moved', onUpdated);
+      socket.off('task:deleted', onDeleted);
+      socket.off('project:updated');
     };
   }, [projectId, queryClient]);
 }

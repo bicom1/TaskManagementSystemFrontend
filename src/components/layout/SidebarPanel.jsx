@@ -18,7 +18,6 @@ import {
   ChevronUp,
   ChevronDown,
   Settings,
-  Shield,
   Clock,
   Calendar,
   FolderKanban,
@@ -35,7 +34,6 @@ import { useLiveSpaces, useProjects } from '@/features/projects/hooks/useProject
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
-import { usePendingApprovals } from '@/features/tasks/hooks/useTasks';
 import { projectPath } from '@/features/spaces/spaceKinds';
 import { ProjectSidebarItem } from '@/features/projects/components/ProjectSidebarItem';
 import { EditProjectModal } from '@/features/projects/components/EditProjectModal';
@@ -672,19 +670,15 @@ function PlannerView({ home }) {
 }
 
 /* ────────────────────────────────────────────────────────────
-   6. MORE VIEW (Real Approvals, Audit & Settings)
+   6. MORE VIEW (Reports, Audit & Settings)
    ──────────────────────────────────────────────────────────── */
 function MoreView() {
-  const showApprovals = usePendingApprovals(true);
-  const pendingCount = showApprovals?.data?.length || 0;
-
   return (
     <div className="flex-1 overflow-y-auto px-2.5 py-3 select-none">
       <div className="mb-3 px-1">
         <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)] tracking-[-0.01em]">More Apps</h2>
       </div>
       <div className="space-y-0.5">
-        <ClickUpNavItem to="/approvals" label="Approvals" icon={Shield} badge={pendingCount > 0 ? pendingCount : undefined} />
         <ClickUpNavItem to="/reports" label="Reports &amp; Velocity" icon={BarChart2} />
         <ClickUpNavItem to="/audit" label="System Audit Logs" icon={Layers} />
         <ClickUpNavItem to="/settings" label="Workspace Settings" icon={Settings} />

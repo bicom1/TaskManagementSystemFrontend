@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCreateProject } from '@/features/projects/hooks/useProjects';
 import { useTeams } from '@/features/teams/hooks/useTeams';
+import { DEPARTMENT_CODES } from '@/lib/roles';
 
 export const CREATE_KIND_META = {
   list: {
@@ -27,13 +29,57 @@ export const CREATE_KIND_META = {
   },
 };
 
+function isDevelopmentTeam(team) {
+  const code = String(team?.department?.code || '').toLowerCase();
+  const deptName = String(team?.department?.name || '').toLowerCase();
+  const teamName = String(team?.name || '').toLowerCase();
+  return (
+    code === DEPARTMENT_CODES.DEVELOPMENT ||
+    code === 'development' ||
+    deptName.includes('develop') ||
+    teamName.includes('develop')
+  );
+}
+
+/** Collect unique developers from Development department teams. */
+export function collectDevelopmentDevelopers(teams = []) {
+  const byId = new Map();
+  for (const team of teams) {
+    if (!isDevelopmentTeam(team)) continue;
+    const people = [
+      ...(team.lead ? [team.lead] : []),
+      ...(Array.isArray(team.members) ? team.members : []),
+    ];
+    for (const person of people) {
+      const id = String(person?._id || person || '');
+      if (!id || id.length < 12) continue;
+      const existing = byId.get(id);
+      byId.set(id, {
+        _id: id,
+        name: person?.name || existing?.name || 'Developer',
+        avatarUrl: person?.avatarUrl ?? existing?.avatarUrl ?? null,
+        jobTitle: person?.jobTitle || existing?.jobTitle || '',
+        email: person?.email || existing?.email || '',
+      });
+    }
+  }
+  return [...byId.values()].sort((a, b) =>
+    String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' })
+  );
+}
+
 export function useCreateProjectModal() {
   const navigate = useNavigate();
   const createProject = useCreateProject();
   const { data: teamsData } = useTeams({ limit: 50 });
   const teams = teamsData?.data ?? [];
 
-  const submit = ({ kind, name, description = '', team, icon, sprintMeta }, { onDone } = {}) => {
+  const developers = useMemo(() => collectDevelopmentDevelopers(teams), [teams]);
+
+  const submit = (
+    { kind, name, description = '', team, icon, sprintMeta, developer },
+    { onDone } = {}
+  ) => {
     const meta = CREATE_KIND_META[kind];
     if (!meta) return;
 
@@ -63,10 +109,10 @@ export function useCreateProjectModal() {
         defaultViews: ['list', 'board'],
         isPrivate: false,
         team,
+        ...(developer ? { developer } : {}),
       },
       {
         onSuccess: (project) => {
-          toast.success(`${meta.successLabel} created`);
           onDone?.();
           if (project?._id) navigate(`/projects/${project._id}?view=list`);
         },
@@ -81,6 +127,7 @@ export function useCreateProjectModal() {
 
   return {
     teams,
+    developers,
     submit,
     isPending: createProject.isPending,
   };

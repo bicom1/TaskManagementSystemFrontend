@@ -42,7 +42,6 @@ import { Modal } from '@/components/ui/Modal';
 import { ListSkeleton } from '@/components/ui/Spinner';
 import { UserAvatar } from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
-import { canApproveTasks } from '@/lib/roles';
 import { projectPath } from '@/features/spaces/spaceKinds';
 
 const VIEW_TABS = [
@@ -604,11 +603,6 @@ export default function AllTasksPage() {
             people={people}
             parentTasks={tasks.filter((t) => !t.parentTask)}
           />
-          {!canApproveTasks(user?.role) && (
-            <p className="text-xs text-graphite">
-              Super Admin is notified when you create or reassign tasks.
-            </p>
-          )}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel

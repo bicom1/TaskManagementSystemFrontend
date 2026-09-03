@@ -20,8 +20,6 @@ import {
   Plus,
   X,
   MessageSquare,
-  CheckCircle,
-  XCircle,
   LayoutGrid,
   List,
   Trash2,
@@ -42,8 +40,6 @@ import {
   useCreateTask,
   useMoveTask,
   useTask,
-  useApproveTask,
-  useRejectTask,
   useUpdateTask,
   useTaskActivity,
   useAdvanceTask,
@@ -67,10 +63,9 @@ import {
   TASK_STATUSES,
   STATUS_LABELS,
   PRIORITY_LABELS,
-  APPROVAL_STATUS_LABELS,
 } from '@/features/tasks/api/taskApi';
 import { useAuthStore } from '@/store/authStore';
-import { canApproveTasks } from '@/lib/roles';
+
 import { canManageTask } from '@/lib/taskPermissions';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -93,92 +88,11 @@ import {
 } from '@/features/tasks/components/StatusGroupHeader';
 import { BoardTaskComposer } from '@/features/tasks/components/BoardTaskComposer';
 
-function getApprovalBadgeVariant(status) {
-  if (status === 'pending') return 'warning';
-  if (status === 'approved') return 'success';
-  if (status === 'rejected') return 'destructive';
-  return 'secondary';
-}
-
 function canDragTask(task, user) {
-  if (!canManageTask(user, task)) return false;
-  if (task.approvalStatus === 'pending') return false;
-  if (task.approvalStatus === 'rejected') return false;
-  return true;
+  return canManageTask(user, task);
 }
 
-function ApprovalActions({ task, projectId, compact = false }) {
-  const approveTask = useApproveTask(projectId);
-  const rejectTask = useRejectTask(projectId);
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [reason, setReason] = useState('');
-
-  if (task.approvalStatus !== 'pending') return null;
-
-  const handleReject = () => {
-    rejectTask.mutate(
-      { id: task._id, reason: reason || undefined },
-      {
-        onSuccess: () => {
-          setRejectOpen(false);
-          setReason('');
-        },
-      }
-    );
-  };
-
-  return (
-    <>
-      <div className={cn('flex gap-2', compact ? 'mt-2' : 'mt-3')}>
-        <Button
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            approveTask.mutate({ id: task._id });
-          }}
-          disabled={approveTask.isPending}
-        >
-          <CheckCircle className="h-3.5 w-3.5" />
-          Approve
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            setRejectOpen(true);
-          }}
-        >
-          <XCircle className="h-3.5 w-3.5" />
-          Reject
-        </Button>
-      </div>
-      <Modal open={rejectOpen} onClose={() => setRejectOpen(false)} title="Reject task">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="card-reject-reason">Reason (optional)</Label>
-            <Textarea
-              id="card-reject-reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Explain why…"
-            />
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setRejectOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleReject} disabled={rejectTask.isPending}>
-              Reject
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </>
-  );
-}
-
-function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActions }) {
+function TaskCard({ task, onClick, isDragging, user }) {
   const dragEnabled = canDragTask(task, user);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging: sorting } =
@@ -193,7 +107,6 @@ function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActi
     transition,
   };
 
-  const approvalStatus = task.approvalStatus;
   const showGhost = isDragging || sorting;
 
   return (
@@ -213,13 +126,6 @@ function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActi
       }}
     >
       <p className="mb-3 text-[13px] font-medium leading-snug text-ink">{task.title}</p>
-      {approvalStatus && approvalStatus !== 'approved' ? (
-        <div className="mb-2">
-          <Badge variant={getApprovalBadgeVariant(approvalStatus)}>
-            {APPROVAL_STATUS_LABELS[approvalStatus]}
-          </Badge>
-        </div>
-      ) : null}
       <div className="flex items-center gap-1.5 text-graphite">
         {task.assignees?.length ? (
           <div className="flex -space-x-1.5">
@@ -256,7 +162,6 @@ function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActi
           <Flag className="h-3.5 w-3.5 fill-current" />
         </span>
       </div>
-      {showApprovalActions && <ApprovalActions task={task} projectId={projectId} compact />}
     </div>
   );
 }
@@ -271,7 +176,6 @@ function KanbanColumn({
   user,
   projectId,
   projectStatuses,
-  showApprovalActions,
   onQuickCreate,
   people = [],
   creating = false,
@@ -328,8 +232,6 @@ function KanbanColumn({
               onClick={() => onTaskClick(task._id)}
               isDragging={activeId === task._id}
               user={user}
-              projectId={projectId}
-              showApprovalActions={showApprovalActions}
             />
           ))}
         </div>
@@ -349,7 +251,6 @@ function TaskDrawer({
   taskId,
   onClose,
   projectId,
-  showApprovalActions,
   projectTasks,
   assignablePeople,
 }) {
@@ -506,9 +407,6 @@ function TaskDrawer({
                     people={assignablePeople}
                     compact
                   />
-                  {showApprovalActions && task.approvalStatus === 'pending' && (
-                    <ApprovalActions task={task} projectId={projectId} />
-                  )}
                   <div className="flex flex-col gap-2">
                     {task.status !== 'done' && (
                       <Button
@@ -534,11 +432,6 @@ function TaskDrawer({
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Badge>{STATUS_LABELS[task.status]}</Badge>
                     <Badge variant="secondary">{PRIORITY_LABELS[task.priority]}</Badge>
-                    {task.approvalStatus && (
-                      <Badge variant={getApprovalBadgeVariant(task.approvalStatus)}>
-                        {APPROVAL_STATUS_LABELS[task.approvalStatus]}
-                      </Badge>
-                    )}
                     {(task.labels || []).map((label) => (
                       <Badge key={label} variant="outline">
                         {label}
@@ -557,9 +450,6 @@ function TaskDrawer({
                   )}
                   {task.description && (
                     <p className="mt-4 whitespace-pre-wrap text-sm text-charcoal">{task.description}</p>
-                  )}
-                  {showApprovalActions && task.approvalStatus === 'pending' && (
-                    <ApprovalActions task={task} projectId={projectId} />
                   )}
                 </>
               )}
@@ -744,8 +634,6 @@ export default function ProjectBoardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
-  const userRole = user?.role;
-  const showApprovalActions = canApproveTasks(userRole);
 
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { data: usersRes } = useUsers({ limit: 200 });
@@ -1197,7 +1085,7 @@ export default function ProjectBoardPage() {
                   user={user}
                   projectId={projectId}
                   projectStatuses={project?.statuses}
-                  showApprovalActions={showApprovalActions}
+
                   people={assignablePeople}
                   creating={createTask.isPending}
                   onQuickCreate={(fields) => createQuickTask(fields, { open: false })}
@@ -1262,7 +1150,7 @@ export default function ProjectBoardPage() {
           taskId={selectedTaskId}
           projectId={projectId}
           onClose={() => setSelectedTaskId(null)}
-          showApprovalActions={showApprovalActions}
+
           projectTasks={allTasks}
           assignablePeople={assignablePeople}
         />
@@ -1283,11 +1171,7 @@ export default function ProjectBoardPage() {
             people={assignablePeople}
             parentTasks={allTasks.filter((t) => !t.parentTask)}
           />
-          {!canApproveTasks(userRole) && (
-            <p className="text-xs text-graphite">
-              Tasks you create will be pending until a team lead approves them.
-            </p>
-          )}
+
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => setCreateModalOpen(false)}>
               Cancel

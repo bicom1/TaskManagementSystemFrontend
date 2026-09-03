@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { projectApi } from '../api/projectApi';
@@ -11,6 +11,7 @@ export function useProjects(params) {
     queryKey: [KEY, params],
     queryFn: () => projectApi.list(params),
     staleTime: 45_000,
+    placeholderData: keepPreviousData,
   });
 }
 

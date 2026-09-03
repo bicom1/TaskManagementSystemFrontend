@@ -5,38 +5,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
-import { cn } from '@/lib/utils';
 import { useCreateProjectModal } from './createProjectShared';
 
 const COLOR_PRESETS = ['#292524', '#2563eb', '#7c3aed', '#db2777', '#ea580c', '#16a34a'];
-
-function PrivateToggle({ checked, onChange }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline px-4 py-3">
-      <div>
-        <p className="text-sm font-semibold text-ink">Make private</p>
-        <p className="text-xs text-graphite">Only you and invited members have access</p>
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={cn(
-          'relative h-6 w-11 shrink-0 rounded-full transition-colors',
-          checked ? 'bg-brand-600' : 'bg-steel/30'
-        )}
-      >
-        <span
-          className={cn(
-            'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
-            checked ? 'translate-x-5' : 'translate-x-0.5'
-          )}
-        />
-      </button>
-    </div>
-  );
-}
 
 export function CreateFolderModal({ open, onClose, onUseTemplates }) {
   const { teams, submit, isPending } = useCreateProjectModal();
@@ -44,13 +15,11 @@ export function CreateFolderModal({ open, onClose, onUseTemplates }) {
   const [description, setDescription] = useState('');
   const [team, setTeam] = useState('');
   const [color, setColor] = useState(COLOR_PRESETS[0]);
-  const [isPrivate, setIsPrivate] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setName('');
     setDescription('');
-    setIsPrivate(false);
     setColor(COLOR_PRESETS[0]);
     setTeam(teams[0]?._id || '');
   }, [open, teams]);
@@ -73,7 +42,7 @@ export function CreateFolderModal({ open, onClose, onUseTemplates }) {
         onSubmit={(e) => {
           e.preventDefault();
           if (!canCreate) return;
-          submit({ kind: 'folder', name, description, team, isPrivate }, { onDone: onClose });
+          submit({ kind: 'folder', name, description, team }, { onDone: onClose });
         }}
       >
         <div className="space-y-1.5">
@@ -141,8 +110,6 @@ export function CreateFolderModal({ open, onClose, onUseTemplates }) {
             <ChevronRight className="h-4 w-4 text-steel" />
           </button>
         </div>
-
-        <PrivateToggle checked={isPrivate} onChange={setIsPrivate} />
 
         <div className="flex items-center justify-between gap-2 border-t border-hairline/80 pt-4">
           <Button type="button" variant="ghost" className="gap-2" onClick={onUseTemplates}>

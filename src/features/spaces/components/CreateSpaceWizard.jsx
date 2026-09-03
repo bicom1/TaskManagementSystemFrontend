@@ -113,7 +113,7 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
       name: form.name.trim(),
       description: form.description.trim(),
       icon: iconLetter,
-      isPrivate: form.isPrivate,
+      isPrivate: false,
       defaultPermission: form.defaultPermission,
       kind: 'project',
       workflowTemplate: form.workflowTemplate,
@@ -231,29 +231,6 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-t border-hairline px-4 py-3">
-              <div>
-                <p className="text-sm font-medium text-ink">Make Private</p>
-                <p className="text-xs text-graphite">Only you and invited members have access</p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={form.isPrivate}
-                onClick={() => setField('isPrivate', !form.isPrivate)}
-                className={cn(
-                  'relative h-6 w-11 rounded-full transition-colors',
-                  form.isPrivate ? 'bg-ink' : 'bg-cloud'
-                )}
-              >
-                <span
-                  className={cn(
-                    'absolute top-0.5 h-5 w-5 rounded-full bg-paper shadow transition-transform',
-                    form.isPrivate ? 'left-[22px]' : 'left-0.5'
-                  )}
-                />
-              </button>
             </div>
           </div>
 

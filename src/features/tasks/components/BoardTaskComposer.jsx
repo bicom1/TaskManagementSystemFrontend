@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/UserAvatar';
 import { PRIORITY_LABELS } from '@/features/tasks/api/taskApi';
+import { toggleAssigneeId } from '@/features/tasks/taskAssignees';
 
 function priorityFlagClass(priority) {
   if (priority === 'urgent') return 'text-danger-500';
@@ -266,9 +267,12 @@ export function BoardTaskComposer({ people = [], saving = false, onSave, onCance
                   'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs hover:bg-cloud',
                   active && 'bg-cloud'
                 )}
-                onClick={() =>
-                  setAssigneeIds((ids) => (active ? ids.filter((x) => x !== id) : [...ids, id]))
-                }
+                onClick={() => {
+                  setAssigneeIds((ids) => {
+                    const next = toggleAssigneeId(ids, id);
+                    return next ?? ids;
+                  });
+                }}
               >
                 <UserAvatar user={p} size="sm" />
                 <span className="min-w-0 flex-1 truncate font-medium text-ink">{p.name}</span>

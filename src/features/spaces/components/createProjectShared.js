@@ -33,7 +33,7 @@ export function useCreateProjectModal() {
   const { data: teamsData } = useTeams({ limit: 50 });
   const teams = teamsData?.data ?? [];
 
-  const submit = ({ kind, name, description = '', team, isPrivate = false, icon, sprintMeta }, { onDone } = {}) => {
+  const submit = ({ kind, name, description = '', team, icon, sprintMeta }, { onDone } = {}) => {
     const meta = CREATE_KIND_META[kind];
     if (!meta) return;
 
@@ -61,7 +61,7 @@ export function useCreateProjectModal() {
         workflowTemplate: meta.workflowTemplate,
         activeView: meta.activeView,
         defaultViews: ['list', 'board'],
-        isPrivate,
+        isPrivate: false,
         team,
       },
       {

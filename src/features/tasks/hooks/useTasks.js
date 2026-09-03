@@ -363,15 +363,17 @@ export function useMoveTask(projectId) {
       if (previousBoard) {
         const next = { ...previousBoard };
         for (const col of Object.keys(next)) {
-          next[col] = next[col].filter((t) => t._id !== id);
+          if (!Array.isArray(next[col])) continue;
+          next[col] = next[col].filter((t) => String(t._id) !== String(id));
         }
         const movedTask = Object.values(previousBoard)
           .flat()
-          .find((t) => t._id === id);
+          .find((t) => String(t._id) === String(id));
         if (movedTask) {
-          next[status] = [...next[status], { ...movedTask, status, position }].sort(
-            (a, b) => a.position - b.position
-          );
+          const column = [...(next[status] || [])];
+          const insertAt = Math.max(0, Math.min(Number(position) || 0, column.length));
+          column.splice(insertAt, 0, { ...movedTask, status, position: insertAt });
+          next[status] = column.map((t, index) => ({ ...t, position: index }));
         }
         queryClient.setQueryData(boardKey, next);
       }

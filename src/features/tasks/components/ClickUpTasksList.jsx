@@ -8,6 +8,7 @@ import { canManageTask } from '@/lib/taskPermissions';
 import { useAuthStore } from '@/store/authStore';
 import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
 import { StatusGroupHeader } from '@/features/tasks/components/StatusGroupHeader';
+import { toggleAssigneeId } from '@/features/tasks/taskAssignees';
 
 function priorityFlagClass(priority) {
   if (priority === 'urgent') return 'text-danger-500';
@@ -832,11 +833,12 @@ export function ClickUpTasksList({
               .find((t) => String(t._id) === String(menu?.taskId))
               ?.assignees?.map((a) => a._id || a) || []
           }
-          onToggle={(id, active) => {
+          onToggle={(id) => {
             const task = displayTasks.find((t) => String(t._id) === String(menu?.taskId));
             if (!task) return;
             const current = (task.assignees || []).map((a) => String(a._id || a));
-            const nextIds = active ? current.filter((x) => x !== id) : [...current, id];
+            const nextIds = toggleAssigneeId(current, id);
+            if (!nextIds) return;
             const nextPeople = resolvePeople(nextIds, people, task.assignees);
             applyUpdate(task._id, { assignees: nextIds }, { assignees: nextPeople });
           }}
@@ -852,13 +854,12 @@ export function ClickUpTasksList({
         <AssigneePickerList
           people={people}
           selectedIds={draftMeta.assigneeIds}
-          onToggle={(id, active) => {
-            setDraftMeta((m) => ({
-              ...m,
-              assigneeIds: active
-                ? m.assigneeIds.filter((x) => x !== id)
-                : [...m.assigneeIds, id],
-            }));
+          onToggle={(id) => {
+            setDraftMeta((m) => {
+              const next = toggleAssigneeId(m.assigneeIds, id);
+              if (!next) return m;
+              return { ...m, assigneeIds: next };
+            });
           }}
         />
       </FixedMenu>

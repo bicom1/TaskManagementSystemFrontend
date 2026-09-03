@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Inbox,
-  MessageSquareReply,
   MessageSquareText,
   Phone,
   UserCheck,
@@ -47,7 +46,6 @@ import {
   useProjectFavoritesStore,
 } from '@/features/projects/projectFavoritesStore';
 import { UserAvatar } from '@/components/UserAvatar';
-import { canManageOrg } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 import { BrainLogo } from '@/features/ai/components/BrainLogo';
 import { AiUsageRing } from '@/features/ai/components/AiUsageRing';
@@ -175,7 +173,7 @@ function CollapsibleSection({ title, defaultOpen = true, children }) {
   );
 }
 
-function SidebarProjectsList({ projects, canManageProjects, limit }) {
+function SidebarProjectsList({ projects, limit }) {
   const location = useLocation();
   const favoriteIds = useProjectFavoritesStore((s) => s.favoriteIds);
   const [renameProject, setRenameProject] = useState(null);
@@ -196,7 +194,7 @@ function SidebarProjectsList({ projects, canManageProjects, limit }) {
             <ProjectSidebarItem
               key={project._id}
               project={project}
-              canManage={canManageProjects}
+              canManage={Boolean(project.canManage)}
               isActive={location.pathname.startsWith(projectPath(project._id))}
               onRename={setRenameProject}
               onEdit={setEditProject}
@@ -241,7 +239,6 @@ function SidebarProjectsList({ projects, canManageProjects, limit }) {
    ──────────────────────────────────────────────────────────── */
 function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, users, user }) {
   const navigate = useNavigate();
-  const isSuperAdmin = canManageOrg(user?.role);
   const handleAddProject = onAddProject || onCreateClick;
   const aiChats = useAiStore((s) => s.chats);
 
@@ -281,7 +278,6 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
           badge={unreadCount > 0 ? unreadCount : undefined}
           badgeColor="bg-brand-50 text-brand-700"
         />
-        <ClickUpNavItem to="/inbox?view=replies" label="Replies" icon={MessageSquareReply} />
         <ClickUpNavItem to="/ai/skills" label="Skills" icon={Zap} />
         <ClickUpNavItem
           to="/home/assigned-comments"
@@ -333,10 +329,7 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
             icon={FolderKanban}
             badge={projects.length > 0 ? projects.length : undefined}
           />
-          <SidebarProjectsList
-            projects={projects}
-            canManageProjects={isSuperAdmin}
-          />
+          <SidebarProjectsList projects={projects} />
           <button
             type="button"
             onClick={handleAddProject}
@@ -577,7 +570,6 @@ function TeamsView({ teamsData, usersData }) {
    4. DASHBOARD VIEW (Real Boards & Projects)
    ──────────────────────────────────────────────────────────── */
 function DashboardView({ onCollapse, onCreateClick, onAddProject, projects, user }) {
-  const isSuperAdmin = canManageOrg(user?.role);
   const handleAddProject = onAddProject || onCreateClick;
 
   return (
@@ -624,7 +616,7 @@ function DashboardView({ onCollapse, onCreateClick, onAddProject, projects, user
       {/* Project list */}
       <SectionTitle title="All Projects" />
       {projects.length > 0 ? (
-        <SidebarProjectsList projects={projects} canManageProjects={isSuperAdmin} />
+        <SidebarProjectsList projects={projects} />
       ) : (
         <div className="rounded-xl border border-gray-200 bg-white p-5 text-center shadow-2xs">
           <div className="mx-auto mb-2 flex h-6 w-6 items-center justify-center text-amber-400">

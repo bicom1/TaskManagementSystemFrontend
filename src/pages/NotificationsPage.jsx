@@ -9,7 +9,6 @@ import {
   Plus,
   Send,
   ListTodo,
-  Sparkles,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useMarkMessageRead, useMarkAllMessagesRead, useCreateTaskFromMessage, useMessageInbox, useSendMessage } from '@/features/messages/hooks/useMessages';
@@ -40,8 +39,9 @@ function resolveView(searchParams) {
 
   if (view === 'chat' || legacyTab === 'chat' || searchParams.get('chat')) return 'chat';
   if (view === 'queries' || legacyTab === 'messages') return 'queries';
-  if (view === 'replies' || legacyTab === 'replies') return 'replies';
-  if (view === 'activity' || legacyTab === 'notifications') return 'activity';
+  if (view === 'activity' || legacyTab === 'notifications' || view === 'replies' || legacyTab === 'replies') {
+    return 'activity';
+  }
   return 'activity';
 }
 
@@ -317,7 +317,6 @@ export default function NotificationsPage() {
     { id: 'activity', label: 'Inbox', unread: unreadCount, icon: Bell },
     { id: 'chat', label: 'Chat', unread: chatUnread, icon: MessageSquare },
     { id: 'queries', label: 'Queries', unread: queryUnread, icon: Mail },
-    { id: 'replies', label: 'Replies', unread: 0, icon: Sparkles },
   ];
 
   const setView = (id) => {
@@ -344,7 +343,7 @@ export default function NotificationsPage() {
       <div className="mb-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-graphite">Home</p>
         <h1 className="page-title">Inbox</h1>
-        <p className="page-subtitle">Task activity, chat, queries, and replies in one place</p>
+        <p className="page-subtitle">Task activity, chat, and queries in one place</p>
       </div>
 
       <div className="mb-6 flex gap-1 rounded-lg border border-hairline bg-cloud p-1">
@@ -374,7 +373,6 @@ export default function NotificationsPage() {
 
       {view === 'chat' && <InboxChat />}
       {view === 'queries' && <QueriesPanel />}
-      {view === 'replies' && <InboxActivityView repliesOnly />}
       {view === 'activity' && <InboxActivityView />}
     </div>
   );

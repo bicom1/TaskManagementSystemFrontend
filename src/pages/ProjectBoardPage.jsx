@@ -1,10 +1,11 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
   closestCorners,
@@ -19,7 +20,6 @@ import {
   Plus,
   X,
   MessageSquare,
-  GripVertical,
   CheckCircle,
   XCircle,
   LayoutGrid,
@@ -181,11 +181,12 @@ function ApprovalActions({ task, projectId, compact = false }) {
 function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActions }) {
   const dragEnabled = canDragTask(task, user);
 
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-    id: task._id,
-    data: { task, status: task.status },
-    disabled: !dragEnabled,
-  });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging: sorting } =
+    useSortable({
+      id: task._id,
+      data: { type: 'task', task, status: task.status },
+      disabled: !dragEnabled,
+    });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -193,29 +194,24 @@ function TaskCard({ task, onClick, isDragging, user, projectId, showApprovalActi
   };
 
   const approvalStatus = task.approvalStatus;
+  const showGhost = isDragging || sorting;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group relative rounded-xl bg-paper p-3 shadow-sm transition hover:shadow-md',
-        isDragging && 'opacity-50 ring-2 ring-primary/30',
-        !dragEnabled && 'opacity-90'
+        'group relative touch-none rounded-xl bg-paper p-3 shadow-sm transition hover:shadow-md',
+        dragEnabled && 'cursor-grab active:cursor-grabbing',
+        showGhost && 'opacity-40 ring-2 ring-primary/30',
+        !dragEnabled && 'cursor-default opacity-90'
       )}
-      onClick={onClick}
+      {...(dragEnabled ? { ...attributes, ...listeners } : {})}
+      onClick={() => {
+        if (showGhost) return;
+        onClick?.();
+      }}
     >
-      {dragEnabled ? (
-        <button
-          type="button"
-          className="absolute right-1.5 top-1.5 cursor-grab rounded p-0.5 text-steel opacity-0 transition group-hover:opacity-100 hover:bg-cloud hover:text-charcoal"
-          {...attributes}
-          {...listeners}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-      ) : null}
       <p className="mb-3 text-[13px] font-medium leading-snug text-ink">{task.title}</p>
       {approvalStatus && approvalStatus !== 'approved' ? (
         <div className="mb-2">
@@ -282,6 +278,10 @@ function KanbanColumn({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [adding, setAdding] = useState(false);
+  const { setNodeRef, isOver } = useDroppable({
+    id: status,
+    data: { type: 'column', status },
+  });
 
   const startAdd = () => {
     setCollapsed(false);
@@ -314,7 +314,13 @@ function KanbanColumn({
         </div>
       ) : null}
       <SortableContext items={tasks.map((t) => t._id)} strategy={verticalListSortingStrategy}>
-        <div className="flex min-h-[48px] max-h-[calc(100vh-16rem)] flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
+        <div
+          ref={setNodeRef}
+          className={cn(
+            'flex min-h-[80px] max-h-[calc(100vh-16rem)] flex-1 flex-col gap-2 overflow-y-auto rounded-xl pr-0.5 transition-colors',
+            isOver && 'bg-brand-50/60 ring-2 ring-inset ring-brand-200/70'
+          )}
+        >
           {tasks.map((task) => (
             <TaskCard
               key={task._id}
@@ -765,6 +771,7 @@ export default function ProjectBoardPage() {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [activeTask, setActiveTask] = useState(null);
   const [createForm, setCreateForm] = useState(EMPTY_TASK_FORM);
+  const suppressOpenRef = useRef(false);
 
   const [viewMode, setViewMode] = useState(() => {
     const v = searchParams.get('view');
@@ -956,58 +963,78 @@ export default function ProjectBoardPage() {
   };
 
   const findContainer = (taskId) => {
-    if (!board) return null;
-    for (const status of TASK_STATUSES) {
-      if (board[status]?.some((t) => t._id === taskId)) return status;
+    if (!board || taskId == null) return null;
+    const id = String(taskId);
+    for (const status of Object.keys(board)) {
+      if (!Array.isArray(board[status])) continue;
+      if (board[status].some((t) => String(t._id) === id)) return status;
     }
     return null;
   };
 
+  const openTaskFromBoard = (taskId) => {
+    if (suppressOpenRef.current) return;
+    setSelectedTaskId(taskId);
+  };
+
   const handleDragStart = (event) => {
+    const activeId = String(event.active.id);
     const task = Object.values(board ?? {})
       .flat()
-      .find((t) => t._id === event.active.id);
+      .find((t) => String(t._id) === activeId);
 
-    if (task && !canDragTask(task, user)) {
-      return;
-    }
+    if (task && !canDragTask(task, user)) return;
 
+    suppressOpenRef.current = true;
     setActiveTask(task ?? null);
   };
 
   const handleDragEnd = (event) => {
     setActiveTask(null);
+    window.setTimeout(() => {
+      suppressOpenRef.current = false;
+    }, 120);
+
     const { active, over } = event;
     if (!over || !board) return;
 
     const activeId = active.id;
-    const draggedTask = Object.values(board).flat().find((t) => t._id === activeId);
+    const draggedTask = Object.values(board)
+      .flat()
+      .find((t) => String(t._id) === String(activeId));
     if (draggedTask && !canDragTask(draggedTask, user)) return;
 
     const overId = over.id;
+    const overData = over.data?.current;
 
-    let targetStatus = over.data?.current?.status;
-    if (!targetStatus) {
-      targetStatus = findContainer(overId) ?? findContainer(activeId);
-    }
-    if (!targetStatus) {
-      if (TASK_STATUSES.includes(overId)) targetStatus = overId;
-    }
+    let targetStatus =
+      overData?.status ||
+      (boardStatuses.includes(String(overId)) ? String(overId) : null) ||
+      findContainer(overId);
 
-    const sourceStatus = findContainer(activeId);
+    const sourceStatus = findContainer(activeId) || draggedTask?.status;
     if (!sourceStatus || !targetStatus) return;
 
-    const targetColumn = board[targetStatus] ?? [];
+    const targetColumn = (board[targetStatus] ?? []).filter(
+      (t) => String(t._id) !== String(activeId)
+    );
     let position = targetColumn.length;
 
-    if (overId !== targetStatus) {
-      const overIndex = targetColumn.findIndex((t) => t._id === overId);
+    if (String(overId) !== String(targetStatus)) {
+      const overIndex = targetColumn.findIndex((t) => String(t._id) === String(overId));
       if (overIndex >= 0) position = overIndex;
     }
 
-    if (sourceStatus !== targetStatus || activeId !== overId) {
+    if (sourceStatus !== targetStatus || String(activeId) !== String(overId)) {
       moveTask.mutate({ id: activeId, status: targetStatus, position });
     }
+  };
+
+  const handleDragCancel = () => {
+    setActiveTask(null);
+    window.setTimeout(() => {
+      suppressOpenRef.current = false;
+    }, 120);
   };
 
   if (projectLoading || boardLoading) {
@@ -1151,6 +1178,7 @@ export default function ProjectBoardPage() {
             collisionDetection={closestCorners}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <div className="flex items-start gap-3 pb-4">
               {boardStatuses.map((status) => (
@@ -1164,7 +1192,7 @@ export default function ProjectBoardPage() {
                       ? true
                       : !t.parentTask
                   )}
-                  onTaskClick={setSelectedTaskId}
+                  onTaskClick={openTaskFromBoard}
                   activeId={activeTask?._id}
                   user={user}
                   projectId={projectId}

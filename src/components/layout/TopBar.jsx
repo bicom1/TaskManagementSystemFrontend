@@ -103,7 +103,6 @@ export const TopBar = forwardRef(function TopBar(
     if (p === '/inbox') return 'Inbox';
     if (p.startsWith('/inbox') && p.includes('view=chat')) return 'Chat';
     if (p.startsWith('/inbox') && p.includes('view=queries')) return 'Queries';
-    if (p.startsWith('/inbox') && p.includes('view=replies')) return 'Replies';
     if (p === '/approvals') return 'Approval Queue';
     if (p === '/reports') return 'Overview';
     if (p === '/audit') return 'System Logs';

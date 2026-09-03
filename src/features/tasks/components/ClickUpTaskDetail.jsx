@@ -29,6 +29,7 @@ import { useAuthStore } from '@/store/authStore';
 import { getAvatarColor, getInitials } from '@/lib/avatar';
 import { canManageTask } from '@/lib/taskPermissions';
 import { cn } from '@/lib/utils';
+import { toggleAssigneeId } from '@/features/tasks/taskAssignees';
 import { Button } from '@/components/ui/Button';
 import { LoadingScreen } from '@/components/ui/Spinner';
 import {
@@ -157,12 +158,10 @@ export function ClickUpTaskDetail({
   };
 
   const toggleAssignee = (personId) => {
-    const id = String(personId);
     const current = task?.assignees || [];
     const currentIds = current.map((a) => String(a._id || a));
-    const nextIds = currentIds.includes(id)
-      ? currentIds.filter((x) => x !== id)
-      : [...currentIds, id];
+    const nextIds = toggleAssigneeId(currentIds, personId);
+    if (!nextIds) return;
 
     const byId = new Map();
     for (const p of assignablePeople || []) byId.set(String(p._id), p);

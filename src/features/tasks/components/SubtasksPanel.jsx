@@ -10,6 +10,7 @@ import { UserAvatar } from '@/components/UserAvatar';
 import { getAvatarColor, getInitials } from '@/lib/avatar';
 import { STATUS_LABELS } from '@/features/tasks/api/taskApi';
 import { useCreateTask, useTaskSubtasks } from '@/features/tasks/hooks/useTasks';
+import { toggleAssigneeId } from '@/features/tasks/taskAssignees';
 import { fromDatetimeLocalValue } from './TaskFormFields';
 
 const EMPTY_SUBTASK_FORM = {
@@ -39,10 +40,8 @@ export function SubtasksPanel({
   );
 
   const toggleAssignee = (id) => {
-    const sid = String(id);
-    const next = selected.has(sid)
-      ? form.assignees.filter((x) => String(x) !== sid)
-      : [...form.assignees, sid];
+    const next = toggleAssigneeId(form.assignees, id);
+    if (!next) return;
     setForm((f) => ({ ...f, assignees: next }));
   };
 

@@ -1,5 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCorners,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Calendar, ChevronDown, Filter, Flag, LayoutGrid, List, Plus, Search, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
@@ -35,9 +50,94 @@ const VIEW_TABS = [
   { id: 'board', label: 'Board', icon: LayoutGrid },
 ];
 
-function AllTasksColumn({ status, tasks, onTaskClick, onAdd, onQuickCreate, people = [], creating = false }) {
+function AllTasksCard({ task, onClick, isDragging }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging: sorting } =
+    useSortable({
+      id: task._id,
+      data: { type: 'task', task, status: task.status },
+    });
+
+  const showGhost = isDragging || sorting;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={cn(
+        'w-full touch-none rounded-xl bg-paper p-3 text-left shadow-sm transition hover:shadow-md cursor-grab active:cursor-grabbing',
+        showGhost && 'opacity-40 ring-2 ring-primary/30'
+      )}
+      {...attributes}
+      {...listeners}
+      onClick={() => {
+        if (showGhost) return;
+        onClick?.(task._id);
+      }}
+    >
+      <p className="mb-3 text-[13px] font-medium leading-snug text-ink">{task.title}</p>
+      <div className="flex items-center gap-1.5 text-graphite">
+        {task.assignees?.length ? (
+          <div className="flex -space-x-1.5">
+            {task.assignees.slice(0, 3).map((a) => (
+              <UserAvatar
+                key={String(a._id || a)}
+                user={typeof a === 'object' ? a : null}
+                name={a.name || '?'}
+                size="xs"
+                className="ring-1 ring-paper"
+              />
+            ))}
+          </div>
+        ) : (
+          <span className="truncate text-[11px] text-graphite">
+            {task.project?.name || 'Project'}
+          </span>
+        )}
+        <span
+          className={cn(
+            'ml-auto inline-flex h-6 w-6 items-center justify-center',
+            task.dueDate ? 'text-graphite' : 'text-graphite/40'
+          )}
+          title={task.dueDate ? format(new Date(task.dueDate), 'MMM d') : 'Due date'}
+        >
+          <Calendar className="h-3.5 w-3.5" />
+        </span>
+        <span
+          className={cn(
+            'inline-flex h-6 w-6 items-center justify-center',
+            task.priority === 'urgent' && 'text-danger-500',
+            task.priority === 'high' && 'text-warning-500',
+            task.priority === 'medium' && 'text-brand-400',
+            (!task.priority || task.priority === 'low') && 'text-graphite/40'
+          )}
+          title={PRIORITY_LABELS[task.priority] ?? 'Priority'}
+        >
+          <Flag className="h-3.5 w-3.5 fill-current" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function AllTasksColumn({
+  status,
+  tasks,
+  onTaskClick,
+  onAdd,
+  onQuickCreate,
+  people = [],
+  creating = false,
+  activeId,
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const [adding, setAdding] = useState(false);
+  const { setNodeRef, isOver } = useDroppable({
+    id: status,
+    data: { type: 'column', status },
+  });
 
   const startAdd = () => {
     setCollapsed(false);
@@ -70,58 +170,24 @@ function AllTasksColumn({ status, tasks, onTaskClick, onAdd, onQuickCreate, peop
           />
         </div>
       ) : null}
-      <div className="flex min-h-[48px] max-h-[calc(100vh-16rem)] flex-1 flex-col gap-2 overflow-y-auto">
-        {tasks.map((task) => (
-          <button
-            key={task._id}
-            type="button"
-            onClick={() => onTaskClick(task._id)}
-            className="w-full rounded-xl bg-paper p-3 text-left shadow-sm transition hover:shadow-md"
-          >
-            <p className="mb-3 text-[13px] font-medium leading-snug text-ink">{task.title}</p>
-            <div className="flex items-center gap-1.5 text-graphite">
-              {task.assignees?.length ? (
-                <div className="flex -space-x-1.5">
-                  {task.assignees.slice(0, 3).map((a) => (
-                    <UserAvatar
-                      key={String(a._id || a)}
-                      user={typeof a === 'object' ? a : null}
-                      name={a.name || '?'}
-                      size="xs"
-                      className="ring-1 ring-paper"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <span className="truncate text-[11px] text-graphite">
-                  {task.project?.name || 'Project'}
-                </span>
-              )}
-              <span
-                className={cn(
-                  'ml-auto inline-flex h-6 w-6 items-center justify-center',
-                  task.dueDate ? 'text-graphite' : 'text-graphite/40'
-                )}
-                title={task.dueDate ? format(new Date(task.dueDate), 'MMM d') : 'Due date'}
-              >
-                <Calendar className="h-3.5 w-3.5" />
-              </span>
-              <span
-                className={cn(
-                  'inline-flex h-6 w-6 items-center justify-center',
-                  task.priority === 'urgent' && 'text-danger-500',
-                  task.priority === 'high' && 'text-warning-500',
-                  task.priority === 'medium' && 'text-brand-400',
-                  (!task.priority || task.priority === 'low') && 'text-graphite/40'
-                )}
-                title={PRIORITY_LABELS[task.priority] ?? 'Priority'}
-              >
-                <Flag className="h-3.5 w-3.5 fill-current" />
-              </span>
-            </div>
-          </button>
-        ))}
-      </div>
+      <SortableContext items={tasks.map((t) => t._id)} strategy={verticalListSortingStrategy}>
+        <div
+          ref={setNodeRef}
+          className={cn(
+            'flex min-h-[80px] max-h-[calc(100vh-16rem)] flex-1 flex-col gap-2 overflow-y-auto rounded-xl transition-colors',
+            isOver && 'bg-brand-50/60 ring-2 ring-inset ring-brand-200/70'
+          )}
+        >
+          {tasks.map((task) => (
+            <AllTasksCard
+              key={task._id}
+              task={task}
+              onClick={onTaskClick}
+              isDragging={String(activeId) === String(task._id)}
+            />
+          ))}
+        </div>
+      </SortableContext>
       <button
         type="button"
         onClick={startAdd}
@@ -133,7 +199,21 @@ function AllTasksColumn({ status, tasks, onTaskClick, onAdd, onQuickCreate, peop
   );
 }
 
-function AllTasksBoard({ tasks, onTaskClick, onAdd, onQuickCreate, people = [], creating = false }) {
+function AllTasksBoard({
+  tasks,
+  onTaskClick,
+  onAdd,
+  onQuickCreate,
+  people = [],
+  creating = false,
+  onMoveTask,
+}) {
+  const [activeTask, setActiveTask] = useState(null);
+  const suppressOpenRef = useRef(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
   const columns = useMemo(() => {
     const map = Object.fromEntries(TASK_STATUSES.map((s) => [s, []]));
     for (const task of tasks) {
@@ -143,21 +223,84 @@ function AllTasksBoard({ tasks, onTaskClick, onAdd, onQuickCreate, people = [], 
     return map;
   }, [tasks]);
 
+  const findContainer = (taskId) => {
+    const id = String(taskId);
+    for (const status of TASK_STATUSES) {
+      if (columns[status]?.some((t) => String(t._id) === id)) return status;
+    }
+    return null;
+  };
+
+  const openTask = (taskId) => {
+    if (suppressOpenRef.current) return;
+    onTaskClick?.(taskId);
+  };
+
+  const handleDragStart = (event) => {
+    const task = tasks.find((t) => String(t._id) === String(event.active.id));
+    suppressOpenRef.current = true;
+    setActiveTask(task ?? null);
+  };
+
+  const handleDragEnd = (event) => {
+    setActiveTask(null);
+    window.setTimeout(() => {
+      suppressOpenRef.current = false;
+    }, 120);
+
+    const { active, over } = event;
+    if (!over) return;
+
+    const overData = over.data?.current;
+    let targetStatus =
+      overData?.status ||
+      (TASK_STATUSES.includes(String(over.id)) ? String(over.id) : null) ||
+      findContainer(over.id);
+
+    const sourceStatus = findContainer(active.id);
+    if (!sourceStatus || !targetStatus || sourceStatus === targetStatus) return;
+
+    onMoveTask?.(active.id, targetStatus);
+  };
+
+  const handleDragCancel = () => {
+    setActiveTask(null);
+    window.setTimeout(() => {
+      suppressOpenRef.current = false;
+    }, 120);
+  };
+
   return (
-    <div className="flex h-full items-start gap-3 overflow-x-auto bg-cloud/60 p-4">
-      {TASK_STATUSES.map((status) => (
-        <AllTasksColumn
-          key={status}
-          status={status}
-          tasks={columns[status]}
-          onTaskClick={onTaskClick}
-          onAdd={onAdd}
-          onQuickCreate={onQuickCreate}
-          people={people}
-          creating={creating}
-        />
-      ))}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div className="flex h-full items-start gap-3 overflow-x-auto bg-cloud/60 p-4">
+        {TASK_STATUSES.map((status) => (
+          <AllTasksColumn
+            key={status}
+            status={status}
+            tasks={columns[status]}
+            onTaskClick={openTask}
+            onAdd={onAdd}
+            onQuickCreate={onQuickCreate}
+            people={people}
+            creating={creating}
+            activeId={activeTask?._id}
+          />
+        ))}
+      </div>
+      <DragOverlay>
+        {activeTask ? (
+          <div className="w-72 rounded-xl border border-primary bg-paper p-3 opacity-90 shadow-lg">
+            <p className="text-sm font-medium text-ink">{activeTask.title}</p>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 
@@ -407,6 +550,7 @@ export default function AllTasksPage() {
             onAdd={openCreate}
             people={people}
             creating={createTask.isPending}
+            onMoveTask={(taskId, status) => onInlineUpdate(taskId, { status })}
             onQuickCreate={(status, fields) =>
               createQuickTask({
                 ...(typeof fields === 'string' ? { title: fields } : fields),

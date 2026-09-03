@@ -12,6 +12,7 @@ import {
 } from '@/features/tasks/api/taskApi';
 import { cn } from '@/lib/utils';
 import { getAvatarColor, getInitials } from '@/lib/avatar';
+import { toggleAssigneeId } from '@/features/tasks/taskAssignees';
 
 export function toDatetimeLocalValue(iso) {
   if (!iso) return '';
@@ -240,9 +241,8 @@ export function TaskFormFields({
   const patch = (partial) => onChange({ ...value, ...partial });
 
   const toggleAssignee = (userId) => {
-    const id = String(userId);
-    const current = (value.assignees || []).map(String);
-    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    const next = toggleAssigneeId(value.assignees || [], userId);
+    if (!next) return;
     patch({ assignees: next });
   };
 

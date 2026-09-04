@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FolderKanban, Plus } from 'lucide-react';
-import { useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
+import { useProjects } from '@/features/projects/hooks/useProjects';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -49,7 +49,6 @@ export default function ProjectsPage() {
   const canCreate = Boolean(user);
   const openCreateMenu = useCreateProjectUiStore((s) => s.openCreateMenu);
   const { data, isPending, isFetching } = useProjects({ limit: 500 });
-  useLiveSpaces();
 
   const projects = useMemo(
     () => sortByName(data?.data ?? []),

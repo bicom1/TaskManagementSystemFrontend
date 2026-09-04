@@ -8,6 +8,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { playMessageNotifySound } from '../../../lib/notifySound';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { getActiveChatId, setActiveChatId } from '../chatActiveStore';
+import { toastError } from '@/lib/toast';
 
 export const CHAT_CONVERSATIONS_KEY = 'chat-conversations';
 export const CHAT_MESSAGES_KEY = 'chat-messages';
@@ -93,7 +94,7 @@ export function useStartDm() {
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Could not start chat');
+      toastError(error, 'Could not start chat');
     },
   });
 }
@@ -106,7 +107,7 @@ export function useStartTeamChat() {
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Could not open team chat');
+      toastError(error, 'Could not open team chat');
     },
   });
 }
@@ -119,7 +120,7 @@ export function useStartDepartmentChat() {
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Could not open department chat');
+      toastError(error, 'Could not open department chat');
     },
   });
 }
@@ -198,7 +199,7 @@ export function useSendChatMessage(conversationId) {
       (ctx?.previewUrls || []).forEach((url) => {
         if (url && String(url).startsWith('blob:')) URL.revokeObjectURL(url);
       });
-      toast.error(error?.response?.data?.message ?? 'Failed to send');
+      toastError(error, 'Failed to send');
     },
   });
 }

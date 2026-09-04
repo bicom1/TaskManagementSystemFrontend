@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { toast } from 'sonner';
 import { taskApi } from '../api/taskApi';
 import { getSocket } from '@/api/socketClient';
+import { toastSuccess, toastError } from '@/lib/toast';
 
 const BOARD_KEY = 'task-board';
 const TASK_KEY = 'task';
@@ -223,10 +223,10 @@ export function useCreateTask(projectId) {
       queryClient.invalidateQueries({ queryKey: boardKey });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toast.success(task?.parentTask ? 'Subtask created' : 'Task created');
+      toastSuccess(task?.parentTask ? 'Subtask created' : 'Task created');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to create task');
+      toastError(error, 'Failed to create task');
     },
   });
 }
@@ -240,10 +240,10 @@ export function useAdvanceTask(projectId) {
       queryClient.invalidateQueries({ queryKey: [TASK_KEY, variables.id] });
       queryClient.invalidateQueries({ queryKey: [TASK_KEY, variables.id, 'activity'] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toast.success('Moved to next workflow step');
+      toastSuccess('Moved to next workflow step');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Could not advance task');
+      toastError(error, 'Could not advance task');
     },
   });
 }
@@ -315,13 +315,13 @@ export function useUpdateTask(projectId, { silent = false } = {}) {
 
       const status = error?.response?.status;
       if (status === 429) {
-        toast.error('Please wait a moment, then try again');
+        toastError('Please wait a moment, then try again');
         return;
       }
 
       const data = error?.response?.data;
       const details = data?.errors?.map((err) => err.message).filter(Boolean).join(', ');
-      toast.error(details || data?.message || 'Failed to update task');
+      toastError(details || data?.message || 'Failed to update task');
     },
 
     onSuccess: (data, variables) => {
@@ -344,7 +344,7 @@ export function useUpdateTask(projectId, { silent = false } = {}) {
       });
       queryClient.invalidateQueries({ queryKey: ['projects'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['home'], refetchType: 'none' });
-      if (!silent) toast.success('Task updated');
+      if (!silent) toastSuccess('Task updated');
     },
   });
 }
@@ -389,7 +389,7 @@ export function useMoveTask(projectId) {
       if (context?.previousBoard) {
         queryClient.setQueryData(boardKey, context.previousBoard);
       }
-      toast.error('Failed to move task');
+      toastError('Failed to move task');
     },
 
     onSettled: () => {
@@ -407,10 +407,10 @@ export function useDeleteTask(projectId) {
       queryClient.invalidateQueries({ queryKey: [TASK_KEY] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toast.success('Task deleted');
+      toastSuccess('Task deleted');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to delete task');
+      toastError(error, 'Failed to delete task');
     },
   });
 }
@@ -421,9 +421,9 @@ export function useUploadTaskAttachment(taskId) {
     mutationFn: (file) => taskApi.uploadAttachment(taskId, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TASK_KEY, taskId] });
-      toast.success('File uploaded');
+      toastSuccess('File uploaded');
     },
-    onError: () => toast.error('Upload failed'),
+    onError: () => toastError('Upload failed'),
   });
 }
 
@@ -443,10 +443,10 @@ export function useApproveTask(projectId) {
       queryClient.invalidateQueries({ queryKey: [BOARD_KEY, projectId] });
       queryClient.invalidateQueries({ queryKey: [TASK_KEY, variables.id] });
       queryClient.invalidateQueries({ queryKey: ['task-approvals-pending'] });
-      toast.success('Task approved');
+      toastSuccess('Task approved');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to approve task');
+      toastError(error, 'Failed to approve task');
     },
   });
 }
@@ -459,10 +459,10 @@ export function useRejectTask(projectId) {
       queryClient.invalidateQueries({ queryKey: [BOARD_KEY, projectId] });
       queryClient.invalidateQueries({ queryKey: [TASK_KEY, variables.id] });
       queryClient.invalidateQueries({ queryKey: ['task-approvals-pending'] });
-      toast.success('Task rejected');
+      toastSuccess('Task rejected');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to reject task');
+      toastError(error, 'Failed to reject task');
     },
   });
 }
@@ -476,10 +476,10 @@ export function useApproveTaskGlobal() {
       queryClient.invalidateQueries({ queryKey: [BOARD_KEY] });
       queryClient.invalidateQueries({ queryKey: [TASK_KEY] });
       queryClient.invalidateQueries({ queryKey: ['task-approvals-pending'] });
-      toast.success('Task approved');
+      toastSuccess('Task approved');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to approve task');
+      toastError(error, 'Failed to approve task');
     },
   });
 }
@@ -492,10 +492,10 @@ export function useRejectTaskGlobal() {
       queryClient.invalidateQueries({ queryKey: [BOARD_KEY] });
       queryClient.invalidateQueries({ queryKey: [TASK_KEY] });
       queryClient.invalidateQueries({ queryKey: ['task-approvals-pending'] });
-      toast.success('Task rejected');
+      toastSuccess('Task rejected');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to reject task');
+      toastError(error, 'Failed to reject task');
     },
   });
 }
@@ -511,6 +511,19 @@ export function useLiveProjectBoard(projectId) {
 
     socket.emit('project:join', projectId);
     const boardKey = [BOARD_KEY, projectId];
+    /** Dedupe identical socket payloads (room + broadcast) */
+    const seen = new Map();
+    const remember = (key) => {
+      const now = Date.now();
+      if (seen.has(key) && now - seen.get(key) < 800) return true;
+      seen.set(key, now);
+      if (seen.size > 200) {
+        for (const [k, t] of seen) {
+          if (now - t > 2000) seen.delete(k);
+        }
+      }
+      return false;
+    };
 
     const softRefreshMeta = () => {
       queryClient.invalidateQueries({ queryKey: ['projects'], refetchType: 'none' });
@@ -532,8 +545,30 @@ export function useLiveProjectBoard(projectId) {
       return true;
     };
 
-    const onUpdated = (payload) => {
-      const task = payload?.task || payload;
+    const onCreated = (task) => {
+      if (!task?._id) {
+        queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
+        softRefreshMeta();
+        return;
+      }
+      if (remember(`c:${task._id}`)) return;
+      queryClient.setQueryData(boardKey, (prev) => {
+        if (!prev) return prev;
+        const status = task.status || 'todo';
+        const next = { ...prev };
+        const col = [...(next[status] || [])];
+        if (!col.some((t) => String(t._id) === String(task._id))) {
+          col.unshift(task);
+        }
+        next[status] = col;
+        return next;
+      });
+      softRefreshMeta();
+    };
+
+    const onUpdated = (task) => {
+      if (!task?._id) return;
+      if (remember(`u:${task._id}:${task.updatedAt || task.status || ''}`)) return;
       const patched = patchFromTask(task);
       if (!patched) {
         queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
@@ -541,51 +576,42 @@ export function useLiveProjectBoard(projectId) {
       softRefreshMeta();
     };
 
-    const onCreated = (payload) => {
-      const task = payload?.task || payload;
-      if (task?._id && task?.status) {
-        queryClient.setQueryData(boardKey, (prev) => {
-          if (!prev) return prev;
-          const status = task.status || 'todo';
-          const next = { ...prev };
-          const col = [...(next[status] || [])];
-          if (!col.some((t) => String(t._id) === String(task._id))) {
-            col.unshift(task);
-          }
-          next[status] = col;
-          return next;
-        });
-        softRefreshMeta();
+    const onDeleted = (payload) => {
+      const id = payload?.taskId || payload?._id || payload?.task?._id;
+      if (!id) {
+        queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
+      if (remember(`d:${id}`)) return;
+      queryClient.setQueryData(boardKey, (prev) => {
+        if (!prev) return prev;
+        const next = { ...prev };
+        for (const col of Object.keys(next)) {
+          if (!Array.isArray(next[col])) continue;
+          next[col] = next[col].filter((t) => String(t._id) !== String(id));
+        }
+        return next;
+      });
+      queryClient.removeQueries({ queryKey: [TASK_KEY, id] });
       softRefreshMeta();
     };
 
-    const onDeleted = (payload) => {
-      const id = payload?.taskId || payload?._id || payload?.task?._id;
-      if (id) {
-        queryClient.setQueryData(boardKey, (prev) => {
-          if (!prev) return prev;
-          const next = { ...prev };
-          for (const col of Object.keys(next)) {
-            if (!Array.isArray(next[col])) continue;
-            next[col] = next[col].filter((t) => String(t._id) !== String(id));
-          }
-          return next;
-        });
-        queryClient.removeQueries({ queryKey: [TASK_KEY, id] });
-        softRefreshMeta();
+    /** Single entry point — avoids double-apply from task:created + task:changed */
+    const onChanged = (payload) => {
+      const event = payload?.event || '';
+      const task = payload?.task || payload;
+      if (event.includes('deleted') || payload?.taskId) {
+        onDeleted(payload?.taskId ? payload : { task });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
+      if (event.includes('created')) {
+        onCreated(task);
+        return;
+      }
+      onUpdated(task);
     };
 
-    socket.on('task:changed', onUpdated);
-    socket.on('task:created', onCreated);
-    socket.on('task:updated', onUpdated);
-    socket.on('task:moved', onUpdated);
-    socket.on('task:deleted', onDeleted);
+    socket.on('task:changed', onChanged);
     socket.on('project:updated', () => {
       queryClient.invalidateQueries({ queryKey: boardKey, refetchType: 'active' });
       softRefreshMeta();
@@ -593,11 +619,7 @@ export function useLiveProjectBoard(projectId) {
 
     return () => {
       socket.emit('project:leave', projectId);
-      socket.off('task:changed', onUpdated);
-      socket.off('task:created', onCreated);
-      socket.off('task:updated', onUpdated);
-      socket.off('task:moved', onUpdated);
-      socket.off('task:deleted', onDeleted);
+      socket.off('task:changed', onChanged);
       socket.off('project:updated');
     };
   }, [projectId, queryClient]);

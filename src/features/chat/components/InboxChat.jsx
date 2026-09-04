@@ -17,15 +17,17 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { getRoleLabel } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/UserAvatar';
+import { PresenceIndicator, PresenceAvatarDot } from '@/features/presence/PresenceIndicator';
+import { usePresenceQuery } from '@/features/presence/usePresence';
 import { ChatImage, FileThumb } from '@/features/chat/components/ChatImage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingScreen } from '@/components/ui/Spinner';
+import { toastSuccess, toastError } from '@/lib/toast';
 import {
   useChatPeople,
   useChatDirectory,
@@ -303,6 +305,22 @@ export function InboxChat() {
     [conversations]
   );
 
+  const presenceIds = useMemo(() => {
+    const ids = new Set();
+    for (const c of conversations) {
+      if (c.type !== 'dm') continue;
+      for (const p of c.participants || []) {
+        const id = String(p._id || p);
+        if (id && id !== String(userId)) ids.add(id);
+      }
+    }
+    for (const p of people || []) {
+      if (p?._id) ids.add(String(p._id));
+    }
+    return [...ids];
+  }, [conversations, people, userId]);
+  usePresenceQuery(presenceIds);
+
   const onTyping = useCallback(
     (payload) => {
       if (String(payload.conversationId) !== String(activeId)) return;
@@ -426,12 +444,12 @@ export function InboxChat() {
   const addPendingFile = (file) => {
     const err = validateChatFile(file);
     if (err) {
-      toast.error(err);
+      toastError(err);
       return;
     }
     setPendingFiles((prev) => {
       if (prev.length >= limits.maxFiles) {
-        toast.error(`Maximum ${limits.maxFiles} files per message`);
+        toastError(`Maximum ${limits.maxFiles} files per message`);
         return prev;
       }
       return [...prev, file];
@@ -450,7 +468,7 @@ export function InboxChat() {
     const url = linkDraft.trim();
     if (!url) return;
     if (pendingLinks.length >= limits.maxLinks) {
-      toast.error(`Maximum ${limits.maxLinks} links per message`);
+      toastError(`Maximum ${limits.maxLinks} links per message`);
       return;
     }
     setPendingLinks((prev) => [
@@ -505,10 +523,10 @@ export function InboxChat() {
     try {
       await navigator.clipboard.writeText(shareLink);
       setCopied(true);
-      toast.success('Chat link copied');
+      toastSuccess('Chat link copied');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Could not copy link');
+      toastError('Could not copy link');
     }
   };
 
@@ -603,6 +621,11 @@ export function InboxChat() {
                             .filter(Boolean)
                             .join(' · ')}
                         </span>
+                        <PresenceIndicator
+                          userId={person._id}
+                          person={person}
+                          className="mt-0.5"
+                        />
                       </span>
                     </button>
                   </li>
@@ -659,9 +682,7 @@ export function InboxChat() {
                             startDept.mutate(dept._id, {
                               onSuccess: (c) => openConversation(c._id),
                               onError: (err) =>
-                                toast.error(
-                                  err?.response?.data?.message || 'Could not open channel'
-                                ),
+                                toastError(err, 'Could not open channel'),
                             })
                           }
                           className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-paper"
@@ -710,12 +731,19 @@ export function InboxChat() {
                       )}
                     >
                       {c.type === 'dm' ? (
-                        <UserAvatar
-                          user={other}
-                          name={title}
-                          size="md"
-                          className="mt-0.5 h-9 w-9"
-                        />
+                        <span className="relative mt-0.5 shrink-0">
+                          <UserAvatar
+                            user={other}
+                            name={title}
+                            size="md"
+                            className="h-9 w-9"
+                          />
+                          <PresenceAvatarDot
+                            userId={other?._id}
+                            person={other}
+                            className="h-2.5 w-2.5 ring-2 ring-paper"
+                          />
+                        </span>
                       ) : (
                         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/90 text-on-ink">
                           <Hash className="h-4 w-4" />
@@ -733,6 +761,13 @@ export function InboxChat() {
                         <span className="mt-0.5 line-clamp-1 text-xs text-graphite">
                           {c.lastMessagePreview || conversationSubtitle(c, userId)}
                         </span>
+                        {c.type === 'dm' && other ? (
+                          <PresenceIndicator
+                            userId={other._id}
+                            person={other}
+                            className="mt-0.5"
+                          />
+                        ) : null}
                         {c.type === 'team' || c.type === 'department' ? (
                           <span className="mt-0.5 inline-block text-[10px] font-medium uppercase tracking-wide text-graphite/80">
                             {c.type}
@@ -802,6 +837,19 @@ export function InboxChat() {
                     : ''}
                   {typingUser ? ' · typing…' : ''}
                 </p>
+                {activeConversation?.type === 'dm' ? (
+                  <PresenceIndicator
+                    userId={
+                      (activeConversation.participants || []).find(
+                        (p) => String(p._id) !== String(userId)
+                      )?._id
+                    }
+                    person={(activeConversation.participants || []).find(
+                      (p) => String(p._id) !== String(userId)
+                    )}
+                    className="mt-1"
+                  />
+                ) : null}
               </div>
               <Button
                 type="button"

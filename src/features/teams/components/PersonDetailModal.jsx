@@ -6,17 +6,25 @@ import { getPersonStatus, PERSON_STATUS_LABELS } from '@/lib/avatar';
 import { getRoleLabel, ROLES } from '@/lib/roles';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { useAuthStore } from '@/store/authStore';
-import { useDeactivateUser, useUpdateUser } from '@/features/users/hooks/useUsers';
+import {
+  useDeactivateUser,
+  useDeleteUser,
+  useUpdateUser,
+} from '@/features/users/hooks/useUsers';
 import { UserAvatar } from '@/components/UserAvatar';
+import { PresenceIndicator } from '@/features/presence/PresenceIndicator';
+import { usePresenceStore } from '@/features/presence/presenceStore';
 
 export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTeam }) {
   const user = useAuthStore((s) => s.user);
   const deactivate = useDeactivateUser();
+  const deleteUser = useDeleteUser();
   const updateUser = useUpdateUser();
+  const live = usePresenceStore((s) => s.byId[String(person?._id)]?.status);
 
   if (!person) return null;
 
-  const status = getPersonStatus(person);
+  const status = getPersonStatus(person, live);
   const memberOf = teams.filter((team) => {
     const uid = String(person._id);
     if (String(team.lead?._id ?? team.lead) === uid) return true;
@@ -28,6 +36,8 @@ export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTea
     String(person._id) !== String(user?._id) &&
     person.role !== ROLES.SUPER_ADMIN;
 
+  const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
+
   return (
     <Modal open={open} onClose={onClose} title="Member profile" size="md">
       <div className="space-y-5">
@@ -36,12 +46,18 @@ export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTea
           <div className="min-w-0">
             <h3 className="text-lg font-semibold text-ink">{person.name}</h3>
             <p className="text-sm text-graphite">{person.email}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{getRoleLabel(person.role)}</Badge>
               <Badge variant="outline">{PERSON_STATUS_LABELS[status]}</Badge>
               {person.invitePending && <Badge variant="warning">Invite pending</Badge>}
               {!person.isActive && <Badge variant="warning">Deactivated</Badge>}
             </div>
+            <PresenceIndicator
+              userId={person._id}
+              person={person}
+              className="mt-2 text-xs"
+              size="md"
+            />
           </div>
         </div>
 
@@ -57,8 +73,10 @@ export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTea
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-graphite">Last active</dt>
             <dd className="mt-0.5 text-ink">
-              {person.lastLoginAt
-                ? formatDistanceToNow(new Date(person.lastLoginAt), { addSuffix: true })
+              {person.lastSeenAt || person.lastLoginAt
+                ? formatDistanceToNow(new Date(person.lastSeenAt || person.lastLoginAt), {
+                    addSuffix: true,
+                  })
                 : 'Never signed in'}
             </dd>
           </div>
@@ -119,6 +137,23 @@ export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTea
               }
             >
               Reactivate
+            </Button>
+          )}
+          {isSuperAdmin && canManage && (
+            <Button
+              variant="destructive"
+              disabled={deleteUser.isPending}
+              onClick={() => {
+                const ok = window.confirm(
+                  `Delete ${person.name}? They will be signed out immediately and removed from the workspace.`
+                );
+                if (!ok) return;
+                deleteUser.mutate(person._id, {
+                  onSuccess: () => onClose(),
+                });
+              }}
+            >
+              Delete
             </Button>
           )}
           <Button variant="outline" onClick={onClose}>

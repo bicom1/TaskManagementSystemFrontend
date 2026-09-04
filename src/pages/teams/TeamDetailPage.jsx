@@ -6,7 +6,7 @@ import {
   useAddTeamMember,
   useRemoveTeamMember,
 } from '@/features/teams/hooks/useTeams';
-import { useProjects, useLiveSpaces } from '@/features/projects/hooks/useProjects';
+import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useStartTeamChat } from '@/features/chat/hooks/useChat';
 import { CreateSpaceWizard } from '@/features/spaces/components/CreateSpaceWizard';
 import { entityPath } from '@/features/spaces/spaceKinds';
@@ -29,7 +29,6 @@ export default function TeamDetailPage() {
 
   const { data: team, isLoading } = useTeam(teamId);
   const { data: projectsRes } = useProjects({ team: teamId, limit: 50 });
-  useLiveSpaces();
   const addMember = useAddTeamMember();
   const removeMember = useRemoveTeamMember();
   const startTeamChat = useStartTeamChat();

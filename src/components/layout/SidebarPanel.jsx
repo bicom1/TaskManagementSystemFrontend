@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Inbox,
@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
-import { useLiveSpaces, useProjects } from '@/features/projects/hooks/useProjects';
+import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
@@ -44,6 +44,11 @@ import {
   useProjectFavoritesStore,
 } from '@/features/projects/projectFavoritesStore';
 import { UserAvatar } from '@/components/UserAvatar';
+import {
+  PresenceAvatarDot,
+  PresenceIndicator,
+} from '@/features/presence/PresenceIndicator';
+import { usePresenceQuery } from '@/features/presence/usePresence';
 import { cn } from '@/lib/utils';
 import { BrainLogo } from '@/features/ai/components/BrainLogo';
 import { AiUsageRing } from '@/features/ai/components/AiUsageRing';
@@ -248,8 +253,12 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
   // Real teams from workspace overview
   const workspaceTeams = home?.workspace?.teams || [];
 
-  // Real workspace colleagues (excluding current user or showing colleagues)
-  const colleagues = users.filter((u) => u._id !== user?._id).slice(0, 6);
+  // Real workspace colleagues (excluding current user)
+  const colleagues = useMemo(
+    () => users.filter((u) => String(u._id) !== String(user?._id)).slice(0, 6),
+    [users, user?._id]
+  );
+  usePresenceQuery(colleagues.map((m) => m._id));
 
   return (
     <div className="flex-1 overflow-y-auto px-2.5 py-3 select-none">
@@ -351,9 +360,16 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
             >
               <div className="relative flex shrink-0">
                 <UserAvatar user={member} size="xs" rounded="full" className="h-4.5 w-4.5 text-[9px]" />
-                <span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-white" />
+                <PresenceAvatarDot userId={member._id} person={member} />
               </div>
-              <span className="min-w-0 flex-1 truncate">{member.name}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{member.name}</span>
+                <PresenceIndicator
+                  userId={member._id}
+                  person={member}
+                  className="mt-0.5 text-[10px] font-normal text-gray-500"
+                />
+              </span>
             </NavLink>
           ))
         ) : (
@@ -372,9 +388,16 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
         >
           <div className="relative flex shrink-0">
             <UserAvatar user={user} size="xs" rounded="full" className="h-4.5 w-4.5 text-[9px]" />
-            <span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-white" />
+            <PresenceAvatarDot userId={user?._id} person={user} />
           </div>
-          <span className="min-w-0 flex-1 truncate">{user?.name || 'You'} — You</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate">{user?.name || 'You'} — You</span>
+            <PresenceIndicator
+              userId={user?._id}
+              person={user}
+              className="mt-0.5 text-[10px] font-normal text-gray-500"
+            />
+          </span>
         </NavLink>
       </div>
 
@@ -697,8 +720,6 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
   const { data: projectsData } = useProjects({ limit: 500 });
   const { data: teamsData } = useTeams({ limit: 50 });
   const { data: usersData } = useUsers({ limit: 30 });
-
-  useLiveSpaces();
 
   const projects = projectsData?.data ?? [];
   const users = usersData?.data ?? [];

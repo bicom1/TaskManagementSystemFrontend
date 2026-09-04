@@ -8,6 +8,7 @@ import { CreateProjectFlow } from '@/features/spaces/components/CreateProjectFlo
 import { useCreateProjectUiStore } from '@/features/spaces/createProjectUiStore';
 import { LoadingScreen } from '@/components/ui/Spinner';
 import { useLiveSpaces } from '@/features/projects/hooks/useProjects';
+import { useLiveUsers, usePresenceSync } from '@/features/presence/usePresence';
 
 export function AppShell() {
   const location = useLocation();
@@ -27,6 +28,8 @@ export function AppShell() {
   const closeCreateWizard = useCreateProjectUiStore((s) => s.closeCreateWizard);
 
   useLiveSpaces();
+  usePresenceSync();
+  useLiveUsers();
 
   useEffect(() => {
     setActiveSection(getSectionFromPath(location.pathname));

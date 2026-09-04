@@ -2,17 +2,20 @@ import { getAvatarColor, getInitials, getPersonStatus } from '@/lib/avatar';
 import { getRoleLabel } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/UserAvatar';
+import { usePresenceStore } from '@/features/presence/presenceStore';
+import { PresenceIndicator } from '@/features/presence/PresenceIndicator';
 
 const STATUS_DOT = {
   online: 'bg-emerald-500',
-  active: 'bg-emerald-400/80',
-  offline: 'border border-steel bg-transparent',
+  active: 'bg-gray-900',
+  offline: 'bg-gray-900',
   invited: 'bg-amber-400',
   inactive: 'bg-steel',
 };
 
 export function PersonCard({ person, onClick, compact = false }) {
-  const status = getPersonStatus(person);
+  const live = usePresenceStore((s) => s.byId[String(person?._id)]?.status);
+  const status = getPersonStatus(person, live);
 
   if (compact) {
     return (
@@ -21,16 +24,18 @@ export function PersonCard({ person, onClick, compact = false }) {
         onClick={() => onClick?.(person)}
         className="flex w-full items-center gap-3 rounded-lg border border-hairline bg-paper px-3 py-2.5 text-left transition hover:border-steel hover:shadow-sm"
       >
-        <UserAvatar user={person} size="lg" rounded="md" />
+        <div className="relative">
+          <UserAvatar user={person} size="lg" rounded="md" />
+          <span
+            className={cn(
+              'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-paper',
+              STATUS_DOT[status]
+            )}
+          />
+        </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-medium text-ink">{person.name}</p>
-            <span className={cn('h-2 w-2 shrink-0 rounded-full', STATUS_DOT[status])} />
-          </div>
-          <p className="truncate text-xs text-graphite">
-            {person.jobTitle || getRoleLabel(person.role)}
-            {person.department?.name ? ` · ${person.department.name}` : ''}
-          </p>
+          <p className="truncate text-sm font-medium text-ink">{person.name}</p>
+          <PresenceIndicator userId={person._id} person={person} className="mt-0.5" />
         </div>
       </button>
     );
@@ -77,6 +82,7 @@ export function PersonCard({ person, onClick, compact = false }) {
         <p className="mt-0.5 truncate text-[11.5px] text-graphite">
           {person.jobTitle || getRoleLabel(person.role)}
         </p>
+        <PresenceIndicator userId={person._id} person={person} className="mt-1" />
       </div>
     </button>
   );

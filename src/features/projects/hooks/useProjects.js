@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { toast } from 'sonner';
+import { useEffect, useRef } from 'react';
 import { projectApi } from '../api/projectApi';
 import { getSocket } from '@/api/socketClient';
+import { toastSuccess, toastError } from '@/lib/toast';
 
 const KEY = 'projects';
 
@@ -29,28 +29,31 @@ export function useCreateProject() {
     mutationFn: projectApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
-      toast.success('Created successfully');
+      toastSuccess('Created successfully');
     },
     onError: (error) => {
-      const data = error?.response?.data;
-      const details = data?.errors?.map((err) => err.message).filter(Boolean).join(', ');
-      toast.error(details || data?.message || 'Failed to create');
+      toastError(error, 'Failed to create');
     },
   });
 }
 
-/** Live sidebar + list refresh when spaces/projects/team access change */
+/** Live sidebar + list refresh when spaces/projects/team access change.
+ * Mount once in AppShell. Debounced to avoid duplicate room+broadcast storms. */
 export function useLiveSpaces() {
   const queryClient = useQueryClient();
+  const timerRef = useRef(null);
 
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return undefined;
 
     const refresh = () => {
-      queryClient.invalidateQueries({ queryKey: [KEY] });
-      queryClient.invalidateQueries({ queryKey: ['home'] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      timerRef.current = window.setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: [KEY] });
+        queryClient.invalidateQueries({ queryKey: ['home'] });
+        queryClient.invalidateQueries({ queryKey: ['teams'] });
+      }, 250);
     };
 
     socket.on('project:created', refresh);
@@ -60,6 +63,7 @@ export function useLiveSpaces() {
     socket.on('team:member-added', refresh);
     socket.on('team:member-removed', refresh);
     return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
       socket.off('project:created', refresh);
       socket.off('project:updated', refresh);
       socket.off('project:deleted', refresh);
@@ -78,10 +82,10 @@ export function useUpdateProject() {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: [KEY, variables.id] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toast.success(variables?.successMessage || 'Project updated');
+      toastSuccess(variables?.successMessage || 'Project updated');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to update project');
+      toastError(error, 'Failed to update project');
     },
   });
 }
@@ -93,10 +97,10 @@ export function useDeleteProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toast.success('Project deleted');
+      toastSuccess('Project deleted');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to delete project');
+      toastError(error, 'Failed to delete project');
     },
   });
 }
@@ -119,10 +123,10 @@ export function useAddProjectMember() {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: [KEY, variables.id] });
       queryClient.invalidateQueries({ queryKey: ['chat-project', variables.id] });
-      toast.success('Person added to this project');
+      toastSuccess('Person added to this project');
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Could not add person');
+      toastError(error, 'Could not add person');
     },
   });
 }

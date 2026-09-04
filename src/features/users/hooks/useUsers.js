@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { userApi } from '../api/userApi';
 import { useAuthStore } from '../../../store/authStore';
+import { toastSuccess, toastError } from '@/lib/toast';
 
 const KEY = 'users';
 
@@ -28,17 +28,21 @@ export function useInviteUser() {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
     },
     onError: (error) => {
       const timedOut =
         error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '');
-      const alreadyExists = /already exists/i.test(error?.response?.data?.message || '');
-      toast.error(
+      const alreadyExists = /already (exists|registered)/i.test(
+        error?.response?.data?.message || ''
+      );
+      toastError(
         timedOut
-          ? 'Server is waking up. Wait 10 seconds and click Create invite again — it will re-send if the user was already created.'
+          ? 'Server is waking up. Wait a moment and try inviting again.'
           : alreadyExists
-            ? 'That email already joined the workspace. Deactivate them in Teams → People, then invite again. If they never joined, click Create invite again after the latest API deploy to re-send.'
-            : error?.response?.data?.message ?? 'Failed to create invite'
+            ? 'This email is already registered. Please log in using your existing account.'
+            : error,
+        'Failed to create invite'
       );
     },
   });
@@ -48,13 +52,15 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...payload }) => userApi.updateUser(id, payload),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
-      toast.success('User updated');
+      if (variables?.isActive === true) {
+        toastSuccess(`${data?.name || 'User'} has been reactivated`);
+      } else {
+        toastSuccess('User updated');
+      }
     },
-    onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to update user');
-    },
+    onError: (error) => toastError(error, 'Failed to update user'),
   });
 }
 
@@ -64,11 +70,24 @@ export function useDeactivateUser() {
     mutationFn: (id) => userApi.deactivate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
-      toast.success('User deactivated');
+      queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
+      // Live toast comes from user:changed socket for all clients (incl. actor)
     },
-    onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to deactivate user');
+    onError: (error) => toastError(error, 'Failed to deactivate user'),
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => userApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [KEY] });
+      queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      // Live toast with name comes from user:changed socket
     },
+    onError: (error) => toastError(error, 'Failed to delete user'),
   });
 }
 
@@ -82,11 +101,9 @@ export function useUpdateMe() {
     onSuccess: (user) => {
       setAuth(user, accessToken);
       queryClient.invalidateQueries({ queryKey: [KEY, 'me'] });
-      toast.success('Profile updated');
+      toastSuccess('Profile updated');
     },
-    onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to update profile');
-    },
+    onError: (error) => toastError(error, 'Failed to update profile'),
   });
 }
 
@@ -94,10 +111,8 @@ export function useChangePassword() {
   return useMutation({
     mutationFn: userApi.changePassword,
     onSuccess: (data) => {
-      toast.success(data?.message ?? 'Password updated');
+      toastSuccess(data?.message ?? 'Password updated');
     },
-    onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to change password');
-    },
+    onError: (error) => toastError(error, 'Failed to update password'),
   });
 }

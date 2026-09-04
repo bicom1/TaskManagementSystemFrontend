@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { homeApi } from '../api/homeApi';
 import { getSocket } from '@/api/socketClient';
 import { useAuthStore } from '@/store/authStore';
+import { toastSuccess, toastError } from '@/lib/toast';
+import { useEffect } from 'react';
 
 const KEY = 'home';
 
@@ -43,17 +43,14 @@ export function useLiveMyTasks() {
       }, 400);
     };
 
-    socket.on('task:assigned', refreshMine);
+    // Prefer task:changed (covers create/update/delete/assign) to avoid duplicate refreshes
     socket.on('task:changed', refreshMine);
-    socket.on('task:created', refreshMine);
-    socket.on('task:updated', refreshMine);
+    socket.on('task:assigned', refreshMine);
     socket.on('projects:counts', refreshMine);
 
     return () => {
-      socket.off('task:assigned', refreshMine);
       socket.off('task:changed', refreshMine);
-      socket.off('task:created', refreshMine);
-      socket.off('task:updated', refreshMine);
+      socket.off('task:assigned', refreshMine);
       socket.off('projects:counts', refreshMine);
     };
   }, [queryClient, token]);
@@ -65,9 +62,9 @@ export function useUpdateHomePreferences() {
     mutationFn: homeApi.updatePreferences,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
-      toast.success('Preferences updated');
+      toastSuccess('Preferences updated');
     },
-    onError: (e) => toast.error(e?.response?.data?.message ?? 'Failed to update cards'),
+    onError: (e) => toastError(e, 'Failed to update cards'),
   });
 }
 
@@ -77,14 +74,14 @@ export function usePersonalListMutations() {
     mutationFn: homeApi.addPersonal,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
-      toast.success('Added to Personal List');
+      toastSuccess('Added to Personal List');
     },
   });
   const remove = useMutation({
     mutationFn: homeApi.removePersonal,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
-      toast.success('Removed from Personal List');
+      toastSuccess('Removed from Personal List');
     },
   });
   return { add, remove };

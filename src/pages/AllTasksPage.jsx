@@ -336,13 +336,9 @@ export default function AllTasksPage() {
     };
     socket.on('projects:counts', refresh);
     socket.on('task:changed', refresh);
-    socket.on('task:created', refresh);
-    socket.on('task:updated', refresh);
     return () => {
       socket.off('projects:counts', refresh);
       socket.off('task:changed', refresh);
-      socket.off('task:created', refresh);
-      socket.off('task:updated', refresh);
     };
   }, [queryClient]);
 

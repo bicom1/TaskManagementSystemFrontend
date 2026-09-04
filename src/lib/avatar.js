@@ -31,13 +31,15 @@ export function getAvatarColor(seed = '') {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-/** Derive presence-style status for UI filters */
-export function getPersonStatus(person) {
+/** Derive presence-style status for UI filters.
+ * Online ONLY when live socket presence says so — never from lastLoginAt. */
+export function getPersonStatus(person, liveStatus) {
   if (person?.invitePending) return 'invited';
-  if (!person?.isActive) return 'inactive';
-  if (person?.lastLoginAt) {
-    const age = Date.now() - new Date(person.lastLoginAt).getTime();
-    if (age < 15 * 60 * 1000) return 'online';
+  if (person?.isActive === false) return 'inactive';
+  if (liveStatus === 'online') return 'online';
+  if (person?.lastSeenAt || person?.lastLoginAt) {
+    const ts = new Date(person.lastSeenAt || person.lastLoginAt).getTime();
+    const age = Date.now() - ts;
     if (age < 7 * 24 * 60 * 60 * 1000) return 'active';
   }
   return 'offline';
@@ -45,8 +47,8 @@ export function getPersonStatus(person) {
 
 export const PERSON_STATUS_LABELS = {
   online: 'Online',
-  active: 'Active',
+  active: 'Away',
   offline: 'Offline',
   invited: 'Invited',
-  inactive: 'Inactive',
+  inactive: 'Deactivated',
 };

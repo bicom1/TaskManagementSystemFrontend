@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { authApi } from '../api/authApi';
 import { userApi } from '../../users/api/userApi';
 import { useAuthStore } from '../../../store/authStore';
 import { disconnectSocket } from '../../../api/socketClient';
+import { toastSuccess, toastError } from '@/lib/toast';
 
 async function setAuthWithPermissions(setAuth, user, accessToken) {
   try {
@@ -26,11 +26,11 @@ export function useLogin() {
     onSuccess: async ({ user, accessToken }) => {
       await setAuthWithPermissions(setAuth, user, accessToken);
       queryClient.invalidateQueries();
-      toast.success(`Welcome back, ${user.name}`);
+      toastSuccess(`Welcome back, ${user.name}`);
       navigate('/', { replace: true });
     },
-    onError: () => {
-      toast.error('Invalid email or password');
+    onError: (error) => {
+      toastError(error, 'Invalid email or password');
     },
   });
 }
@@ -43,11 +43,14 @@ export function useRegister() {
     mutationFn: (payload) => authApi.register(payload),
     onSuccess: ({ user, accessToken }) => {
       setAuth(user, accessToken);
-      toast.success('Account created successfully');
+      toastSuccess('Account created successfully');
       navigate('/', { replace: true });
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Registration failed');
+      toastError(
+        error,
+        'This email is already registered. Please log in using your existing account.'
+      );
     },
   });
 }
@@ -62,11 +65,11 @@ export function useGoogleAuth() {
     onSuccess: ({ user, accessToken }) => {
       setAuth(user, accessToken);
       queryClient.invalidateQueries();
-      toast.success(`Welcome, ${user.name}`);
+      toastSuccess(`Welcome, ${user.name}`);
       navigate('/', { replace: true });
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Google Sign-In failed');
+      toastError(error, 'Google Sign-In failed');
     },
   });
 }
@@ -91,14 +94,14 @@ export function useForgotPassword() {
   return useMutation({
     mutationFn: authApi.forgotPassword,
     onSuccess: (data) => {
-      toast.success(
+      toastSuccess(
         data?.message ??
           data?.data?.message ??
           'Check your email for the BIWORKSPACE OTP code'
       );
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Could not send reset email');
+      toastError(error, 'Could not send reset email');
     },
   });
 }
@@ -109,11 +112,11 @@ export function useResetPassword() {
   return useMutation({
     mutationFn: authApi.resetPassword,
     onSuccess: (data) => {
-      toast.success(data?.message ?? 'Password reset successfully — you can sign in now');
+      toastSuccess(data?.message ?? 'Password reset successfully — you can sign in now');
       navigate('/login', { replace: true });
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Invalid or expired OTP');
+      toastError(error, 'Invalid or expired OTP');
     },
   });
 }

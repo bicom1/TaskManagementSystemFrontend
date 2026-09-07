@@ -44,20 +44,36 @@ export function useInboxFeed(
     refetchInterval: 30_000,
   });
 
+  // Only fetch detail for notification task IDs not already in the live list.
+  // Re-fetching live task IDs via getById was redundant and amplified 404 noise.
   const taskIds = useMemo(() => {
+    const liveIds = new Set((liveTasks || []).map((t) => String(t._id)));
     const fromNotifs = filtered
       .filter((n) => n.entityType === 'Task' && n.entityId)
-      .map((n) => String(n.entityId));
-    const fromLive = (liveTasks || []).map((t) => String(t._id));
-    return [...new Set([...fromNotifs, ...fromLive])].slice(0, 60);
+      .map((n) => String(n.entityId))
+      .filter((id) => id && !liveIds.has(id));
+    return [...new Set(fromNotifs)].slice(0, 40);
   }, [filtered, liveTasks]);
 
   const taskQueries = useQueries({
     queries: taskIds.map((id) => ({
       queryKey: ['task', id, 'inbox-feed'],
-      queryFn: () => taskApi.getById(id),
-      staleTime: 60_000,
-      retry: 1,
+      queryFn: async () => {
+        try {
+          return await taskApi.getById(id);
+        } catch (err) {
+          // Deleted / inaccessible tasks referenced by old notifications
+          if (err?.response?.status === 404 || err?.response?.status === 403) {
+            return null;
+          }
+          throw err;
+        }
+      },
+      staleTime: Infinity,
+      gcTime: 1000 * 60 * 60,
+      retry: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     })),
   });
 

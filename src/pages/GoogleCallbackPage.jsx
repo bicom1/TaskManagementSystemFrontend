@@ -54,7 +54,7 @@ export default function GoogleCallbackPage() {
   }, [params, navigate, setAuth]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cloud px-4">
+    <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-cloud px-4">
       <div className="text-center">
         <LoadingScreen />
         <p className="mt-4 text-sm text-graphite">{status}</p>

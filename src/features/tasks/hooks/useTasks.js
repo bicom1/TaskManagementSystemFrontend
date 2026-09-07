@@ -166,8 +166,22 @@ export function useTaskBoard(projectId) {
 export function useTask(id) {
   return useQuery({
     queryKey: [TASK_KEY, id],
-    queryFn: () => taskApi.getById(id),
+    queryFn: async () => {
+      try {
+        return await taskApi.getById(id);
+      } catch (err) {
+        if (err?.response?.status === 404 || err?.response?.status === 403) {
+          return null;
+        }
+        throw err;
+      }
+    },
     enabled: Boolean(id),
+    retry: (failureCount, err) => {
+      const status = err?.response?.status;
+      if (status === 404 || status === 403) return false;
+      return failureCount < 1;
+    },
   });
 }
 

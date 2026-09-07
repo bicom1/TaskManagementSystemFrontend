@@ -215,8 +215,8 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
 
   return (
     <>
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex items-center gap-0 overflow-x-auto border-b border-gray-200 px-1 pt-1">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex shrink-0 items-center gap-0 overflow-x-auto border-b border-gray-200 px-1 pt-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const stats = tabStats[tab.id] || { total: 0, unread: 0 };
@@ -260,7 +260,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
           })}
         </div>
 
-        <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2">
           <div className="flex items-center gap-2">
             <div className="relative">
               <Button
@@ -317,18 +317,18 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
             >
               <Settings className="h-4 w-4" />
             </button>
-          {activeBucket !== 'cleared' && visible.length > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={clearAllVisible}
-              className="h-8 gap-1.5 text-[12px]"
-            >
-              <CheckCheck className="h-3.5 w-3.5" />
-              {activeBucket === 'primary' ? 'Move all to Other' : 'Clear all'}
-            </Button>
-          )}
+            {activeBucket !== 'cleared' && visible.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={clearAllVisible}
+                className="h-8 gap-1.5 text-[12px]"
+              >
+                <CheckCheck className="h-3.5 w-3.5" />
+                {activeBucket === 'primary' ? 'Move all to Other' : 'Clear all'}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -353,7 +353,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
             }
           />
         ) : (
-          <div className="max-h-[min(70vh,720px)] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {groupByDate ? (
               <>
                 <TimeGroup
@@ -397,7 +397,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
         )}
 
         {activeBucket === 'other' && visible.length > 0 && (
-          <div className="border-t border-gray-100 px-4 py-2 text-[11px] text-gray-400">
+          <div className="shrink-0 border-t border-gray-100 px-4 py-2 text-[11px] text-gray-400">
             {visible.length} items in Other ·{' '}
             <button
               type="button"

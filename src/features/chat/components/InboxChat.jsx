@@ -269,7 +269,8 @@ export function InboxChat() {
   });
   const chatUnread = conversationsData?.unread ?? 0;
 
-  const { data: messagesData, isLoading: messagesLoading } = useConversationMessages(activeId);
+  const { data: messagesData, isLoading: messagesLoading, isError: messagesError, error: messagesErr, refetch: refetchMessages } =
+    useConversationMessages(activeId);
   const loadOlder = useLoadOlderMessages(activeId);
   const messages = uniqueById(messagesData?.data ?? []);
   const hasMoreMessages = Boolean(messagesData?.pagination?.hasMore);
@@ -541,8 +542,8 @@ export function InboxChat() {
         : [];
 
   return (
-    <div className="flex h-[calc(100vh-11rem)] min-h-[520px] overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift">
-      <aside className="flex w-full max-w-[320px] flex-col border-r border-hairline bg-cloud/40">
+    <div className="flex h-full min-h-0 w-full overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift">
+      <aside className="flex h-full w-full max-w-[320px] shrink-0 flex-col border-r border-hairline bg-cloud/40">
         <div className="space-y-2.5 border-b border-hairline bg-paper p-3.5">
           <div>
             <h2 className="text-[15px] font-semibold tracking-tight text-ink">Inbox</h2>
@@ -792,7 +793,7 @@ export function InboxChat() {
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col bg-paper">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-paper">
         {!activeId ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cloud">
@@ -820,8 +821,8 @@ export function InboxChat() {
             </p>
           </div>
         ) : (
-          <>
-            <header className="flex items-center justify-between gap-3 border-b border-hairline bg-paper px-4 py-3">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline bg-paper px-4 py-3">
               <div className="min-w-0">
                 <h2 className="truncate text-[15px] font-semibold tracking-tight text-ink">
                   {conversationTitle(activeConversation, userId)}
@@ -864,15 +865,31 @@ export function InboxChat() {
               </Button>
             </header>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-cloud/30 px-4 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-cloud/40 px-4 py-4">
               {messagesLoading ? (
-                <LoadingScreen />
+                <LoadingScreen message="Loading messages…" />
+              ) : messagesError ? (
+                <div className="flex min-h-full flex-col items-center justify-center gap-3 text-center">
+                  <p className="text-sm text-graphite">
+                    Couldn’t load this conversation.
+                    {messagesErr?.response?.data?.message
+                      ? ` ${messagesErr.response.data.message}`
+                      : ''}
+                  </p>
+                  <Button type="button" size="sm" variant="outline" onClick={() => refetchMessages()}>
+                    Try again
+                  </Button>
+                </div>
               ) : messages.length === 0 ? (
-                <p className="py-10 text-center text-sm text-graphite">
-                  No messages yet — say hello, attach a file, or share a link.
-                </p>
+                <div className="flex min-h-full flex-col items-center justify-center gap-2 px-6 text-center">
+                  <MessageSquare className="h-8 w-8 text-graphite/50" />
+                  <p className="text-sm font-medium text-ink">No messages yet</p>
+                  <p className="max-w-xs text-xs text-graphite">
+                    Say hello, attach a file, or share a link to start the conversation.
+                  </p>
+                </div>
               ) : (
-                <>
+                <div className="flex min-h-full flex-col justify-end space-y-3">
                   {hasMoreMessages && oldestMessageId ? (
                     <div className="flex justify-center pb-1">
                       <Button
@@ -943,12 +960,12 @@ export function InboxChat() {
                       </div>
                     );
                   })}
-                </>
+                  <div ref={bottomRef} />
+                </div>
               )}
-              <div ref={bottomRef} />
             </div>
 
-            <footer className="relative border-t border-hairline bg-paper p-3.5">
+            <footer className="relative shrink-0 border-t border-hairline bg-paper p-3.5">
               {mentionOpen && mentionCandidates.length > 0 && (
                 <div className="absolute bottom-full left-3 right-3 mb-1 max-h-48 overflow-y-auto rounded-lg border border-hairline bg-paper shadow-lg">
                   {mentionCandidates.map((p) => (
@@ -1111,7 +1128,7 @@ export function InboxChat() {
                 </Button>
               </div>
             </footer>
-          </>
+          </div>
         )}
       </section>
     </div>

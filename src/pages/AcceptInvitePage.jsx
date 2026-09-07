@@ -7,6 +7,7 @@ import { authApi } from '@/features/auth/api/authApi';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label } from '@/components/ui/Label';
 import { BrandLogo } from '@/components/BrandLogo';
 import { getRoleLabel } from '@/lib/roles';
@@ -82,14 +83,14 @@ export default function AcceptInvitePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas">
+      <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-canvas">
         <LoadingScreen />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4 py-10">
+    <div className="flex h-full min-h-0 flex-col items-center justify-center overflow-y-auto bg-canvas px-4 py-10">
       <div className="mb-8">
         <BrandLogo size="lg" />
       </div>
@@ -128,9 +129,8 @@ export default function AcceptInvitePage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="accept-password">New password</Label>
-                <Input
+                <PasswordInput
                   id="accept-password"
-                  type="password"
                   autoComplete="new-password"
                   {...register('password', {
                     required: 'Password is required',
@@ -147,9 +147,8 @@ export default function AcceptInvitePage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="accept-confirm">Confirm password</Label>
-                <Input
+                <PasswordInput
                   id="accept-confirm"
-                  type="password"
                   autoComplete="new-password"
                   {...register('confirm', { required: 'Confirm your password' })}
                 />

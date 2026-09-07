@@ -80,8 +80,9 @@ export function useLogout() {
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: () => {
+    // Always clear local session even if the network call fails
+    mutationFn: () => authApi.logout().catch(() => null),
+    onSettled: () => {
       clearAuth();
       disconnectSocket();
       queryClient.clear();

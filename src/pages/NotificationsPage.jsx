@@ -327,26 +327,30 @@ export default function NotificationsPage() {
     navigate(`/inbox?${params.toString()}`, { replace: true });
   };
 
+  // Fill the shell with flex only — no absolute positioning (avoids height collapse / ghost scroll).
   return (
     <div
       className={cn(
-        'mx-auto px-4 py-6 lg:px-8',
+        'mx-auto flex h-full min-h-0 w-full flex-col',
         view === 'chat'
-          ? displayMode === 'fullscreen'
-            ? 'max-w-[1600px]'
-            : 'max-w-6xl'
-          : displayMode === 'fullscreen'
-            ? 'max-w-[1600px]'
-            : 'max-w-4xl'
+          ? cn('px-3 pb-2 pt-2 lg:px-6', displayMode === 'fullscreen' ? 'max-w-[1600px]' : 'max-w-6xl')
+          : cn('px-4 py-4 lg:px-8', displayMode === 'fullscreen' ? 'max-w-[1600px]' : 'max-w-4xl')
       )}
     >
-      <div className="mb-6">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-graphite">Home</p>
-        <h1 className="page-title">Inbox</h1>
-        <p className="page-subtitle">Task activity, chat, and queries in one place</p>
+      <div className={cn('shrink-0', view === 'chat' ? 'mb-2' : 'mb-4')}>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-graphite">Home</p>
+        <h1 className={cn('page-title', view === 'chat' && 'text-xl')}>Inbox</h1>
+        {view !== 'chat' && (
+          <p className="page-subtitle">Task activity, chat, and queries in one place</p>
+        )}
       </div>
 
-      <div className="mb-6 flex gap-1 rounded-lg border border-hairline bg-cloud p-1">
+      <div
+        className={cn(
+          'flex shrink-0 gap-1 rounded-lg border border-hairline bg-cloud p-1',
+          view === 'chat' ? 'mb-2' : 'mb-4'
+        )}
+      >
         {modes.map((m) => {
           const Icon = m.icon;
           return (
@@ -356,7 +360,9 @@ export default function NotificationsPage() {
               onClick={() => setView(m.id)}
               className={cn(
                 'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                view === m.id ? 'bg-paper text-ink shadow-[var(--shadow-soft-lift)]' : 'text-charcoal hover:text-ink'
+                view === m.id
+                  ? 'bg-paper text-ink shadow-[var(--shadow-soft-lift)]'
+                  : 'text-charcoal hover:text-ink'
               )}
             >
               <Icon className="h-4 w-4" />
@@ -371,9 +377,19 @@ export default function NotificationsPage() {
         })}
       </div>
 
-      {view === 'chat' && <InboxChat />}
-      {view === 'queries' && <QueriesPanel />}
-      {view === 'activity' && <InboxActivityView />}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {view === 'chat' && <InboxChat />}
+        {view === 'queries' && (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <QueriesPanel />
+          </div>
+        )}
+        {view === 'activity' && (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <InboxActivityView />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

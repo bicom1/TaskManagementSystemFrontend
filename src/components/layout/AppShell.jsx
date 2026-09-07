@@ -9,6 +9,7 @@ import { useCreateProjectUiStore } from '@/features/spaces/createProjectUiStore'
 import { LoadingScreen } from '@/components/ui/Spinner';
 import { useLiveSpaces } from '@/features/projects/hooks/useProjects';
 import { useLiveUsers, usePresenceSync } from '@/features/presence/usePresence';
+import { cn } from '@/lib/utils';
 
 export function AppShell() {
   const location = useLocation();
@@ -47,8 +48,8 @@ export function AppShell() {
   const openCreate = ({ centered = true } = {}) => openCreateMenu({ centered });
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden select-none bg-[#050508]">
-      <div className="hidden h-full lg:flex shrink-0">
+    <div className="fixed inset-0 z-0 flex overflow-hidden select-none bg-[#050508]">
+      <div className="hidden h-full min-h-0 lg:flex shrink-0">
         <IconRail
           activeSection={activeSection}
           panelOpen={panelOpen}
@@ -105,7 +106,7 @@ export function AppShell() {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f8f9fa]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#f8f9fa]">
         <TopBar
           createButtonRef={createBtnRef}
           onMenuClick={() => setMobileOpen(true)}
@@ -116,10 +117,25 @@ export function AppShell() {
           activeSection={activeSection}
         />
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#f8f9fa]">
-          <Suspense fallback={<LoadingScreen message="Loading workspace…" />}>
-            <Outlet />
-          </Suspense>
+        <main
+          className={cn(
+            'flex min-h-0 flex-1 flex-col bg-[#f8f9fa]',
+            // Inbox (all views) stays locked to the shell — never grow the document
+            location.pathname.startsWith('/inbox')
+              ? 'overflow-hidden'
+              : 'overflow-x-hidden overflow-y-auto'
+          )}
+        >
+          <div
+            className={cn(
+              'flex min-h-0 flex-col',
+              location.pathname.startsWith('/inbox') && 'h-full overflow-hidden'
+            )}
+          >
+            <Suspense fallback={<LoadingScreen message="Loading workspace…" />}>
+              <Outlet />
+            </Suspense>
+          </div>
         </main>
       </div>
 

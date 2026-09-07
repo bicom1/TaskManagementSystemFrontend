@@ -9,6 +9,7 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label } from '@/components/ui/Label';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 import { useForgotPassword, useResetPassword } from '@/features/auth/hooks/useAuth';
@@ -73,7 +74,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <PublicRoute>
-      <div className="relative flex min-h-screen flex-col bg-cloud overflow-hidden">
+      <div className="relative flex h-full min-h-0 flex-col overflow-y-auto bg-cloud">
         <div className="flex h-9 items-center bg-ink px-3 text-[12px] text-on-ink sm:px-4 sm:text-[13px]">
           <div className="mx-auto flex w-full max-w-[1366px] items-center justify-between gap-2">
             <span className="font-medium tracking-wide">BIWORKSPACE</span>
@@ -143,9 +144,8 @@ export default function ForgotPasswordPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">New password</Label>
-                    <Input
+                    <PasswordInput
                       id="password"
-                      type="password"
                       autoComplete="new-password"
                       {...resetForm.register('password')}
                     />
@@ -157,9 +157,8 @@ export default function ForgotPasswordPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirm password</Label>
-                    <Input
+                    <PasswordInput
                       id="confirmPassword"
-                      type="password"
                       autoComplete="new-password"
                       {...resetForm.register('confirmPassword')}
                     />

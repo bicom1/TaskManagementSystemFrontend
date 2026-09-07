@@ -36,7 +36,7 @@ export default function LoginPage() {
   return (
     <PublicRoute>
       <div
-        className="relative flex min-h-screen flex-col overflow-hidden"
+        className="relative flex h-full min-h-0 flex-col overflow-y-auto"
         style={{ backgroundColor: 'var(--color-rail-bg)' }}
       >
      

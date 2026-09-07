@@ -10,9 +10,11 @@ export const authApi = {
   refresh: () =>
     axiosClient.post('/auth/refresh').then((r) => r.data.data),
 
-  logout: () => axiosClient.post('/auth/logout'),
+  logout: () =>
+    axiosClient.post('/auth/logout', null, { skipAuthRefresh: true }),
 
-  logoutAllDevices: () => axiosClient.post('/auth/logout-all'),
+  logoutAllDevices: () =>
+    axiosClient.post('/auth/logout-all', null, { skipAuthRefresh: true }),
 
   google: (payload) =>
     axiosClient.post('/auth/google', payload).then((r) => r.data.data),

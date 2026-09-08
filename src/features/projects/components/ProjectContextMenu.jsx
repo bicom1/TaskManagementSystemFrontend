@@ -11,6 +11,8 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { canDeleteProject } from '@/lib/roles';
+import { useAuthStore } from '@/store/authStore';
 
 const PRIMARY_ACTIONS = [
   {
@@ -113,7 +115,10 @@ export function ProjectContextMenu({
   onEdit,
   onUpdate,
   onDelete,
+  canDelete: canDeleteProp,
 }) {
+  const userRole = useAuthStore((s) => s.user?.role);
+  const canDelete = canDeleteProp ?? canDeleteProject(userRole);
   const panelRef = useRef(null);
 
   useEffect(() => {
@@ -229,24 +234,26 @@ export function ProjectContextMenu({
           ))}
         </div>
 
-        <div className="border-t border-hairline/80 bg-red-50/30 px-4 py-3">
-          <button
-            type="button"
-            role="menuitem"
-            onClick={onDelete}
-            className="group flex w-full items-center gap-3 rounded-xl border border-red-200/80 bg-gradient-to-br from-red-50/90 to-white p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-300 hover:shadow-md"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-              <Trash2 className="h-4 w-4" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-red-700">Delete project</span>
-              <span className="mt-0.5 block text-xs leading-relaxed text-red-600/80">
-                Permanently remove this project and archive its tasks
+        {canDelete ? (
+          <div className="border-t border-hairline/80 bg-red-50/30 px-4 py-3">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={onDelete}
+              className="group flex w-full items-center gap-3 rounded-xl border border-red-200/80 bg-gradient-to-br from-red-50/90 to-white p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-300 hover:shadow-md"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                <Trash2 className="h-4 w-4" />
               </span>
-            </span>
-          </button>
-        </div>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-red-700">Delete project</span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-red-600/80">
+                  Permanently remove this project and archive its tasks
+                </span>
+              </span>
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>,
     document.body

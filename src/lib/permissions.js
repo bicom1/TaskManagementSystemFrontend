@@ -1,4 +1,4 @@
-import { ROLES } from './roles';
+import { ROLES, normalizeRole } from './roles';
 
 export const PERMISSIONS = {
   USER_MANAGE: 'USER_MANAGE',
@@ -13,18 +13,20 @@ export const PERMISSIONS = {
   TEAM_VIEW: 'TEAM_VIEW',
   PROJECT_CREATE: 'PROJECT_CREATE',
   PROJECT_EDIT: 'PROJECT_EDIT',
+  PROJECT_DELETE: 'PROJECT_DELETE',
   PROJECT_VIEW: 'PROJECT_VIEW',
   REPORT_VIEW: 'REPORT_VIEW',
   DEPARTMENT_MANAGE: 'DEPARTMENT_MANAGE',
   DEPARTMENT_VIEW: 'DEPARTMENT_VIEW',
   AUDIT_VIEW: 'AUDIT_VIEW',
+  AI_USE: 'AI_USE',
 };
 
 const ALL = Object.values(PERMISSIONS);
 
 export const ROLE_PERMISSIONS = {
-  [ROLES.SUPER_ADMIN]: ALL,
-  [ROLES.DEPT_HEAD]: [
+  [ROLES.SUPERADMIN]: ALL,
+  [ROLES.ADMIN]: [
     PERMISSIONS.USER_INVITE,
     PERMISSIONS.USER_VIEW,
     PERMISSIONS.USER_MANAGE,
@@ -40,24 +42,9 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.PROJECT_VIEW,
     PERMISSIONS.REPORT_VIEW,
     PERMISSIONS.DEPARTMENT_VIEW,
+    PERMISSIONS.AI_USE,
   ],
-  [ROLES.TEAM_LEAD]: [
-    PERMISSIONS.USER_INVITE,
-    PERMISSIONS.USER_VIEW,
-    PERMISSIONS.TASK_CREATE,
-    PERMISSIONS.TASK_ASSIGN,
-    PERMISSIONS.TASK_EDIT,
-    PERMISSIONS.TASK_DELETE,
-    PERMISSIONS.TASK_APPROVE,
-    PERMISSIONS.TEAM_MANAGE,
-    PERMISSIONS.TEAM_VIEW,
-    PERMISSIONS.PROJECT_CREATE,
-    PERMISSIONS.PROJECT_EDIT,
-    PERMISSIONS.PROJECT_VIEW,
-    PERMISSIONS.REPORT_VIEW,
-    PERMISSIONS.DEPARTMENT_VIEW,
-  ],
-  [ROLES.EXECUTIVE]: [
+  [ROLES.MEMBER]: [
     PERMISSIONS.USER_VIEW,
     PERMISSIONS.TASK_CREATE,
     PERMISSIONS.TASK_ASSIGN,
@@ -68,43 +55,24 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.PROJECT_VIEW,
     PERMISSIONS.REPORT_VIEW,
     PERMISSIONS.DEPARTMENT_VIEW,
-  ],
-  [ROLES.EMPLOYEE]: [
-    PERMISSIONS.USER_VIEW,
-    PERMISSIONS.TASK_CREATE,
-    PERMISSIONS.TASK_ASSIGN,
-    PERMISSIONS.TASK_EDIT,
-    PERMISSIONS.TEAM_VIEW,
-    PERMISSIONS.PROJECT_CREATE,
-    PERMISSIONS.PROJECT_EDIT,
-    PERMISSIONS.PROJECT_VIEW,
-    PERMISSIONS.REPORT_VIEW,
-    PERMISSIONS.DEPARTMENT_VIEW,
+    PERMISSIONS.AI_USE,
   ],
 };
 
 export const INVITABLE_ROLES_BY_ACTOR = {
-  [ROLES.SUPER_ADMIN]: [
-    ROLES.SUPER_ADMIN,
-    ROLES.DEPT_HEAD,
-    ROLES.TEAM_LEAD,
-    ROLES.EXECUTIVE,
-    ROLES.EMPLOYEE,
-  ],
-  [ROLES.DEPT_HEAD]: [ROLES.TEAM_LEAD, ROLES.EXECUTIVE, ROLES.EMPLOYEE],
-  [ROLES.TEAM_LEAD]: [ROLES.EXECUTIVE, ROLES.EMPLOYEE],
-  [ROLES.EXECUTIVE]: [],
-  [ROLES.EMPLOYEE]: [],
+  [ROLES.SUPERADMIN]: [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.MEMBER],
+  [ROLES.ADMIN]: [ROLES.MEMBER],
+  [ROLES.MEMBER]: [],
 };
 
 export function getPermissionsForRole(role) {
-  return ROLE_PERMISSIONS[role] ? [...ROLE_PERMISSIONS[role]] : [];
+  const r = normalizeRole(role);
+  return ROLE_PERMISSIONS[r] ? [...ROLE_PERMISSIONS[r]] : [];
 }
 
 export function hasPermission(user, permission) {
   if (!user) return false;
-  if (user.role === ROLES.SUPER_ADMIN) return true;
-  // Role catalog is source of truth (stays in sync when permissions change)
+  if (normalizeRole(user.role) === ROLES.SUPERADMIN) return true;
   return getPermissionsForRole(user.role).includes(permission);
 }
 
@@ -113,42 +81,29 @@ export function hasAnyPermission(user, ...permissions) {
 }
 
 export function getInvitableRoles(actorRole) {
-  return INVITABLE_ROLES_BY_ACTOR[actorRole] || [];
+  return INVITABLE_ROLES_BY_ACTOR[normalizeRole(actorRole)] || [];
 }
 
-/** Role-specific dashboard copy */
+/** Role-specific dashboard copy (existing HomePage meta — no redesign) */
 export function getDashboardMeta(role) {
-  switch (role) {
-    case ROLES.SUPER_ADMIN:
+  switch (normalizeRole(role)) {
+    case ROLES.SUPERADMIN:
       return {
         title: 'Organization overview',
         subtitle: 'Full access across every department, team, project, and report.',
-        badge: 'Super Admin',
+        badge: 'Superadmin',
       };
-    case ROLES.DEPT_HEAD:
+    case ROLES.ADMIN:
       return {
-        title: 'Department dashboard',
-        subtitle:
-          'Full control in your department (e.g. SEO). You can view Designing & Development, assign and edit there, but not delete.',
-        badge: 'Department Head',
-      };
-    case ROLES.TEAM_LEAD:
-      return {
-        title: 'Team dashboard',
-        subtitle: 'Your team reports, assign work, and manage tasks for your team.',
-        badge: 'Team Lead',
-      };
-    case ROLES.EXECUTIVE:
-      return {
-        title: 'My work & reports',
-        subtitle: 'Your tasks and progress — add, edit, and reassign work you can access.',
-        badge: 'Executive',
+        title: 'Members & progress',
+        subtitle: 'Manage members, projects, and tasks. View progress and reports across the workspace.',
+        badge: 'Admin',
       };
     default:
       return {
         title: 'My work & reports',
-        subtitle: 'Your tasks and progress — add, edit, and reassign work you can access.',
-        badge: 'Employee',
+        subtitle: 'Your tasks, projects, and personal progress.',
+        badge: 'Member',
       };
   }
 }

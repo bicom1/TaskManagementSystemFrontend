@@ -1,26 +1,60 @@
 export const ROLES = {
-  SUPER_ADMIN: 'super_admin',
-  DEPT_HEAD: 'dept_head',
-  TEAM_LEAD: 'team_lead',
-  EXECUTIVE: 'executive',
-  EMPLOYEE: 'employee',
+  SUPERADMIN: 'SUPERADMIN',
+  ADMIN: 'ADMIN',
+  MEMBER: 'MEMBER',
+
+  // Legacy aliases → canonical values (existing imports keep working)
+  SUPER_ADMIN: 'SUPERADMIN',
+  DEPT_HEAD: 'ADMIN',
+  TEAM_LEAD: 'ADMIN',
+  EXECUTIVE: 'MEMBER',
+  EMPLOYEE: 'MEMBER',
 };
+
+export const ROLE_VALUES = [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.MEMBER];
 
 export const ROLE_LABELS = {
-  [ROLES.SUPER_ADMIN]: 'Super Admin',
-  [ROLES.DEPT_HEAD]: 'Department Head',
-  [ROLES.TEAM_LEAD]: 'Team Lead',
-  [ROLES.EXECUTIVE]: 'Executive',
-  [ROLES.EMPLOYEE]: 'Employee',
+  [ROLES.SUPERADMIN]: 'Superadmin',
+  [ROLES.ADMIN]: 'Admin',
+  [ROLES.MEMBER]: 'Member',
 };
 
+export function normalizeRole(role) {
+  const raw = String(role || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '_');
+  const map = {
+    SUPERADMIN: ROLES.SUPERADMIN,
+    SUPER_ADMIN: ROLES.SUPERADMIN,
+    ADMIN: ROLES.ADMIN,
+    DEPT_HEAD: ROLES.ADMIN,
+    TEAM_LEAD: ROLES.ADMIN,
+    MANAGER: ROLES.ADMIN,
+    MEMBER: ROLES.MEMBER,
+    EMPLOYEE: ROLES.MEMBER,
+    EXECUTIVE: ROLES.MEMBER,
+    USER: ROLES.MEMBER,
+  };
+  if (map[raw]) return map[raw];
+  const lower = String(role || '').trim().toLowerCase();
+  const lowerMap = {
+    superadmin: ROLES.SUPERADMIN,
+    super_admin: ROLES.SUPERADMIN,
+    admin: ROLES.ADMIN,
+    dept_head: ROLES.ADMIN,
+    team_lead: ROLES.ADMIN,
+    manager: ROLES.ADMIN,
+    member: ROLES.MEMBER,
+    employee: ROLES.MEMBER,
+    executive: ROLES.MEMBER,
+    user: ROLES.MEMBER,
+  };
+  return lowerMap[lower] || ROLES.MEMBER;
+}
+
 /** @deprecated Prefer getInvitableRoles(actorRole) from permissions.js */
-export const INVITE_ROLES = [
-  ROLES.DEPT_HEAD,
-  ROLES.TEAM_LEAD,
-  ROLES.EXECUTIVE,
-  ROLES.EMPLOYEE,
-];
+export const INVITE_ROLES = [ROLES.ADMIN, ROLES.MEMBER];
 
 export const DEPARTMENT_CODES = {
   SEO: 'seo',
@@ -34,7 +68,6 @@ export const DEPARTMENT_CODE_LABELS = {
   [DEPARTMENT_CODES.DESIGNING]: 'UI/UX Designing',
 };
 
-/** Ordered main departments shown in invite / org selects */
 export const MAIN_DEPARTMENT_CODES = [
   DEPARTMENT_CODES.SEO,
   DEPARTMENT_CODES.DEVELOPMENT,
@@ -47,7 +80,6 @@ export const DEPARTMENT_PRESETS = [
   { code: DEPARTMENT_CODES.DESIGNING, name: 'UI/UX Designing' },
 ];
 
-/** Map free-text / legacy names → built-in department code */
 export function resolveDepartmentCode(deptOrCode) {
   if (!deptOrCode) return '';
   if (typeof deptOrCode === 'string') {
@@ -66,7 +98,6 @@ export function resolveDepartmentCode(deptOrCode) {
   return resolveDepartmentCode(deptOrCode.name || '');
 }
 
-/** Prefer the three main departments, ordered SEO → Development → UI/UX Designing */
 export function getMainDepartments(departments) {
   const list = departments ?? [];
   const byCode = new Map();
@@ -87,46 +118,40 @@ export function getMainDepartments(departments) {
   }).filter(Boolean);
 }
 
-
-/** Roles allowed per department on invite */
 export const DEPARTMENT_ALLOWED_ROLES = {
-  [DEPARTMENT_CODES.SEO]: [
-    ROLES.DEPT_HEAD,
-    ROLES.TEAM_LEAD,
-    ROLES.EXECUTIVE,
-    ROLES.EMPLOYEE,
-  ],
-  [DEPARTMENT_CODES.DEVELOPMENT]: [ROLES.TEAM_LEAD, ROLES.EMPLOYEE],
-  [DEPARTMENT_CODES.DESIGNING]: [ROLES.TEAM_LEAD, ROLES.EMPLOYEE],
+  [DEPARTMENT_CODES.SEO]: [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.MEMBER],
+  [DEPARTMENT_CODES.DEVELOPMENT]: [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.MEMBER],
+  [DEPARTMENT_CODES.DESIGNING]: [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.MEMBER],
 };
 
 export const INVITE_ROLE_LABELS = {
   [DEPARTMENT_CODES.SEO]: {
-    [ROLES.DEPT_HEAD]: 'SEO Head',
-    [ROLES.TEAM_LEAD]: 'Team Lead',
-    [ROLES.EXECUTIVE]: 'Executive',
-    [ROLES.EMPLOYEE]: 'Employee',
+    [ROLES.SUPERADMIN]: 'Superadmin',
+    [ROLES.ADMIN]: 'Admin',
+    [ROLES.MEMBER]: 'Member',
   },
   [DEPARTMENT_CODES.DEVELOPMENT]: {
-    [ROLES.TEAM_LEAD]: 'Team Lead',
-    [ROLES.EMPLOYEE]: 'Employee',
+    [ROLES.SUPERADMIN]: 'Superadmin',
+    [ROLES.ADMIN]: 'Admin',
+    [ROLES.MEMBER]: 'Member',
   },
   [DEPARTMENT_CODES.DESIGNING]: {
-    [ROLES.TEAM_LEAD]: 'Team Lead',
-    [ROLES.EMPLOYEE]: 'Employee',
+    [ROLES.SUPERADMIN]: 'Superadmin',
+    [ROLES.ADMIN]: 'Admin',
+    [ROLES.MEMBER]: 'Member',
   },
 };
 
 export const JOB_TITLE_SUGGESTIONS = {
   [DEPARTMENT_CODES.SEO]: {
-    [ROLES.DEPT_HEAD]: ['SEO Head', 'Head of SEO'],
-    [ROLES.TEAM_LEAD]: ['SEO Team Lead', 'SEO Lead'],
-    [ROLES.EXECUTIVE]: ['SEO Executive', 'SEO Specialist'],
-    [ROLES.EMPLOYEE]: ['SEO Analyst', 'SEO Associate', 'Content SEO'],
+    [ROLES.SUPERADMIN]: ['Superadmin'],
+    [ROLES.ADMIN]: ['SEO Admin', 'SEO Manager'],
+    [ROLES.MEMBER]: ['SEO Analyst', 'SEO Associate', 'Content SEO'],
   },
   [DEPARTMENT_CODES.DEVELOPMENT]: {
-    [ROLES.TEAM_LEAD]: ['Development Team Lead', 'Engineering Lead', 'Tech Lead'],
-    [ROLES.EMPLOYEE]: [
+    [ROLES.SUPERADMIN]: ['Superadmin'],
+    [ROLES.ADMIN]: ['Engineering Admin', 'Tech Admin'],
+    [ROLES.MEMBER]: [
       'Software Developer',
       'Frontend Developer',
       'Backend Developer',
@@ -134,8 +159,9 @@ export const JOB_TITLE_SUGGESTIONS = {
     ],
   },
   [DEPARTMENT_CODES.DESIGNING]: {
-    [ROLES.TEAM_LEAD]: ['UI/UX Team Lead', 'Design Lead'],
-    [ROLES.EMPLOYEE]: ['UI/UX Designer', 'Product Designer', 'Visual Designer'],
+    [ROLES.SUPERADMIN]: ['Superadmin'],
+    [ROLES.ADMIN]: ['Design Admin'],
+    [ROLES.MEMBER]: ['UI/UX Designer', 'Product Designer', 'Visual Designer'],
   },
 };
 
@@ -146,27 +172,26 @@ export const APPROVAL_STATUS_LABELS = {
 };
 
 export function canInvite(role) {
-  return (
-    role === ROLES.SUPER_ADMIN ||
-    role === ROLES.DEPT_HEAD ||
-    role === ROLES.TEAM_LEAD
-  );
+  const r = normalizeRole(role);
+  return r === ROLES.SUPERADMIN || r === ROLES.ADMIN;
 }
 
 export function canManageOrg(role) {
-  return role === ROLES.SUPER_ADMIN;
+  return normalizeRole(role) === ROLES.SUPERADMIN;
 }
 
 export function canApproveTasks(role) {
-  return (
-    role === ROLES.SUPER_ADMIN ||
-    role === ROLES.DEPT_HEAD ||
-    role === ROLES.TEAM_LEAD
-  );
+  const r = normalizeRole(role);
+  return r === ROLES.SUPERADMIN || r === ROLES.ADMIN;
+}
+
+export function canDeleteProject(role) {
+  return normalizeRole(role) === ROLES.SUPERADMIN;
 }
 
 export function getRoleLabel(role) {
-  return ROLE_LABELS[role] ?? role?.replace(/_/g, ' ') ?? '—';
+  const r = normalizeRole(role);
+  return ROLE_LABELS[r] ?? String(role || '').replace(/_/g, ' ') ?? '—';
 }
 
 export function normalizeDepartmentCode(code) {
@@ -181,34 +206,32 @@ export function getAllowedRolesForDepartment(deptCode) {
   const code = normalizeDepartmentCode(deptCode);
   return DEPARTMENT_ALLOWED_ROLES[code]
     ? [...DEPARTMENT_ALLOWED_ROLES[code]]
-    : [ROLES.TEAM_LEAD, ROLES.EMPLOYEE];
+    : [ROLES.ADMIN, ROLES.MEMBER];
 }
 
 export function getInviteRoleLabel(deptCode, role) {
   const code = normalizeDepartmentCode(deptCode);
-  return INVITE_ROLE_LABELS[code]?.[role] || getRoleLabel(role);
+  const r = normalizeRole(role);
+  return INVITE_ROLE_LABELS[code]?.[r] || getRoleLabel(r);
 }
 
 export function getJobTitleSuggestions(deptCode, role) {
   const code = normalizeDepartmentCode(deptCode);
-  return JOB_TITLE_SUGGESTIONS[code]?.[role]
-    ? [...JOB_TITLE_SUGGESTIONS[code][role]]
-    : [];
+  const r = normalizeRole(role);
+  return JOB_TITLE_SUGGESTIONS[code]?.[r] ? [...JOB_TITLE_SUGGESTIONS[code][r]] : [];
 }
 
 export function getDefaultJobTitle(deptCode, role) {
   return getJobTitleSuggestions(deptCode, role)[0] || '';
 }
 
-/** Roles an actor may invite into a department (actor rank ∩ dept matrix) */
 export function getInvitableRolesForDepartment(actorRole, deptCode, invitableByActor) {
   const byActor = invitableByActor || [];
   if (!deptCode) return byActor;
   const allowed = new Set(getAllowedRolesForDepartment(deptCode));
-  return byActor.filter((r) => allowed.has(r));
+  return byActor.filter((r) => allowed.has(normalizeRole(r)));
 }
 
-/** Group teams array by department for optgroup selects */
 export function groupTeamsByDepartment(teams, departments) {
   const deptMap = new Map(
     (departments ?? []).map((d) => [d._id, d.name ?? DEPARTMENT_CODE_LABELS[d.code] ?? 'Other'])

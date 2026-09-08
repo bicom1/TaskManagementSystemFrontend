@@ -91,7 +91,7 @@ export function InviteModal({
       name: '',
       department: resolvedDepartmentId || '',
       departmentName: '',
-      role: ROLES.EMPLOYEE,
+      role: ROLES.MEMBER,
       team: defaultTeamId || '',
       teamName: '',
       teamLead: resolvedTeamLeadId || '',
@@ -184,9 +184,9 @@ export function InviteModal({
 
   useEffect(() => {
     if (!open) return;
-    const defaultRole = invitableByActor.includes(ROLES.EMPLOYEE)
-      ? ROLES.EMPLOYEE
-      : invitableByActor[0] || ROLES.EMPLOYEE;
+    const defaultRole = invitableByActor.includes(ROLES.MEMBER)
+      ? ROLES.MEMBER
+      : invitableByActor[0] || ROLES.MEMBER;
     reset({
       email: '',
       name: '',
@@ -260,7 +260,7 @@ export function InviteModal({
       name: '',
       department: resolvedDepartmentId || '',
       departmentName: '',
-      role: ROLES.EMPLOYEE,
+      role: ROLES.MEMBER,
       team: defaultTeamId || '',
       teamName: '',
       teamLead: resolvedTeamLeadId || '',
@@ -616,7 +616,7 @@ export function InviteModal({
               {isTeamScoped || isDeptScoped
                 ? 'Locked to this team’s department'
                 : selectedRole === ROLES.SUPER_ADMIN
-                  ? 'Super Admin has org-wide access — department is optional'
+                  ? 'Superadmin has org-wide access — department is optional'
                   : 'SEO · Development · UI/UX Designing'}
             </p>
             {errors.departmentName && (
@@ -639,8 +639,8 @@ export function InviteModal({
               ) : (
                 rolesForDepartment.map((r) => (
                   <option key={r} value={r}>
-                    {r === ROLES.SUPER_ADMIN
-                      ? 'Super Admin'
+                    {r === ROLES.SUPERADMIN || r === ROLES.SUPER_ADMIN
+                      ? 'Superadmin'
                       : getInviteRoleLabel(selectedDeptCode, r)}
                   </option>
                 ))

@@ -47,7 +47,7 @@ export function AppShell() {
   const openCreate = ({ centered = true } = {}) => openCreateMenu({ centered });
 
   return (
-    <div className="fixed inset-0 z-0 flex overflow-hidden select-none bg-[#050508]">
+    <div className="flex h-dvh max-h-dvh w-full overflow-hidden select-none bg-[#050508]">
       <div className="hidden h-full min-h-0 lg:flex shrink-0">
         <IconRail
           activeSection={activeSection}

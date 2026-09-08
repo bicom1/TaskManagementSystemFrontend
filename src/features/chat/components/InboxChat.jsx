@@ -258,6 +258,7 @@ export function InboxChat() {
   const [linkOpen, setLinkOpen] = useState(false);
 
   const bottomRef = useRef(null);
+  const messagesScrollRef = useRef(null);
   const typingTimer = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -378,10 +379,26 @@ export function InboxChat() {
     });
   }, [dmUserId, conversations, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const scrollMessagesToBottom = (smooth = false) => {
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    // Never use element.scrollIntoView() — it scrolls the window and causes the
+    // whole app shell to jump up, leaving a black gap under the UI.
+    const top = el.scrollHeight;
+    if (smooth) el.scrollTo({ top, behavior: 'smooth' });
+    else el.scrollTop = top;
+    // Keep document/viewport pinned (mobile keyboard / focus side-effects)
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  };
+
   useEffect(() => {
     if (!activeId) return;
     markRead.mutate(activeId);
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollMessagesToBottom(true);
   }, [activeId, messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openConversation = (id) => {
@@ -865,7 +882,10 @@ export function InboxChat() {
               </Button>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto bg-cloud/40 px-4 py-4">
+            <div
+              ref={messagesScrollRef}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-cloud/40 px-4 py-4"
+            >
               {messagesLoading ? (
                 <LoadingScreen message="Loading messages…" />
               ) : messagesError ? (
@@ -1120,7 +1140,11 @@ export function InboxChat() {
                 </Button>
                 <Button
                   type="button"
-                  onClick={handleSend}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSend();
+                  }}
                   disabled={!canSend}
                   className="h-9 rounded-lg px-3 normal-case tracking-normal"
                 >

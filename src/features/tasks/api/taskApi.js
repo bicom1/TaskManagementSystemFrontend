@@ -22,7 +22,8 @@ export const taskApi = {
   move: (id, payload) =>
     axiosClient.patch(`/tasks/${id}/move`, payload).then((r) => r.data.data),
 
-  remove: (id) => axiosClient.delete(`/tasks/${id}`),
+  remove: (id) =>
+    axiosClient.delete(`/tasks/${id}`).then((r) => r.data?.data ?? { id }),
 
   uploadAttachment: (id, file) => {
     const formData = new FormData();

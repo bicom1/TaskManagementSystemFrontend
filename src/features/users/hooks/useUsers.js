@@ -116,13 +116,18 @@ export function useDeleteUser() {
       context?.previous?.forEach(([key, data]) => {
         queryClient.setQueryData(key, data);
       });
-      toastError(error, 'Failed to delete user');
+      toastError(error, 'Failed to delete member');
     },
-    onSuccess: (_data, id) => {
+    onSuccess: (data, id) => {
       removeUserFromUsersCache(queryClient, id);
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
       queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      const name = data?.deletedName || data?.name || 'Member';
+      toastSuccess(`${name} deleted — invite again to restore access with Google`, {
+        duration: 5500,
+      });
     },
   });
 }

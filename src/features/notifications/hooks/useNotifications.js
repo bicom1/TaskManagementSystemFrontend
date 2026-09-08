@@ -171,6 +171,19 @@ export function useLiveNotifications() {
         return;
       }
 
+      const deleteTypes = new Set(['task_deleted', 'project_deleted', 'user_deleted']);
+      if (deleteTypes.has(notification?.type)) {
+        toast.success(notification.message || 'Item deleted', {
+          duration: 6000,
+          description: 'Open Inbox → Activity for details',
+          action: {
+            label: 'View',
+            onClick: () => navigate('/inbox?view=activity'),
+          },
+        });
+        return;
+      }
+
       toast(notification.message, {
         duration: 8000,
         action: isTaskAssigned

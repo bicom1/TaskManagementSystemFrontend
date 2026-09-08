@@ -133,6 +133,18 @@ export function buildInboxFeedItem(notification, taskMap = {}, overrides = {}, p
   } else if (notification.type === 'task_approved') {
     actionText = senderName ? `${senderName} approved this task` : 'Task approved';
     statusTo = 'done';
+  } else if (notification.type === 'task_deleted') {
+    actionText = senderName
+      ? `${senderName} deleted this task`
+      : notification.message || 'Task deleted';
+  } else if (notification.type === 'project_deleted') {
+    actionText = senderName
+      ? `${senderName} deleted this project`
+      : notification.message || 'Project deleted';
+  } else if (notification.type === 'user_deleted') {
+    actionText = senderName
+      ? `${senderName} removed a member`
+      : notification.message || 'Member deleted';
   } else if (notification.type === 'comment_added' || notification.type === 'mentioned') {
     actionText = senderName ? `${senderName} commented on this task` : 'New comment';
   } else {

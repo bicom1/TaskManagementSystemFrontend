@@ -94,10 +94,12 @@ export function useDeleteProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: projectApi.delete,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toastSuccess('Project deleted');
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      const name = data?.name ? `"${data.name}"` : 'Project';
+      toastSuccess(`Project ${name} deleted`);
     },
     onError: (error) => {
       toastError(error, 'Failed to delete project');

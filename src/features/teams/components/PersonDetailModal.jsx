@@ -145,7 +145,7 @@ export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTea
               disabled={deleteUser.isPending}
               onClick={() => {
                 const ok = window.confirm(
-                  `Delete ${person.name}? They will be signed out immediately and removed from the workspace.`
+                  `Permanently delete ${person.name}? Their account is removed from the database. If you invite this email again, they must accept with Google as a new member.`
                 );
                 if (!ok) return;
                 deleteUser.mutate(person._id, {

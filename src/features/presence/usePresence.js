@@ -107,8 +107,9 @@ export function useLiveUsers() {
       if (!id || id === String(myId)) return;
 
       if (event === 'user:deleted') {
-        const name = user?.deletedName || user?.name;
-        if (name) toastSuccess(`${name} has been deleted`, { duration: 5000 });
+        // Actor already gets a mutation toast; other clients refresh quietly.
+        // Inbox/system notifications cover other Superadmins.
+        return;
       } else if (event === 'user:updated' && user?.isActive === false) {
         if (user?.name) toastSuccess(`${user.name} has been deactivated`, { duration: 4000 });
         queryClient.setQueriesData({ queryKey: ['users'] }, (old) => {

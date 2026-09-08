@@ -416,12 +416,14 @@ export function useDeleteTask(projectId) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: taskApi.remove,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [BOARD_KEY, projectId] });
       queryClient.invalidateQueries({ queryKey: [TASK_KEY] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
-      toastSuccess('Task deleted');
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      const title = data?.title ? `"${data.title}"` : 'Task';
+      toastSuccess(`${title} deleted`);
     },
     onError: (error) => {
       toastError(error, 'Failed to delete task');

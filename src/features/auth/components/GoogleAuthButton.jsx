@@ -1,9 +1,48 @@
-export function GoogleAuthButton({ label = 'Continue with Google' }) {
+const INVITE_TOKEN_KEY = 'bw_invite_token';
+
+export function storeInviteToken(token) {
+  try {
+    const value = String(token || '').trim();
+    if (value) sessionStorage.setItem(INVITE_TOKEN_KEY, value);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readInviteToken() {
+  try {
+    return sessionStorage.getItem(INVITE_TOKEN_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function clearInviteToken() {
+  try {
+    sessionStorage.removeItem(INVITE_TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function GoogleAuthButton({
+  label = 'Continue with Google',
+  loginHint = '',
+  inviteToken = '',
+}) {
   const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api/v1';
 
   const handleClick = () => {
-    const clientUrl = encodeURIComponent(window.location.origin);
-    window.location.href = `${apiBase}/auth/google?clientUrl=${clientUrl}`;
+    const params = new URLSearchParams();
+    params.set('clientUrl', window.location.origin);
+    const hint = String(loginHint || '').trim().toLowerCase();
+    const token = String(inviteToken || readInviteToken() || '').trim();
+    if (hint) params.set('loginHint', hint);
+    if (token) {
+      params.set('inviteToken', token);
+      storeInviteToken(token);
+    }
+    window.location.href = `${apiBase}/auth/google?${params.toString()}`;
   };
 
   return (

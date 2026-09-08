@@ -14,12 +14,17 @@ const GOOGLE_ERROR_TOASTS = {
   not_invited: {
     title: 'You need an invitation first',
     description:
-      'Ask your Super Admin to invite you to this workspace. Once invited, come back and sign in with Google using the same email address they invited.',
+      'Ask your Super Admin to invite you to this workspace. Once invited, open the invite link and sign in with Google using the same email address they invited.',
   },
   invite_expired: {
     title: 'Invitation expired',
     description:
       'Your invite link is no longer valid. Please ask your Super Admin to send a new invitation, then sign in with Google using the invited email address.',
+  },
+  wrong_google_email: {
+    title: 'Wrong Google account',
+    description:
+      'Use Continue with Google and choose the exact email from your invitation. A different Google account cannot accept this invite.',
   },
 };
 
@@ -55,11 +60,23 @@ function isInviteExpiredError(decoded) {
   );
 }
 
+function isWrongGoogleEmailError(decoded) {
+  return (
+    decoded === 'wrong_google_email' ||
+    decoded.startsWith('wrong_google_email') ||
+    /Sign in with Google using/i.test(decoded)
+  );
+}
+
 /** True when Google sign-in failed because the user is not invited / invite expired */
 export function isInviteGateError(code) {
   if (!code) return false;
   const decoded = decodeGoogleError(code);
-  return isNotInvitedError(decoded) || isInviteExpiredError(decoded);
+  return (
+    isNotInvitedError(decoded) ||
+    isInviteExpiredError(decoded) ||
+    isWrongGoogleEmailError(decoded)
+  );
 }
 
 /**
@@ -72,6 +89,17 @@ export function getGoogleErrorToast(code) {
   }
 
   const decoded = decodeGoogleError(code);
+
+  if (isWrongGoogleEmailError(decoded)) {
+    const match = decoded.match(/using\s+([^\s—-]+@[^\s—-]+)/i);
+    if (match?.[1]) {
+      return {
+        title: 'Wrong Google account',
+        description: `Sign in with Google using ${match[1]} — the same email from your invitation.`,
+      };
+    }
+    return GOOGLE_ERROR_TOASTS.wrong_google_email;
+  }
 
   if (isNotInvitedError(decoded)) {
     return GOOGLE_ERROR_TOASTS.not_invited;
@@ -88,6 +116,10 @@ export function getGoogleErrorMessage(code) {
   if (!code) return 'Google Sign-In failed. Please try again.';
 
   const decoded = decodeGoogleError(code);
+
+  if (isWrongGoogleEmailError(decoded)) {
+    return GOOGLE_ERROR_TOASTS.wrong_google_email.title;
+  }
 
   if (isNotInvitedError(decoded)) {
     return GOOGLE_ERROR_TOASTS.not_invited.title;

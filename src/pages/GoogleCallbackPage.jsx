@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { userApi } from '@/features/users/api/userApi';
 import { decodeOAuthProfile } from '@/features/auth/googleProfile';
+import { clearInviteToken, readInviteToken } from '@/features/auth/components/GoogleAuthButton';
 import { LoadingScreen } from '@/components/ui/Spinner';
 
 export default function GoogleCallbackPage() {
@@ -18,15 +19,24 @@ export default function GoogleCallbackPage() {
     async function finish() {
       const accessToken = params.get('accessToken');
       const profile = decodeOAuthProfile(params.get('profile'));
+      const inviteToken = readInviteToken();
 
       if (!accessToken) {
         toast.error('Google Sign-In failed — missing token');
-        navigate('/login?googleError=missing_token', { replace: true });
+        if (inviteToken) {
+          navigate(
+            `/accept-invite?token=${encodeURIComponent(inviteToken)}&googleError=missing_token`,
+            { replace: true }
+          );
+        } else {
+          navigate('/login?googleError=missing_token', { replace: true });
+        }
         return;
       }
 
       const baseUser = profile || { name: 'User' };
       setAuth(baseUser, accessToken);
+      clearInviteToken();
 
       try {
         const full = await userApi.me({ skipAuthRefresh: true });
@@ -45,7 +55,15 @@ export default function GoogleCallbackPage() {
       if (cancelled) return;
       setStatus('Could not complete Google Sign-In');
       toast.error('Google Sign-In failed. Please try again.');
-      navigate('/login?googleError=session', { replace: true });
+      const inviteToken = readInviteToken();
+      if (inviteToken) {
+        navigate(
+          `/accept-invite?token=${encodeURIComponent(inviteToken)}&googleError=session`,
+          { replace: true }
+        );
+      } else {
+        navigate('/login?googleError=session', { replace: true });
+      }
     });
 
     return () => {

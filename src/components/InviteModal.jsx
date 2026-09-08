@@ -335,8 +335,9 @@ export function InviteModal({
           <div className="rounded-xl border border-primary-soft bg-primary-soft/30 p-4">
             <p className="text-sm font-medium text-ink">Invite ready for {result.name || result.email}</p>
             <p className="mt-2 text-sm leading-relaxed text-graphite">
-              Send them this link (WhatsApp or email). They open it and sign in with{' '}
-              <span className="font-medium text-ink">Google</span> using the invited email.
+              Send them this invite link. They open it and tap{' '}
+              <span className="font-medium text-ink">Continue with Google</span> using{' '}
+              <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
               {result.teamId ? ' They were also added to the selected team.' : ''}
             </p>
             {result.emailNote ? (
@@ -370,9 +371,9 @@ export function InviteModal({
                   </Button>
                 </div>
                 <p className="text-xs leading-relaxed text-graphite">
-                  They must use Google with{' '}
-                  <span className="font-medium text-ink">{result.emailTo || result.email}</span> —
-                  password login is not available for invited members.
+                  Open this link → Continue with Google as{' '}
+                  <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
+                  Password login will not work for invited members.
                 </p>
               </div>
             )}

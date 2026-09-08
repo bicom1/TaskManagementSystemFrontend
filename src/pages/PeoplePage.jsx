@@ -17,7 +17,9 @@ export default function PeoplePage() {
   const { data, isLoading } = useUsers({ limit: 100, q: q || undefined });
   const role = useAuthStore((s) => s.user?.role);
   const userCanInvite = canInvite(role);
-  const people = data?.data ?? [];
+  const people = (data?.data ?? []).filter(
+    (p) => p?.isActive !== false && !/^deleted_/i.test(String(p?.email || ''))
+  );
 
   if (isLoading) {
     return (

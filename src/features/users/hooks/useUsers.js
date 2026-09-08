@@ -68,12 +68,37 @@ export function useDeactivateUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id) => userApi.deactivate(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: [KEY] });
+      const previous = queryClient.getQueriesData({ queryKey: [KEY] });
+      removeUserFromUsersCache(queryClient, id);
+      return { previous };
+    },
+    onError: (error, _id, context) => {
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+      toastError(error, 'Failed to deactivate user');
+    },
+    onSuccess: (_data, id) => {
+      removeUserFromUsersCache(queryClient, id);
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
-      // Live toast comes from user:changed socket for all clients (incl. actor)
     },
-    onError: (error) => toastError(error, 'Failed to deactivate user'),
+  });
+}
+
+function removeUserFromUsersCache(queryClient, userId) {
+  const id = String(userId);
+  queryClient.setQueriesData({ queryKey: [KEY] }, (old) => {
+    if (!old || !Array.isArray(old.data)) return old;
+    const next = old.data.filter((u) => String(u._id) !== id);
+    if (next.length === old.data.length) return old;
+    return {
+      ...old,
+      data: next,
+      total: typeof old.total === 'number' ? Math.max(0, old.total - 1) : next.length,
+    };
   });
 }
 
@@ -81,13 +106,24 @@ export function useDeleteUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id) => userApi.remove(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: [KEY] });
+      const previous = queryClient.getQueriesData({ queryKey: [KEY] });
+      removeUserFromUsersCache(queryClient, id);
+      return { previous };
+    },
+    onError: (error, _id, context) => {
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+      toastError(error, 'Failed to delete user');
+    },
+    onSuccess: (_data, id) => {
+      removeUserFromUsersCache(queryClient, id);
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
       queryClient.invalidateQueries({ queryKey: ['teams'] });
-      // Live toast with name comes from user:changed socket
     },
-    onError: (error) => toastError(error, 'Failed to delete user'),
   });
 }
 

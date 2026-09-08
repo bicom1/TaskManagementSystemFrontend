@@ -43,7 +43,12 @@ function personManagerIds(person, teams, departments) {
 export default function AllPeoplePage() {
   const { teams, departments, openInvite, canInvite, navigate } = useOutletContext();
   const { data, isLoading } = useUsers({ limit: 100 });
-  const people = data?.data ?? [];
+  const people = useMemo(() => {
+    const list = data?.data ?? [];
+    return list.filter(
+      (p) => p?.isActive !== false && !/^deleted_/i.test(String(p?.email || ''))
+    );
+  }, [data]);
 
   const [view, setView] = useState('grid');
   const [selected, setSelected] = useState(null);

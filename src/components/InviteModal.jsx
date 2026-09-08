@@ -6,14 +6,12 @@ import { toast } from 'sonner';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { useInviteUser } from '@/features/users/hooks/useUsers';
 import { useDepartments } from '@/features/departments/hooks/useDepartments';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useAuthStore } from '@/store/authStore';
 import {
-  getInviteRoleLabel,
   getInvitableRolesForDepartment,
   getMainDepartments,
   resolveDepartmentCode,
@@ -25,8 +23,6 @@ import { getInvitableRoles, hasPermission, PERMISSIONS } from '@/lib/permissions
 function buildWhatsAppUrl(text) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
-
-const CUSTOM_VALUE = '__custom__';
 
 export function InviteModal({
   open,
@@ -48,12 +44,19 @@ export function InviteModal({
   const { data: departmentsData } = useDepartments({ limit: 100 });
   const { data: teamsData } = useTeams({ limit: 100 });
   const allDepartments = departmentsData?.data ?? [];
+  /** Invite form: SEO · Development · UI/UX Designing only */
   const mainDepartments = useMemo(() => getMainDepartments(allDepartments), [allDepartments]);
-  const otherDepartments = useMemo(() => {
-    const mainIds = new Set(mainDepartments.map((d) => String(d._id)));
-    return allDepartments.filter((d) => !mainIds.has(String(d._id)));
-  }, [allDepartments, mainDepartments]);
-  const teams = teamsData?.data ?? [];
+  const mainDepartmentIds = useMemo(
+    () => new Set(mainDepartments.map((d) => String(d._id))),
+    [mainDepartments]
+  );
+  const teams = useMemo(
+    () =>
+      (teamsData?.data ?? []).filter((t) =>
+        mainDepartmentIds.has(String(t.department?._id || t.department))
+      ),
+    [teamsData, mainDepartmentIds]
+  );
 
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(null);
@@ -100,87 +103,33 @@ export function InviteModal({
   });
 
   const selectedDepartment = watch('department');
-  const departmentName = watch('departmentName');
   const selectedRole = watch('role');
-  const selectedTeam = watch('team');
-  const teamName = watch('teamName');
-  const isCustomDepartment = selectedDepartment === CUSTOM_VALUE;
-  const isCustomTeam = selectedTeam === CUSTOM_VALUE;
 
   const selectedDeptDoc = useMemo(() => {
-    if (isCustomDepartment) return { name: departmentName, code: resolveDepartmentCode(departmentName) };
-    const fromMain = mainDepartments.find((d) => String(d._id) === String(selectedDepartment));
-    if (fromMain) return fromMain;
-    return allDepartments.find((d) => String(d._id) === String(selectedDepartment));
-  }, [
-    isCustomDepartment,
-    departmentName,
-    mainDepartments,
-    allDepartments,
-    selectedDepartment,
-  ]);
+    return (
+      mainDepartments.find((d) => String(d._id) === String(selectedDepartment)) ||
+      allDepartments.find((d) => String(d._id) === String(selectedDepartment))
+    );
+  }, [mainDepartments, allDepartments, selectedDepartment]);
 
   const selectedDeptCode = resolveDepartmentCode(selectedDeptDoc);
-  const hasDepartment = Boolean(
-    (selectedDepartment && selectedDepartment !== CUSTOM_VALUE) ||
-      (isCustomDepartment && departmentName?.trim())
-  );
+  const hasDepartment = Boolean(selectedDepartment);
 
-  const rolesForDepartment = useMemo(() => {
+  const rolesForInvite = useMemo(() => {
     if (isSuperAdmin) {
-      const withoutSa = invitableByActor.filter((r) => r !== ROLES.SUPER_ADMIN);
-      const deptRoles =
-        hasDepartment && selectedDeptCode && !isCustomDepartment
-          ? getInvitableRolesForDepartment(ROLES.SUPER_ADMIN, selectedDeptCode, withoutSa)
-          : withoutSa;
-      // Team-scoped invites stay on that team — Super Admin is org-wide, not a team member
-      if (isTeamScoped) return deptRoles;
-      return [ROLES.SUPER_ADMIN, ...deptRoles];
+      return [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.MEMBER];
     }
-    if (!hasDepartment) return [];
-    if (!selectedDeptCode || isCustomDepartment) return invitableByActor;
-    return getInvitableRolesForDepartment(role, selectedDeptCode, invitableByActor);
-  }, [
-    hasDepartment,
-    selectedDeptCode,
-    isCustomDepartment,
-    isSuperAdmin,
-    isTeamScoped,
-    role,
-    invitableByActor,
-  ]);
-
-  const teamsInDepartment = useMemo(() => {
-    if (isCustomDepartment || !selectedDepartment || selectedDepartment === CUSTOM_VALUE) return [];
-    return teams.filter(
-      (t) => String(t.department?._id || t.department) === String(selectedDepartment)
+    const allowed = [ROLES.ADMIN, ROLES.MEMBER];
+    if (!hasDepartment) return allowed.filter((r) => invitableByActor.includes(r));
+    if (!selectedDeptCode) {
+      return invitableByActor.filter((r) => allowed.includes(r));
+    }
+    return getInvitableRolesForDepartment(role, selectedDeptCode, invitableByActor).filter((r) =>
+      allowed.includes(r)
     );
-  }, [teams, selectedDepartment, isCustomDepartment]);
+  }, [hasDepartment, selectedDeptCode, isSuperAdmin, role, invitableByActor]);
 
-  const teamLeadsInDepartment = useMemo(() => {
-    const leads = [];
-    const seen = new Set();
-    for (const t of teamsInDepartment) {
-      const lead = t.lead;
-      if (!lead?._id) continue;
-      const id = String(lead._id);
-      if (seen.has(id)) continue;
-      seen.add(id);
-      leads.push(lead);
-    }
-    if (scopedTeam?.lead?._id) {
-      const id = String(scopedTeam.lead._id);
-      if (!seen.has(id)) {
-        leads.unshift(scopedTeam.lead);
-      }
-    }
-    return leads;
-  }, [teamsInDepartment, scopedTeam]);
-
-  const selectedTeamDoc = useMemo(
-    () => teams.find((t) => t._id === selectedTeam),
-    [teams, selectedTeam]
-  );
+  const isInvitingSuperAdmin = selectedRole === ROLES.SUPERADMIN || selectedRole === ROLES.SUPER_ADMIN;
 
   useEffect(() => {
     if (!open) return;
@@ -226,33 +175,23 @@ export function InviteModal({
 
   useEffect(() => {
     if (contextLocked) return;
-    if (!selectedDepartment || selectedDepartment === CUSTOM_VALUE) return;
-    const team = teams.find((t) => t._id === selectedTeam);
-    const teamDept = team?.department?._id || team?.department;
-    if (selectedTeam && selectedTeam !== CUSTOM_VALUE && String(teamDept) !== String(selectedDepartment)) {
-      setValue('team', '');
-      setValue('teamName', '');
-      setValue('teamLead', '');
-    }
-  }, [contextLocked, selectedDepartment, selectedTeam, teams, setValue]);
+    // Clear typed team when department changes so names stay in the right dept
+    setValue('team', '');
+    setValue('teamLead', '');
+  }, [contextLocked, selectedDepartment, setValue]);
 
   useEffect(() => {
-    if (!hasDepartment && selectedRole !== ROLES.SUPER_ADMIN) return;
-    if (!rolesForDepartment.length) return;
-    if (!rolesForDepartment.includes(selectedRole)) {
-      setValue('role', rolesForDepartment[0]);
+    if (!rolesForInvite.length) return;
+    if (!rolesForInvite.includes(selectedRole)) {
+      setValue('role', rolesForInvite.includes(ROLES.MEMBER) ? ROLES.MEMBER : rolesForInvite[0]);
     }
-  }, [hasDepartment, rolesForDepartment, selectedRole, setValue]);
+  }, [rolesForInvite, selectedRole, setValue]);
 
+  // When inviting from a team page, prefill the locked team name
   useEffect(() => {
-    if (contextLocked) return;
-    if (!selectedTeam || selectedTeam === CUSTOM_VALUE) return;
-    const team = teams.find((t) => t._id === selectedTeam);
-    if (!team) return;
-    const deptId = team.department?._id || team.department;
-    if (deptId) setValue('department', String(deptId));
-    if (team.lead?._id) setValue('teamLead', String(team.lead._id));
-  }, [contextLocked, selectedTeam, teams, setValue]);
+    if (!isTeamScoped || !scopedTeam?.name) return;
+    setValue('teamName', scopedTeam.name);
+  }, [isTeamScoped, scopedTeam, setValue]);
 
   const resetAll = () => {
     reset({
@@ -276,23 +215,25 @@ export function InviteModal({
   };
 
   const onSubmit = (values) => {
-    const usingCustomDept = values.department === CUSTOM_VALUE;
-    const usingCustomTeam = values.team === CUSTOM_VALUE;
+    const invitingSa =
+      values.role === ROLES.SUPERADMIN || values.role === ROLES.SUPER_ADMIN;
 
-    if (usingCustomDept && !values.departmentName?.trim()) {
-      toast.error('Type a department name, or pick one from the list');
+    if (
+      !values.role ||
+      ![ROLES.SUPERADMIN, ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MEMBER].includes(values.role)
+    ) {
+      toast.error('Choose Superadmin, Admin, or Member');
       return;
     }
-    if (values.role !== ROLES.SUPER_ADMIN && !usingCustomDept && !values.department) {
-      toast.error('Select a department so you can assign the correct role');
+
+    if (!invitingSa && !values.department) {
+      toast.error('Select a department (SEO, Development, or UI/UX)');
       return;
     }
-    if (!values.role) {
-      toast.error('Select a role for this invite');
-      return;
-    }
-    if (usingCustomTeam && !values.teamName?.trim()) {
-      toast.error('Type a team name, or pick one from the list');
+
+    const typedTeam = String(values.teamName || '').trim();
+    if (!invitingSa && !isTeamScoped && !typedTeam) {
+      toast.error('Type a team name');
       return;
     }
 
@@ -300,37 +241,19 @@ export function InviteModal({
       email: values.email,
       name: values.name.trim(),
       role: values.role,
-      department:
-        values.role === ROLES.SUPER_ADMIN || usingCustomDept
-          ? undefined
-          : (isTeamScoped || isDeptScoped
-              ? resolvedDepartmentId || values.department
-              : values.department) || undefined,
-      departmentName:
-        values.role === ROLES.SUPER_ADMIN
-          ? undefined
-          : usingCustomDept
-            ? values.departmentName.trim()
-            : undefined,
-      team:
-        values.role === ROLES.SUPER_ADMIN || usingCustomTeam
-          ? undefined
-          : (isTeamScoped ? defaultTeamId || values.team : values.team) || undefined,
-      teamName:
-        values.role === ROLES.SUPER_ADMIN
-          ? undefined
-          : usingCustomTeam
-            ? values.teamName.trim()
-            : undefined,
-      teamLead:
-        values.role === ROLES.SUPER_ADMIN
-          ? undefined
-          : (isTeamScoped ? resolvedTeamLeadId || values.teamLead : values.teamLead) ||
-            undefined,
-      setAsTeamLead:
-        values.role === ROLES.SUPER_ADMIN || isTeamScoped
-          ? false
-          : Boolean(values.setAsTeamLead),
+      department: invitingSa
+        ? undefined
+        : (isTeamScoped || isDeptScoped
+            ? resolvedDepartmentId || values.department
+            : values.department) || undefined,
+      team: invitingSa ? undefined : isTeamScoped ? defaultTeamId || undefined : undefined,
+      teamName: invitingSa || isTeamScoped ? undefined : typedTeam,
+      teamLead: invitingSa
+        ? undefined
+        : isTeamScoped
+          ? resolvedTeamLeadId || undefined
+          : undefined,
+      setAsTeamLead: false,
     };
 
     invite.mutate(payload, {
@@ -395,12 +318,6 @@ export function InviteModal({
         .join('\n')
     : '';
 
-  const requiresTeam =
-    role === ROLES.TEAM_LEAD ||
-    selectedRole === ROLES.TEAM_LEAD ||
-    selectedRole === ROLES.EXECUTIVE ||
-    selectedRole === ROLES.EMPLOYEE;
-
   return (
     <Modal
       open={open}
@@ -411,7 +328,7 @@ export function InviteModal({
     >
       {!userCanInvite ? (
         <p className="text-sm text-graphite">
-          Only Super Admin, Department Head, or Team Lead can invite users.
+          Only Superadmin or Admin can invite users.
         </p>
       ) : result ? (
         <div className="space-y-4">
@@ -511,12 +428,10 @@ export function InviteModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <p className="text-sm text-graphite">
             {isTeamScoped
-              ? `Inviting into ${scopedTeam?.name || 'this team'}. Department, team, and team lead are set and can’t be changed.`
+              ? `Inviting into ${scopedTeam?.name || 'this team'}. Department and team are set and can’t be changed.`
               : isDeptScoped
                 ? 'Inviting into this department. Department is set and can’t be changed.'
-                : isSuperAdmin
-                  ? 'Pick department and role, then create the invite. Share the direct link on WhatsApp — they do not need to wait for email.'
-                  : 'Pick department and role, then create the invite and share the link.'}
+                : 'Choose role (Superadmin, Admin, or Member), department, and type a team name. Invitees sign in with Google.'}
           </p>
 
           <div className="space-y-2">
@@ -546,215 +461,114 @@ export function InviteModal({
             {errors.name && <p className="text-sm text-bloom-coral">{errors.name.message}</p>}
           </div>
 
-          {/* 1. Department (optional when inviting Super Admin) */}
+          {/* 1. Role — Superadmin / Admin / Member (no dropdown) */}
           <div className="space-y-2">
-            <Label htmlFor="invite-department">
-              1. Department{selectedRole === ROLES.SUPER_ADMIN ? '' : ' *'}
-            </Label>
-            <Select
-              id="invite-department"
-              {...register('department', {
-                required:
-                  selectedRole !== ROLES.SUPER_ADMIN && !isCustomDepartment
-                    ? 'Department is required'
-                    : false,
-                onChange: (e) => {
-                  if (contextLocked) return;
-                  const v = e.target.value;
-                  if (v !== CUSTOM_VALUE) setValue('departmentName', '');
-                  setValue('team', '');
-                  setValue('teamName', '');
-                },
+            <Label>1. Assign role *</Label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {rolesForInvite.map((r) => {
+                const active = selectedRole === r;
+                const label =
+                  r === ROLES.SUPERADMIN || r === ROLES.SUPER_ADMIN
+                    ? 'Superadmin'
+                    : r === ROLES.ADMIN
+                      ? 'Admin'
+                      : 'Member';
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setValue('role', r, { shouldValidate: true })}
+                    className={
+                      active
+                        ? 'rounded-lg border border-primary bg-primary-soft/40 px-3 py-2.5 text-sm font-semibold text-ink'
+                        : 'rounded-lg border border-hairline bg-paper px-3 py-2.5 text-sm font-medium text-graphite hover:border-primary/40 hover:text-ink'
+                    }
+                  >
+                    {label}
+                  </button>
+                );
               })}
-              disabled={isTeamScoped || isDeptScoped}
-            >
-              <option value="">
-                {selectedRole === ROLES.SUPER_ADMIN
-                  ? 'Not required for Super Admin'
-                  : 'Select department'}
-              </option>
-              {mainDepartments.map((dept) => (
-                <option key={dept._id} value={dept._id}>
-                  {dept.name}
-                </option>
-              ))}
-              {otherDepartments.length > 0 && (
-                <optgroup label="Other departments">
-                  {otherDepartments.map((dept) => (
-                    <option key={dept._id} value={dept._id}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              {isSuperAdmin && !contextLocked ? (
-                <option value={CUSTOM_VALUE}>Add your own…</option>
-              ) : null}
-            </Select>
-            {isCustomDepartment && selectedRole !== ROLES.SUPER_ADMIN && (
-              <>
-                <Input
-                  id="invite-departmentName"
-                  list="invite-department-suggestions"
-                  placeholder="Type department name"
-                  {...register('departmentName', {
-                    required: 'Type a department name',
-                    minLength: { value: 2, message: 'At least 2 characters' },
-                  })}
-                />
-                <datalist id="invite-department-suggestions">
-                  {allDepartments.map((d) => (
-                    <option key={d._id} value={d.name} />
-                  ))}
-                </datalist>
-              </>
-            )}
+            </div>
+            <input type="hidden" {...register('role', { required: 'Choose a role' })} />
             <p className="text-xs text-graphite">
-              {isTeamScoped || isDeptScoped
-                ? 'Locked to this team’s department'
-                : selectedRole === ROLES.SUPER_ADMIN
-                  ? 'Superadmin has org-wide access — department is optional'
-                  : 'SEO · Development · UI/UX Designing'}
+              {isInvitingSuperAdmin
+                ? 'Superadmin has org-wide access — department and team are not required.'
+                : 'Invitees sign in with Google using the invited email.'}
             </p>
-            {errors.departmentName && (
-              <p className="text-sm text-bloom-coral">{errors.departmentName.message}</p>
-            )}
           </div>
 
-          {/* 2. Role — Super Admin can also grant Super Admin */}
-          <div className="space-y-2">
-            <Label htmlFor="invite-role">2. Assign role *</Label>
-            <Select
-              id="invite-role"
-              {...register('role', { required: 'Select a role' })}
-              disabled={!isSuperAdmin && !hasDepartment}
-            >
-              {!isSuperAdmin && !hasDepartment ? (
-                <option value="">Select a department first</option>
-              ) : rolesForDepartment.length === 0 ? (
-                <option value="">No roles available for your account</option>
-              ) : (
-                rolesForDepartment.map((r) => (
-                  <option key={r} value={r}>
-                    {r === ROLES.SUPERADMIN || r === ROLES.SUPER_ADMIN
-                      ? 'Superadmin'
-                      : getInviteRoleLabel(selectedDeptCode, r)}
-                  </option>
-                ))
+          {/* 2. Department — SEO · Development · UI/UX only */}
+          {!isInvitingSuperAdmin && (
+            <div className="space-y-2">
+              <Label>2. Department *</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {mainDepartments.map((dept) => {
+                  const active = String(selectedDepartment) === String(dept._id);
+                  return (
+                    <button
+                      key={dept._id}
+                      type="button"
+                      disabled={isTeamScoped || isDeptScoped}
+                      onClick={() => {
+                        if (contextLocked) return;
+                        setValue('department', dept._id, { shouldValidate: true });
+                        setValue('departmentName', '');
+                        setValue('team', '');
+                        setValue('teamName', '');
+                      }}
+                      className={
+                        active
+                          ? 'rounded-lg border border-primary bg-primary-soft/40 px-3 py-2.5 text-sm font-semibold text-ink'
+                          : 'rounded-lg border border-hairline bg-paper px-3 py-2.5 text-sm font-medium text-graphite hover:border-primary/40 hover:text-ink disabled:opacity-60'
+                      }
+                    >
+                      {dept.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <input type="hidden" {...register('department', { required: !isInvitingSuperAdmin })} />
+              <p className="text-xs text-graphite">SEO · Development · UI/UX Designing</p>
+              {errors.department && (
+                <p className="text-sm text-bloom-coral">{errors.department.message}</p>
               )}
-            </Select>
-            {isSuperAdmin ? (
-              <p className="text-xs text-graphite">
-                You can grant Super Admin access, or assign department roles
-              </p>
-            ) : selectedDeptCode === 'seo' ? (
-              <p className="text-xs text-graphite">
-                SEO roles: SEO Head, Team Lead, Executive, Employee
-              </p>
-            ) : selectedDeptCode === 'development' ? (
-              <p className="text-xs text-graphite">Development roles: Team Lead, Employee</p>
-            ) : selectedDeptCode === 'designing' ? (
-              <p className="text-xs text-graphite">UI/UX roles: Team Lead, Employee</p>
-            ) : hasDepartment ? (
-              <p className="text-xs text-graphite">Pick any role you are allowed to assign</p>
-            ) : null}
-          </div>
+            </div>
+          )}
 
-          {selectedRole !== ROLES.SUPER_ADMIN && (
-          <>
-          {/* 3. Team */}
-          <div className="space-y-2">
-            <Label htmlFor="invite-team">
-              3. Team{requiresTeam && selectedRole !== ROLES.DEPT_HEAD ? ' *' : ''}
-            </Label>
-            <Select
-              id="invite-team"
-              {...register('team', {
-                required:
-                  requiresTeam && selectedRole !== ROLES.DEPT_HEAD && !isCustomTeam
-                    ? 'Team is required for this role'
-                    : false,
-                onChange: (e) => {
-                  if (isTeamScoped) return;
-                  if (e.target.value !== CUSTOM_VALUE) setValue('teamName', '');
-                },
-              })}
-              disabled={!hasDepartment || isTeamScoped}
-            >
-              <option value="">
-                {selectedRole === ROLES.DEPT_HEAD ? 'Optional team' : 'Select team'}
-              </option>
-              {teamsInDepartment.map((team) => (
-                <option key={team._id} value={team._id}>
-                  {team.name}
-                  {team.lead?.name ? ` · Lead: ${team.lead.name}` : ''}
-                </option>
-              ))}
-              {!isTeamScoped ? <option value={CUSTOM_VALUE}>Add your own…</option> : null}
-            </Select>
-            {isCustomTeam && (
-              <>
-                <Input
-                  id="invite-teamName"
-                  list="invite-team-suggestions"
-                  placeholder="Type team name"
-                  {...register('teamName', {
-                    required:
-                      requiresTeam && selectedRole !== ROLES.DEPT_HEAD
-                        ? 'Type a team name'
-                        : false,
-                    minLength: { value: 2, message: 'At least 2 characters' },
-                  })}
-                />
-                <datalist id="invite-team-suggestions">
-                  {teamsInDepartment.map((t) => (
-                    <option key={t.name} value={t.name} />
-                  ))}
-                </datalist>
-              </>
-            )}
-            {isTeamScoped ? (
-              <p className="text-xs text-graphite">Locked to this team</p>
-            ) : null}
-          </div>
-
-          {/* 4. Team Lead */}
-          <div className="space-y-2">
-            <Label htmlFor="invite-teamLead">4. Team Lead</Label>
-            <Select
-              id="invite-teamLead"
-              {...register('teamLead')}
-              disabled={
-                isTeamScoped ||
-                ((!selectedTeam || selectedTeam === CUSTOM_VALUE) && selectedRole !== ROLES.TEAM_LEAD)
-              }
-            >
-              <option value="">
-                {selectedTeamDoc?.lead?.name
-                  ? `Current: ${selectedTeamDoc.lead.name}`
-                  : 'Select team lead'}
-              </option>
-              {teamLeadsInDepartment.map((lead) => (
-                <option key={lead._id} value={lead._id}>
-                  {lead.name}
-                </option>
-              ))}
-            </Select>
-            {isTeamScoped ? (
-              <p className="text-xs text-graphite">
-                {scopedTeam?.lead?.name
-                  ? `Locked to ${scopedTeam.lead.name}`
-                  : 'Locked to this team’s lead'}
-              </p>
-            ) : null}
-            {!isTeamScoped && selectedRole === ROLES.TEAM_LEAD && (selectedTeam || isCustomTeam) && (
-              <label className="mt-2 flex items-center gap-2 text-sm text-graphite">
-                <input type="checkbox" {...register('setAsTeamLead')} className="rounded border-hairline" />
-                Set invitee as Team Lead of this team
-              </label>
-            )}
-          </div>
-          </>
+          {/* 3. Team — type name only (no dropdown) */}
+          {!isInvitingSuperAdmin && (
+            <div className="space-y-2">
+              <Label htmlFor="invite-teamName">3. Team *</Label>
+              {isTeamScoped ? (
+                <>
+                  <Input
+                    id="invite-teamName"
+                    value={scopedTeam?.name || 'This team'}
+                    disabled
+                  />
+                  <p className="text-xs text-graphite">Locked to this team</p>
+                </>
+              ) : (
+                <>
+                  <Input
+                    id="invite-teamName"
+                    placeholder="Type team name"
+                    disabled={!hasDepartment}
+                    autoComplete="off"
+                    {...register('teamName', {
+                      required: !isInvitingSuperAdmin ? 'Type a team name' : false,
+                      minLength: { value: 2, message: 'At least 2 characters' },
+                    })}
+                  />
+                  <p className="text-xs text-graphite">
+                    Type the team name. Superadmin can create a new team by typing a new name.
+                  </p>
+                  {errors.teamName && (
+                    <p className="text-sm text-bloom-coral">{errors.teamName.message}</p>
+                  )}
+                </>
+              )}
+            </div>
           )}
 
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">

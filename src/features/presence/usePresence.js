@@ -85,10 +85,25 @@ export function useLiveUsers() {
     };
 
     const onChanged = (payload) => {
-      refresh();
       const event = payload?.event || '';
       const user = payload?.user || payload;
       const id = String(user?._id || '');
+
+      if (event === 'user:deleted' && id) {
+        queryClient.setQueriesData({ queryKey: ['users'] }, (old) => {
+          if (!old || !Array.isArray(old.data)) return old;
+          const next = old.data.filter((u) => String(u._id) !== id);
+          if (next.length === old.data.length) return old;
+          return {
+            ...old,
+            data: next,
+            total: typeof old.total === 'number' ? Math.max(0, old.total - 1) : next.length,
+          };
+        });
+      }
+
+      refresh();
+
       if (!id || id === String(myId)) return;
 
       if (event === 'user:deleted') {
@@ -96,6 +111,16 @@ export function useLiveUsers() {
         if (name) toastSuccess(`${name} has been deleted`, { duration: 5000 });
       } else if (event === 'user:updated' && user?.isActive === false) {
         if (user?.name) toastSuccess(`${user.name} has been deactivated`, { duration: 4000 });
+        queryClient.setQueriesData({ queryKey: ['users'] }, (old) => {
+          if (!old || !Array.isArray(old.data)) return old;
+          const next = old.data.filter((u) => String(u._id) !== id);
+          if (next.length === old.data.length) return old;
+          return {
+            ...old,
+            data: next,
+            total: typeof old.total === 'number' ? Math.max(0, old.total - 1) : next.length,
+          };
+        });
       }
     };
 

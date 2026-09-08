@@ -26,6 +26,11 @@ const GOOGLE_ERROR_TOASTS = {
     description:
       'Use Continue with Google and choose the exact email from your invitation. A different Google account cannot accept this invite.',
   },
+  google_account_in_use: {
+    title: 'Google account already in use',
+    description:
+      'That Google account is already linked to another BIWORKSPACE user. Sign in with the Google account that matches your invited email.',
+  },
 };
 
 const NOT_INVITED_MARKERS = new Set([
@@ -99,6 +104,17 @@ export function getGoogleErrorToast(code) {
       };
     }
     return GOOGLE_ERROR_TOASTS.wrong_google_email;
+  }
+
+  if (
+    decoded === 'google_account_in_use' ||
+    /already linked to another/i.test(decoded) ||
+    /Google account is already/i.test(decoded)
+  ) {
+    return {
+      title: GOOGLE_ERROR_TOASTS.google_account_in_use.title,
+      description: decoded.length > 40 ? decoded : GOOGLE_ERROR_TOASTS.google_account_in_use.description,
+    };
   }
 
   if (isNotInvitedError(decoded)) {

@@ -50,10 +50,10 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-12 sm:py-16">
           <div className="w-full max-w-[392px] animate-slide-up">
             <div className="overflow-hidden rounded-2xl border border-border-subtle bg-surface-0 shadow-[var(--shadow-2xl)]">
-              <div className="px-7 pb-5 pt-7">
-                <BrandLogo asLink={false} size="md" />
-                <h1 className="voice-line mt-5 text-center text-[24px] text-text-primary">Welcome back</h1>
-                <p className="mt-1.5 text-[13px] text-text-muted">
+              <div className="flex flex-col items-center px-7 pb-5 pt-7 text-center">
+                <BrandLogo asLink={false} size="md" className="justify-center" />
+                <h1 className="voice-line mt-5 text-[24px] text-text-primary">Welcome back</h1>
+                <p className="mt-1.5 max-w-[280px] text-[13px] text-text-muted">
                   Sign in to your projects, tasks, and team workspace.
                 </p>
               </div>
@@ -72,6 +72,10 @@ export default function LoginPage() {
                 </div>
 
                 <GoogleAuthButton label="Continue with Google" />
+
+                <p className="text-center text-[12px] leading-relaxed text-text-muted">
+                  Invited? Sign in with Google using the same email you were invited with.
+                </p>
 
                 {showInviteHint && (
                   <>

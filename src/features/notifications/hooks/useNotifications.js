@@ -7,9 +7,17 @@ import { taskApi } from '../../tasks/api/taskApi';
 import { getSocket } from '../../../api/socketClient';
 import { useAuthStore } from '../../../store/authStore';
 import { playMessageNotifySound } from '../../../lib/notifySound';
+import { ROLES, normalizeRole } from '@/lib/roles';
+import { SYSTEM_ONLY_NOTIFICATION_TYPES } from '@/features/inbox/inboxNotificationTypes';
 
 export const NOTIF_LIST_KEY = 'notifications';
 export const NOTIF_COUNT_KEY = 'notifications-unread-count';
+
+function isSystemNotification(notification) {
+  if (!notification) return false;
+  if (notification.scope === 'system') return true;
+  return SYSTEM_ONLY_NOTIFICATION_TYPES.includes(notification.type);
+}
 
 function markListsRead(queryClient, predicate) {
   queryClient.setQueriesData({ queryKey: [NOTIF_LIST_KEY] }, (old) => {
@@ -125,13 +133,20 @@ export function useLiveNotifications() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const token = useAuthStore((s) => s.accessToken);
+  const role = useAuthStore((s) => s.user?.role);
 
   useEffect(() => {
     if (!token) return undefined;
 
     const socket = getSocket();
+    const isSuperadmin = normalizeRole(role) === ROLES.SUPERADMIN;
 
     const handleNew = (notification) => {
+      // Members never surface Superadmin system events (delete user/project/task, …)
+      if (!isSuperadmin && isSystemNotification(notification)) {
+        return;
+      }
+
       queryClient.invalidateQueries({ queryKey: [NOTIF_LIST_KEY] });
       queryClient.setQueryData([NOTIF_COUNT_KEY], (old) =>
         typeof old === 'number' ? old + 1 : 1
@@ -185,5 +200,5 @@ export function useLiveNotifications() {
       socket.off('task:created', refreshInbox);
       socket.off('task:updated', refreshInbox);
     };
-  }, [queryClient, navigate, token]);
+  }, [queryClient, navigate, token, role]);
 }

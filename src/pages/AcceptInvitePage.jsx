@@ -1,35 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { Link, useSearchParams } from 'react-router-dom';
 import { userApi } from '@/features/users/api/userApi';
-import { authApi } from '@/features/auth/api/authApi';
-import { useAuthStore } from '@/store/authStore';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { PasswordInput } from '@/components/ui/PasswordInput';
-import { Label } from '@/components/ui/Label';
 import { BrandLogo } from '@/components/BrandLogo';
+import { GoogleAuthButton } from '@/features/auth/components/GoogleAuthButton';
 import { getRoleLabel } from '@/lib/roles';
 import { LoadingScreen } from '@/components/ui/Spinner';
 
 export default function AcceptInvitePage() {
   const [params] = useSearchParams();
   const token = params.get('token') || '';
-  const navigate = useNavigate();
-  const setAuth = useAuthStore((s) => s.setAuth);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm({
-    defaultValues: { name: '', password: '', confirm: '' },
-  });
 
   useEffect(() => {
     if (!token) {
@@ -41,45 +23,12 @@ export default function AcceptInvitePage() {
       .previewInvite(token)
       .then((data) => {
         setPreview(data);
-        if (data?.name) setValue('name', data.name);
       })
       .catch((err) => {
         setError(err?.response?.data?.message || 'Invite link is invalid or expired');
       })
       .finally(() => setLoading(false));
-  }, [token, setValue]);
-
-  const onSubmit = async (values) => {
-    if (values.password !== values.confirm) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    try {
-      await userApi.acceptInvite({
-        token,
-        password: values.password,
-        name: values.name || undefined,
-      });
-      try {
-        const { user, accessToken } = await authApi.login({
-          email: preview?.email,
-          password: values.password,
-        });
-        setAuth(user, accessToken);
-        toast.success('Password saved — you are signed in');
-        navigate('/', { replace: true });
-        return;
-      } catch {
-        toast.success('Password saved — sign in with your new password');
-        navigate(
-          `/login?email=${encodeURIComponent(preview?.email || '')}`,
-          { replace: true }
-        );
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Could not accept invite');
-    }
-  };
+  }, [token]);
 
   if (loading) {
     return (
@@ -95,7 +44,7 @@ export default function AcceptInvitePage() {
         <BrandLogo size="lg" />
       </div>
       <div className="w-full max-w-md rounded-2xl border border-hairline bg-paper p-6 shadow-[var(--shadow-soft-lift)]">
-        <h1 className="text-xl font-semibold text-ink">Set your password</h1>
+        <h1 className="text-xl font-semibold text-ink">Join with Google</h1>
         {error ? (
           <div className="mt-4 space-y-4">
             <p className="text-sm text-bloom-coral">{error}</p>
@@ -106,57 +55,29 @@ export default function AcceptInvitePage() {
         ) : (
           <>
             <p className="mt-2 text-sm text-graphite">
-              Welcome{preview?.name ? `, ${preview.name}` : ''}. Choose a password to activate your
-              account
+              Welcome{preview?.name ? `, ${preview.name}` : ''}. Your invite
               {preview?.role ? ` as ${getRoleLabel(preview.role)}` : ''}
-              {preview?.department?.name ? ` in ${preview.department.name}` : ''}. You can sign in
-              right after this — no email needed.
+              {preview?.department?.name ? ` in ${preview.department.name}` : ''} is ready.
+              Sign in with Google using the same email you were invited with.
             </p>
-            <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="accept-email">Email</Label>
-                <Input id="accept-email" value={preview?.email || ''} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="accept-name">Name</Label>
-                <Input
-                  id="accept-name"
-                  {...register('name', { required: 'Name is required', minLength: 2 })}
-                />
-                {errors.name && (
-                  <p className="text-sm text-bloom-coral">{errors.name.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="accept-password">New password</Label>
-                <PasswordInput
-                  id="accept-password"
-                  autoComplete="new-password"
-                  {...register('password', {
-                    required: 'Password is required',
-                    minLength: { value: 8, message: 'At least 8 characters' },
-                    pattern: {
-                      value: /^(?=.*[A-Z])(?=.*[0-9]).+$/,
-                      message: 'Must include an uppercase letter and a number',
-                    },
-                  })}
-                />
-                {errors.password && (
-                  <p className="text-sm text-bloom-coral">{errors.password.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="accept-confirm">Confirm password</Label>
-                <PasswordInput
-                  id="accept-confirm"
-                  autoComplete="new-password"
-                  {...register('confirm', { required: 'Confirm your password' })}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving…' : 'Save password & continue'}
-              </Button>
-            </form>
+
+            <div className="mt-6 space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-graphite">
+                Invited email
+              </p>
+              <p className="rounded-md border border-hairline bg-cloud px-3 py-2 text-sm font-medium text-ink">
+                {preview?.email || '—'}
+              </p>
+            </div>
+
+            <div className="mt-6">
+              <GoogleAuthButton label="Continue with Google" />
+            </div>
+
+            <p className="mt-4 text-center text-xs leading-relaxed text-graphite">
+              Use Google account <span className="font-medium text-ink">{preview?.email}</span>.
+              Password sign-in is not available for invited members.
+            </p>
           </>
         )}
       </div>

@@ -3,10 +3,7 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDecoration } from '@/components/layout/ChevronDecoration';
-import { GradientBlobs } from '@/components/layout/GradientBlobs';
 import { BrandLogo } from '@/components/BrandLogo';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
@@ -50,6 +47,9 @@ export default function ForgotPasswordPage() {
     forgot.mutate(values, {
       onSuccess: (data) => {
         const payload = data?.data || data;
+        if (payload?.googleOnly) {
+          return;
+        }
         setEmailTo(payload?.emailTo || values.email);
         setEmailFrom(payload?.emailFrom || 'BIWORKSPACE');
         setStep('otp');
@@ -74,127 +74,136 @@ export default function ForgotPasswordPage() {
 
   return (
     <PublicRoute>
-      <div className="relative flex h-full min-h-0 flex-col overflow-y-auto bg-cloud">
-        <div className="flex h-9 items-center bg-ink px-3 text-[12px] text-on-ink sm:px-4 sm:text-[13px]">
-          <div className="mx-auto flex w-full max-w-[1366px] items-center justify-between gap-2">
-            <span className="font-medium tracking-wide">BIWORKSPACE</span>
+      <div
+        className="relative flex h-full min-h-0 flex-col overflow-y-auto"
+        style={{ backgroundColor: 'var(--color-rail-bg)' }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-0 h-[560px] w-[560px] -translate-x-1/2 -translate-y-1/3 rounded-full opacity-[0.18] blur-[120px]"
+          style={{ background: 'radial-gradient(circle, var(--color-brand-500), transparent 70%)' }}
+        />
+
+        <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-12 sm:py-16">
+          <div className="w-full max-w-[392px] animate-slide-up">
+            <div className="overflow-hidden rounded-2xl border border-border-subtle bg-surface-0 shadow-[var(--shadow-2xl)]">
+              <div className="flex flex-col items-center px-7 pb-5 pt-7 text-center">
+                <BrandLogo asLink={false} size="md" className="justify-center" />
+                <h1 className="voice-line mt-5 text-[24px] text-text-primary">
+                  {step === 'otp' ? 'Enter OTP & new password' : 'Forgot password'}
+                </h1>
+                <p className="mt-1.5 max-w-[300px] text-[13px] text-text-muted">{subtitle}</p>
+              </div>
+
+              <div className="mx-7 h-px bg-border-subtle" />
+
+              <div className="space-y-4 px-7 py-6">
+                {step === 'email' ? (
+                  <form onSubmit={emailForm.handleSubmit(onSendOtp)} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        {...emailForm.register('email')}
+                      />
+                      {emailForm.formState.errors.email && (
+                        <p className="text-sm text-bloom-coral">
+                          {emailForm.formState.errors.email.message}
+                        </p>
+                      )}
+                    </div>
+                    <Button type="submit" className="w-full" disabled={forgot.isPending}>
+                      {forgot.isPending ? 'Sending code…' : 'Send OTP to email'}
+                    </Button>
+                    <p className="text-center text-[13px] text-text-muted">
+                      <Link to="/login" className="font-medium text-primary hover:underline">
+                        Back to sign in
+                      </Link>
+                    </p>
+                  </form>
+                ) : (
+                  <form onSubmit={resetForm.handleSubmit(onReset)} className="space-y-4">
+                    <div className="rounded-lg border border-border-subtle bg-surface-1 px-3 py-2 text-[13px] text-text-muted">
+                      Code sent from <span className="font-medium text-text-primary">{emailFrom}</span>{' '}
+                      to <span className="font-medium text-text-primary">{emailTo}</span>. Check
+                      inbox and spam.
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="otp">6-digit OTP</Label>
+                      <Input
+                        id="otp"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="123456"
+                        maxLength={6}
+                        {...resetForm.register('otp')}
+                      />
+                      {resetForm.formState.errors.otp && (
+                        <p className="text-sm text-bloom-coral">
+                          {resetForm.formState.errors.otp.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">New password</Label>
+                      <PasswordInput
+                        id="password"
+                        autoComplete="new-password"
+                        {...resetForm.register('password')}
+                      />
+                      {resetForm.formState.errors.password && (
+                        <p className="text-sm text-bloom-coral">
+                          {resetForm.formState.errors.password.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm password</Label>
+                      <PasswordInput
+                        id="confirmPassword"
+                        autoComplete="new-password"
+                        {...resetForm.register('confirmPassword')}
+                      />
+                      {resetForm.formState.errors.confirmPassword && (
+                        <p className="text-sm text-bloom-coral">
+                          {resetForm.formState.errors.confirmPassword.message}
+                        </p>
+                      )}
+                    </div>
+                    <Button type="submit" className="w-full" disabled={reset.isPending}>
+                      {reset.isPending ? 'Saving…' : 'Reset password & continue'}
+                    </Button>
+                    <div className="flex items-center justify-between gap-2 text-[13px]">
+                      <button
+                        type="button"
+                        className="font-medium text-primary hover:underline"
+                        onClick={() => {
+                          setStep('email');
+                          resetForm.reset();
+                        }}
+                      >
+                        Use a different email
+                      </button>
+                      <button
+                        type="button"
+                        className="font-medium text-primary hover:underline disabled:opacity-50"
+                        disabled={forgot.isPending}
+                        onClick={() => onSendOtp({ email: emailTo })}
+                      >
+                        Resend OTP
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
-          <GradientBlobs />
-          <ChevronDecoration />
-          <Card className="relative z-10 w-full max-w-[420px] border-0 shadow-[var(--shadow-soft-lift)]">
-            <CardHeader className="space-y-3 pb-2">
-              <BrandLogo asLink={false} size="lg" />
-              <div>
-                <CardTitle className="voice-line text-[24px] font-normal leading-tight tracking-[-0.01em] sm:text-[26px]">
-                  {step === 'otp' ? 'Enter OTP & new password' : 'Forgot password'}
-                </CardTitle>
-                <CardDescription className="mt-2">{subtitle}</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {step === 'email' ? (
-                <form onSubmit={emailForm.handleSubmit(onSendOtp)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      autoComplete="email"
-                      {...emailForm.register('email')}
-                    />
-                    {emailForm.formState.errors.email && (
-                      <p className="text-sm text-bloom-coral">
-                        {emailForm.formState.errors.email.message}
-                      </p>
-                    )}
-                  </div>
-                  <Button type="submit" className="w-full" disabled={forgot.isPending}>
-                    {forgot.isPending ? 'Sending code…' : 'Send OTP to email'}
-                  </Button>
-                  <p className="text-center text-sm text-graphite">
-                    <Link to="/login" className="font-medium text-primary hover:underline">
-                      Back to sign in
-                    </Link>
-                  </p>
-                </form>
-              ) : (
-                <form onSubmit={resetForm.handleSubmit(onReset)} className="space-y-4">
-                  <div className="rounded-lg border border-primary-soft bg-primary-soft/30 px-3 py-2 text-sm text-graphite">
-                    Code sent from <span className="font-medium text-ink">{emailFrom}</span> to{' '}
-                    <span className="font-medium text-ink">{emailTo}</span>. Check inbox and spam.
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="otp">6-digit OTP</Label>
-                    <Input
-                      id="otp"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder="123456"
-                      maxLength={6}
-                      {...resetForm.register('otp')}
-                    />
-                    {resetForm.formState.errors.otp && (
-                      <p className="text-sm text-bloom-coral">
-                        {resetForm.formState.errors.otp.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">New password</Label>
-                    <PasswordInput
-                      id="password"
-                      autoComplete="new-password"
-                      {...resetForm.register('password')}
-                    />
-                    {resetForm.formState.errors.password && (
-                      <p className="text-sm text-bloom-coral">
-                        {resetForm.formState.errors.password.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm password</Label>
-                    <PasswordInput
-                      id="confirmPassword"
-                      autoComplete="new-password"
-                      {...resetForm.register('confirmPassword')}
-                    />
-                    {resetForm.formState.errors.confirmPassword && (
-                      <p className="text-sm text-bloom-coral">
-                        {resetForm.formState.errors.confirmPassword.message}
-                      </p>
-                    )}
-                  </div>
-                  <Button type="submit" className="w-full" disabled={reset.isPending}>
-                    {reset.isPending ? 'Saving…' : 'Reset password & continue'}
-                  </Button>
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <button
-                      type="button"
-                      className="font-medium text-primary hover:underline"
-                      onClick={() => {
-                        setStep('email');
-                        resetForm.reset();
-                      }}
-                    >
-                      Use a different email
-                    </button>
-                    <button
-                      type="button"
-                      className="font-medium text-primary hover:underline disabled:opacity-50"
-                      disabled={forgot.isPending}
-                      onClick={() => onSendOtp({ email: emailTo })}
-                    >
-                      Resend OTP
-                    </button>
-                  </div>
-                </form>
-              )}
-            </CardContent>
-          </Card>
+        <div className="relative z-10 px-4 py-5 text-center text-[11px] text-white">
+          © {new Date().getFullYear()} BIWORKSPACE
         </div>
       </div>
     </PublicRoute>

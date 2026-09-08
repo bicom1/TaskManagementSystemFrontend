@@ -39,8 +39,11 @@ export function GoogleAuthButton({
     const token = String(inviteToken || readInviteToken() || '').trim();
     if (hint) params.set('loginHint', hint);
     if (token) {
-      params.set('inviteToken', token);
       storeInviteToken(token);
+      params.set('token', token);
+      // Dedicated invite start validates the invite before Google redirect
+      window.location.href = `${apiBase}/auth/google/invite?${params.toString()}`;
+      return;
     }
     window.location.href = `${apiBase}/auth/google?${params.toString()}`;
   };

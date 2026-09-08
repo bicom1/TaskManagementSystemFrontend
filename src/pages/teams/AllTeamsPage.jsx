@@ -1,4 +1,4 @@
-import { Building2, Plus, Users } from 'lucide-react';
+import { Building2, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -13,8 +13,11 @@ export default function AllTeamsPage() {
     departments,
     openCreateTeam,
     openCreateDept,
+    openEditTeam,
+    openDeleteTeam,
     canCreateTeam,
     canCreateDept,
+    canManageTeams,
     isSuperAdmin,
     navigate,
   } = useOutletContext();
@@ -118,17 +121,57 @@ export default function AllTeamsPage() {
             const preview = uniquePeople.slice(0, 6);
 
             return (
-              <button
+              <div
                 key={team._id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => navigate(`/teams/${team._id}`)}
-                className="text-left"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/teams/${team._id}`);
+                  }
+                }}
+                className="cursor-pointer text-left"
               >
                 <Card className="h-full transition hover:border-steel hover:shadow-md">
                   <CardHeader className="pb-2">
-                    <Badge variant="secondary" className="w-fit">
-                      {deptName}
-                    </Badge>
+                    <div className="flex items-start justify-between gap-2">
+                      <Badge variant="secondary" className="w-fit">
+                        {deptName}
+                      </Badge>
+                      {canManageTeams && (
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Edit team"
+                            aria-label={`Edit ${team.name}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditTeam(team);
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Delete team"
+                            aria-label={`Delete ${team.name}`}
+                            className="text-danger-500 hover:text-danger-500"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDeleteTeam(team);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     <CardTitle className="text-base">{team.name}</CardTitle>
                     <CardDescription className="line-clamp-2">
                       {team.description || 'No description'}
@@ -155,7 +198,7 @@ export default function AllTeamsPage() {
                     </p>
                   </CardContent>
                 </Card>
-              </button>
+              </div>
             );
           })}
         </div>

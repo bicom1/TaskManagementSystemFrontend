@@ -1,7 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { useTeams, useCreateTeam } from '@/features/teams/hooks/useTeams';
+import {
+  useTeams,
+  useCreateTeam,
+  useUpdateTeam,
+  useDeleteTeam,
+} from '@/features/teams/hooks/useTeams';
 import { useDepartments, useCreateDepartment } from '@/features/departments/hooks/useDepartments';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useAuthStore } from '@/store/authStore';
@@ -12,7 +17,12 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
-import { canManageOrg, DEPARTMENT_PRESETS, getMainDepartments, ROLES } from '@/lib/roles';
+import {
+  canManageOrg,
+  DEPARTMENT_PRESETS,
+  getMainDepartments,
+  normalizeDepartmentCode,
+} from '@/lib/roles';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 
 export default function TeamsHubLayout() {
@@ -20,10 +30,10 @@ export default function TeamsHubLayout() {
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = canManageOrg(user?.role);
   const userCanInvite = hasPermission(user, PERMISSIONS.USER_INVITE);
-  // Team leads manage members; only SA / Dept Head create teams
-  const canCreateTeam =
-    hasPermission(user, PERMISSIONS.TEAM_MANAGE) &&
-    (user?.role === ROLES.SUPER_ADMIN || user?.role === ROLES.DEPT_HEAD);
+  // Team leads and admins still manage members; the team itself
+  // (create / edit / delete) is Super Admin only — mirrors the backend.
+  const canManageTeams = isSuperAdmin;
+  const canCreateTeam = canManageTeams;
   const canCreateDept = hasPermission(user, PERMISSIONS.DEPARTMENT_MANAGE);
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -32,11 +42,15 @@ export default function TeamsHubLayout() {
   const [inviteTeamLeadId, setInviteTeamLeadId] = useState('');
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [deptModalOpen, setDeptModalOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [deletingTeam, setDeletingTeam] = useState(null);
 
   const { data: teamsData } = useTeams({ limit: 100 });
   const { data: departmentsData } = useDepartments({ limit: 100 });
   const { data: usersData } = useUsers({ limit: 100 });
   const createTeam = useCreateTeam();
+  const updateTeam = useUpdateTeam();
+  const deleteTeam = useDeleteTeam();
   const createDepartment = useCreateDepartment();
 
   const teams = teamsData?.data ?? [];
@@ -44,19 +58,34 @@ export default function TeamsHubLayout() {
     () => getMainDepartments(departmentsData?.data ?? []),
     [departmentsData?.data]
   );
+
+  // `code` and `name` are unique in Mongo, so suggesting a department that
+  // already exists guarantees a 409. Only offer presets that are still free.
+  const availableCodePresets = useMemo(() => {
+    const taken = new Set(
+      (departmentsData?.data ?? []).map((d) => normalizeDepartmentCode(d.code))
+    );
+    return DEPARTMENT_PRESETS.filter((preset) => !taken.has(preset.code));
+  }, [departmentsData?.data]);
   const users = usersData?.data ?? [];
 
   const teamForm = useForm({
     defaultValues: { name: '', description: '', department: '', lead: '' },
   });
 
-  const deptForm = useForm({
-    defaultValues: {
-      name: DEPARTMENT_PRESETS[0].name,
-      description: '',
-      code: DEPARTMENT_PRESETS[0].code,
-    },
+  const editTeamForm = useForm({
+    defaultValues: { name: '', description: '', department: '', lead: '' },
   });
+
+  const deptForm = useForm({
+    defaultValues: { name: '', description: '', code: '' },
+  });
+
+  // Prefill with a preset only while one is still unused, otherwise start blank.
+  const nextDeptDefaults = useCallback(() => {
+    const preset = availableCodePresets[0];
+    return { name: preset?.name ?? '', description: '', code: preset?.code ?? '' };
+  }, [availableCodePresets]);
 
   const contextValue = useMemo(
     () => ({
@@ -70,14 +99,46 @@ export default function TeamsHubLayout() {
         setInviteOpen(true);
       },
       openCreateTeam: () => canCreateTeam && setTeamModalOpen(true),
-      openCreateDept: () => canCreateDept && setDeptModalOpen(true),
+      openCreateDept: () => {
+        if (!canCreateDept) return;
+        deptForm.reset(nextDeptDefaults());
+        setDeptModalOpen(true);
+      },
+      openEditTeam: (team) => {
+        if (!canManageTeams || !team) return;
+        editTeamForm.reset({
+          name: team.name ?? '',
+          description: team.description ?? '',
+          department: String(team.department?._id ?? team.department ?? ''),
+          lead: String(team.lead?._id ?? team.lead ?? ''),
+        });
+        setEditingTeam(team);
+      },
+      openDeleteTeam: (team) => {
+        if (!canManageTeams || !team) return;
+        setDeletingTeam(team);
+      },
       canInvite: userCanInvite,
       canCreateTeam,
       canCreateDept,
+      canManageTeams,
       isSuperAdmin,
       navigate,
     }),
-    [teams, departments, users, userCanInvite, canCreateTeam, canCreateDept, isSuperAdmin, navigate]
+    [
+      teams,
+      departments,
+      users,
+      userCanInvite,
+      canCreateTeam,
+      canCreateDept,
+      canManageTeams,
+      isSuperAdmin,
+      editTeamForm,
+      deptForm,
+      nextDeptDefaults,
+      navigate,
+    ]
   );
 
   const onCreateTeam = (values) => {
@@ -90,15 +151,39 @@ export default function TeamsHubLayout() {
     });
   };
 
+  const onEditTeam = (values) => {
+    if (!editingTeam) return;
+    updateTeam.mutate(
+      {
+        teamId: editingTeam._id,
+        payload: {
+          name: values.name.trim(),
+          description: values.description?.trim() ?? '',
+          department: values.department,
+          lead: values.lead,
+        },
+      },
+      {
+        onSuccess: () => {
+          setEditingTeam(null);
+          editTeamForm.reset();
+        },
+      }
+    );
+  };
+
+  const onDeleteTeam = () => {
+    if (!deletingTeam) return;
+    deleteTeam.mutate(deletingTeam._id, {
+      onSuccess: () => setDeletingTeam(null),
+    });
+  };
+
   const onCreateDept = (values) => {
     createDepartment.mutate(values, {
       onSuccess: () => {
         setDeptModalOpen(false);
-        deptForm.reset({
-          name: DEPARTMENT_PRESETS[0].name,
-          description: '',
-          code: DEPARTMENT_PRESETS[0].code,
-        });
+        deptForm.reset({ name: '', description: '', code: '' });
       },
     });
   };
@@ -211,6 +296,98 @@ export default function TeamsHubLayout() {
         )}
       </Modal>
 
+      <Modal
+        open={Boolean(editingTeam)}
+        onClose={() => setEditingTeam(null)}
+        title="Edit team"
+      >
+        {!canManageTeams ? (
+          <p className="text-sm text-graphite">
+            Only a Superadmin can edit team details.
+          </p>
+        ) : (
+          <form onSubmit={editTeamForm.handleSubmit(onEditTeam)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-team-name">Team name</Label>
+              <Input
+                id="edit-team-name"
+                {...editTeamForm.register('name', { required: 'Name is required' })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-team-dept">Department</Label>
+              <Select
+                id="edit-team-dept"
+                {...editTeamForm.register('department', { required: 'Department is required' })}
+              >
+                <option value="">Select department</option>
+                {departments.map((dept) => (
+                  <option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-team-lead">Team lead</Label>
+              <Select
+                id="edit-team-lead"
+                {...editTeamForm.register('lead', { required: 'Lead is required' })}
+              >
+                <option value="">Select lead</option>
+                {users.map((u) => (
+                  <option key={u._id} value={u._id}>
+                    {u.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-team-desc">Description</Label>
+              <Textarea id="edit-team-desc" {...editTeamForm.register('description')} />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditingTeam(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateTeam.isPending}>
+                {updateTeam.isPending ? 'Saving…' : 'Save changes'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      <Modal
+        open={Boolean(deletingTeam)}
+        onClose={() => setDeletingTeam(null)}
+        title="Delete team"
+      >
+        {!canManageTeams ? (
+          <p className="text-sm text-graphite">Only a Superadmin can delete teams.</p>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-charcoal">
+              Delete <span className="font-semibold text-ink">{deletingTeam?.name}</span>? The team
+              is removed from every list. Its projects and tasks are kept.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setDeletingTeam(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={onDeleteTeam}
+                disabled={deleteTeam.isPending}
+              >
+                {deleteTeam.isPending ? 'Deleting…' : 'Delete team'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <Modal open={deptModalOpen} onClose={() => setDeptModalOpen(false)} title="Create department">
         <form onSubmit={deptForm.handleSubmit(onCreateDept)} className="space-y-4">
           <div className="space-y-2">
@@ -218,7 +395,9 @@ export default function TeamsHubLayout() {
             <Input
               id="dept-code"
               placeholder="seo, development, marketing…"
-              list="dept-code-presets"
+              // Hide the native datalist chevron — the suggestions still open on typing
+              className="[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-list-button]:hidden"
+              {...(availableCodePresets.length > 0 && { list: 'dept-code-presets' })}
               {...deptForm.register('code', {
                 required: true,
                 pattern: {
@@ -227,15 +406,18 @@ export default function TeamsHubLayout() {
                 },
               })}
             />
-            <datalist id="dept-code-presets">
-              {DEPARTMENT_PRESETS.map((preset) => (
-                <option key={preset.code} value={preset.code}>
-                  {preset.name}
-                </option>
-              ))}
-            </datalist>
+            {availableCodePresets.length > 0 && (
+              <datalist id="dept-code-presets">
+                {availableCodePresets.map((preset) => (
+                  <option key={preset.code} value={preset.code} />
+                ))}
+              </datalist>
+            )}
             <p className="text-xs text-graphite">
-              Unique slug for the department. Presets: seo, development, designing — or add a new one.
+              Unique slug for the department — it must not match an existing one.
+              {availableCodePresets.length > 0
+                ? ` Still free: ${availableCodePresets.map((p) => p.code).join(', ')}.`
+                : ' All built-in presets are taken, so pick a new one.'}
             </p>
           </div>
           <div className="space-y-2">

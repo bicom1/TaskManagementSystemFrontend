@@ -34,6 +34,12 @@ createRoot(document.getElementById('root')).render(
           position="top-right"
           closeButton
           duration={4500}
+          // Stack toasts one below another instead of piling them up,
+          // and start below the 52px app header so they clear its controls.
+          expand
+          gap={10}
+          offset="64px"
+          visibleToasts={4}
           toastOptions={{
             classNames: {
               toast:

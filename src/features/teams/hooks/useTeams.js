@@ -30,6 +30,39 @@ export function useCreateTeam() {
   });
 }
 
+export function useUpdateTeam() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ teamId, payload }) => teamApi.update(teamId, payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [KEY] });
+      queryClient.invalidateQueries({ queryKey: [KEY, variables.teamId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('Team updated');
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message ?? 'Failed to update team');
+    },
+  });
+}
+
+export function useDeleteTeam() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (teamId) => teamApi.deactivate(teamId),
+    onSuccess: (_data, teamId) => {
+      queryClient.invalidateQueries({ queryKey: [KEY] });
+      queryClient.invalidateQueries({ queryKey: [KEY, teamId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['home'] });
+      toast.success('Team deleted');
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message ?? 'Failed to delete team');
+    },
+  });
+}
+
 export function useAddTeamMember() {
   const queryClient = useQueryClient();
   return useMutation({

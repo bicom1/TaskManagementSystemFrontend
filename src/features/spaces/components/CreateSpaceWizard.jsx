@@ -55,11 +55,21 @@ function StatusPills({ statuses }) {
   );
 }
 
-export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamId = '' }) {
+export function CreateSpaceWizard({
+  open,
+  onClose,
+  initialStep = 1,
+  defaultTeamId = '',
+  defaultTeamName = '',
+}) {
   const navigate = useNavigate();
   const createProject = useCreateProject();
   const { data: teamsData } = useTeams({ limit: 50 });
   const teams = teamsData?.data ?? [];
+  const lockedTeamName =
+    defaultTeamName ||
+    teams.find((t) => String(t._id) === String(defaultTeamId))?.name ||
+    '';
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(EMPTY);
@@ -187,14 +197,19 @@ export function CreateSpaceWizard({ open, onClose, initialStep = 1, defaultTeamI
             />
           </div>
 
-          {teams.length > 0 ? (
+          {defaultTeamId ? (
+            <p className="text-xs text-graphite">
+              {lockedTeamName
+                ? `This project belongs to ${lockedTeamName}. Everyone on the team will see it in their sidebar automatically.`
+                : 'Everyone on this team will see this project in their sidebar automatically.'}
+            </p>
+          ) : teams.length > 0 ? (
             <div className="space-y-1.5">
               <Label htmlFor="project-team">Team (required)</Label>
               <select
                 id="project-team"
-                className="flex h-10 w-full rounded-md border border-hairline bg-paper px-3 text-sm text-ink disabled:opacity-70"
+                className="flex h-10 w-full rounded-md border border-hairline bg-paper px-3 text-sm text-ink"
                 value={form.team}
-                disabled={Boolean(defaultTeamId)}
                 onChange={(e) => setField('team', e.target.value)}
               >
                 <option value="">Select team</option>

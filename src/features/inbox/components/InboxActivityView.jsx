@@ -33,7 +33,7 @@ const BASE_TABS = [
   { id: 'cleared', label: 'Cleared', icon: CheckCheck },
 ];
 
-function FlatList({ items, onOpen, onClear, clearTitle }) {
+function FlatList({ items, onOpen, onClear, clearTitle, clearVariant }) {
   return items.map((item) => (
     <InboxActivityRow
       key={item.id}
@@ -41,11 +41,12 @@ function FlatList({ items, onOpen, onClear, clearTitle }) {
       onOpen={onOpen}
       onClear={onClear}
       clearTitle={clearTitle}
+      clearVariant={clearVariant}
     />
   ));
 }
 
-function TimeGroup({ label, items, onOpen, onClear, clearTitle }) {
+function TimeGroup({ label, items, onOpen, onClear, clearTitle, clearVariant }) {
   if (!items.length) return null;
   return (
     <div>
@@ -59,6 +60,7 @@ function TimeGroup({ label, items, onOpen, onClear, clearTitle }) {
           onOpen={onOpen}
           onClear={onClear}
           clearTitle={clearTitle}
+          clearVariant={clearVariant}
         />
       ))}
     </div>
@@ -132,6 +134,10 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
       : activeBucket === 'other' || activeBucket === 'later'
         ? 'Clear notification'
         : 'Clear notification';
+
+  // Primary dismisses into Other (a move), everywhere else it clears outright —
+  // the row icon follows the action instead of always showing a cross.
+  const clearActionVariant = activeBucket === 'primary' ? 'move' : 'clear';
 
   const clearOne = (item) => {
     setBucket(inboxItemKey(item), dismissTargetForTab(activeBucket));
@@ -325,7 +331,11 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                 onClick={clearAllVisible}
                 className="h-8 gap-1.5 text-[12px]"
               >
-                <CheckCheck className="h-3.5 w-3.5" />
+                {activeBucket === 'primary' ? (
+                  <Layers className="h-3.5 w-3.5" />
+                ) : (
+                  <CheckCheck className="h-3.5 w-3.5" />
+                )}
                 {activeBucket === 'primary' ? 'Move all to Other' : 'Clear all'}
               </Button>
             )}
@@ -362,6 +372,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                   onOpen={openItem}
                   onClear={clearOne}
                   clearTitle={clearActionTitle}
+                  clearVariant={clearActionVariant}
                 />
                 <TimeGroup
                   label="Yesterday"
@@ -369,6 +380,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                   onOpen={openItem}
                   onClear={clearOne}
                   clearTitle={clearActionTitle}
+                  clearVariant={clearActionVariant}
                 />
                 <TimeGroup
                   label="Last 7 days"
@@ -376,6 +388,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                   onOpen={openItem}
                   onClear={clearOne}
                   clearTitle={clearActionTitle}
+                  clearVariant={clearActionVariant}
                 />
                 <TimeGroup
                   label="Older"
@@ -383,6 +396,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                   onOpen={openItem}
                   onClear={clearOne}
                   clearTitle={clearActionTitle}
+                  clearVariant={clearActionVariant}
                 />
               </>
             ) : (
@@ -391,6 +405,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                 onOpen={openItem}
                 onClear={clearOne}
                 clearTitle={clearActionTitle}
+                clearVariant={clearActionVariant}
               />
             )}
           </div>

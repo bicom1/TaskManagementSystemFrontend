@@ -45,7 +45,9 @@ export function PersonCard({ person, onClick, compact = false }) {
     <button
       type="button"
       onClick={() => onClick?.(person)}
-      className="group flex flex-col overflow-hidden rounded-xl border border-hairline bg-paper text-left shadow-xs transition-[border-color,box-shadow] hover:border-border-base hover:shadow-md"
+      // h-full/w-full: a <button> shrink-to-fits, so without these the card sizes
+      // to its content — photo cards end up wider than initials-only cards.
+      className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-hairline bg-paper text-left shadow-xs transition-[border-color,box-shadow] hover:border-border-base hover:shadow-md"
     >
       <div className="relative flex aspect-[5/4] w-full items-center justify-center overflow-hidden bg-cloud">
         {person.avatarUrl ? (

@@ -267,7 +267,7 @@ export function ProjectChannelView({
             <div className="mb-6 w-full">
               <button
                 type="button"
-                onClick={() => toast.success('Bookmark saved on this channel')}
+                onClick={() => toast.message('Channel bookmarks are not available yet')}
                 className="flex h-[76px] w-[76px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-steel bg-paper px-2 text-center text-[10px] leading-tight text-graphite transition hover:border-primary hover:bg-primary-soft/40 hover:text-primary"
               >
                 <Bookmark className="h-4 w-4" />

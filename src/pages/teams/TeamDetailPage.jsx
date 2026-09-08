@@ -251,6 +251,7 @@ export default function TeamDetailPage() {
         open={spaceWizardOpen}
         onClose={() => setSpaceWizardOpen(false)}
         defaultTeamId={team._id}
+        defaultTeamName={team.name}
       />
 
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add team member">

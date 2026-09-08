@@ -13,6 +13,8 @@ export const teamApi = {
   update: (id, payload) =>
     axiosClient.patch(`/teams/${id}`, payload).then((r) => r.data.data),
 
+  deactivate: (id) => axiosClient.delete(`/teams/${id}`).then((r) => r.data.data),
+
   addMember: (id, userId) =>
     axiosClient.post(`/teams/${id}/members`, { userId }).then((r) => r.data.data),
 

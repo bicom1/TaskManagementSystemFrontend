@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus, Star, StarOff, ArrowRight } from 'lucide-react';
+import { Plus, Star, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useMyTasks,
@@ -78,6 +78,13 @@ export default function MyTasksPage() {
 
   const projects = home?.workspace?.projects ?? [];
   const teams = home?.workspace?.teams ?? [];
+
+  // Which tasks are already starred — the overview carries the saved list, and
+  // the add/remove mutations invalidate ['home'], so this stays in sync.
+  const personalIds = useMemo(
+    () => new Set((home?.cards?.personal_list ?? []).map((t) => String(t._id))),
+    [home?.cards?.personal_list]
+  );
   const [projectId, setProjectId] = useState('');
   const [form, setForm] = useState({ ...EMPTY_TASK_FORM, status: 'todo' });
   const [advancingId, setAdvancingId] = useState(null);
@@ -283,25 +290,24 @@ export default function MyTasksPage() {
                     Next
                   </Button>
                 )}
-                {view === 'personal' ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => remove.mutate(task._id)}
-                    title="Remove from Personal List"
-                  >
-                    <StarOff className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => add.mutate(task._id)}
-                    title="Add to Personal List"
-                  >
-                    <Star className="h-4 w-4" />
-                  </Button>
-                )}
+                {(() => {
+                  const starred = view === 'personal' || personalIds.has(String(task._id));
+                  return (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-pressed={starred}
+                      disabled={add.isPending || remove.isPending}
+                      onClick={() =>
+                        starred ? remove.mutate(task._id) : add.mutate(task._id)
+                      }
+                      title={starred ? 'Remove from Personal List' : 'Add to Personal List'}
+                      className={starred ? 'text-amber-500 hover:text-amber-600' : undefined}
+                    >
+                      <Star className={cn('h-4 w-4', starred && 'fill-current')} />
+                    </Button>
+                  );
+                })()}
               </div>
             </div>
           ))}

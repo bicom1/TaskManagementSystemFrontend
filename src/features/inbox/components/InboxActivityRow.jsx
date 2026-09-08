@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Flag } from 'lucide-react';
+import { CheckCircle2, Circle, Flag, Layers, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserAvatar } from '@/components/UserAvatar';
 import { formatInboxDate, statusColorFromLabel, statusLabel } from '../inboxUtils';
@@ -15,8 +15,17 @@ function StatusChip({ label, className }) {
   );
 }
 
-export function InboxActivityRow({ item, onOpen, onClear, clearTitle = 'Clear notification' }) {
+export function InboxActivityRow({
+  item,
+  onOpen,
+  onClear,
+  clearTitle = 'Clear notification',
+  clearVariant = 'clear',
+}) {
   const { notification, taskTitle, actionText, isHighPriority, isCompleted, isIncoming } = item;
+  // 'move' sends the item to Other (Layers, matching that tab's icon);
+  // 'clear' removes it from the list, which is what a cross means.
+  const ClearIcon = clearVariant === 'move' ? Layers : X;
 
   return (
     <div
@@ -100,6 +109,16 @@ export function InboxActivityRow({ item, onOpen, onClear, clearTitle = 'Clear no
             </Link>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={() => onClear?.(item)}
+          title={clearTitle}
+          aria-label={clearTitle}
+          className="mt-0.5 shrink-0 rounded-md p-1 text-gray-300 transition hover:bg-gray-100 hover:text-gray-700 focus-visible:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40"
+        >
+          <ClearIcon className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );

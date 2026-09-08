@@ -27,7 +27,9 @@ export function useCreateDepartment() {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       toast.success('Department created');
     },
-    onError: () => toast.error('Failed to create department'),
+    onError: (error) => {
+      toast.error(error?.response?.data?.message ?? 'Failed to create department');
+    },
   });
 }
 
@@ -39,6 +41,9 @@ export function useUpdateDepartment() {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: [KEY, variables.id] });
       toast.success('Department updated');
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message ?? 'Failed to update department');
     },
   });
 }

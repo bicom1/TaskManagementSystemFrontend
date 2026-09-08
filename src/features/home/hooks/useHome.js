@@ -76,6 +76,7 @@ export function usePersonalListMutations() {
       qc.invalidateQueries({ queryKey: [KEY] });
       toastSuccess('Added to Personal List');
     },
+    onError: (e) => toastError(e, 'Could not add to Personal List'),
   });
   const remove = useMutation({
     mutationFn: homeApi.removePersonal,
@@ -83,6 +84,7 @@ export function usePersonalListMutations() {
       qc.invalidateQueries({ queryKey: [KEY] });
       toastSuccess('Removed from Personal List');
     },
+    onError: (e) => toastError(e, 'Could not remove from Personal List'),
   });
   return { add, remove };
 }

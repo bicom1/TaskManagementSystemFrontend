@@ -335,7 +335,7 @@ export default function AgendaPage() {
       toast.message('No upcoming meeting to send AI Notetaker to');
       return;
     }
-    toast.success(`AI Notetaker queued for “${nextMeeting.title}”`);
+    toast.message(`AI Notetaker is not available yet for “${nextMeeting.title}”`);
   };
 
   if (isLoading) {

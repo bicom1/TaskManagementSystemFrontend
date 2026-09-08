@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { clearTabSession, markTabSession } from '@/lib/tabSession';
 
 export interface AuthUser {
   _id: string;
@@ -17,14 +18,19 @@ interface AuthState {
   clearAuth: () => void;
 }
 
-// Deliberately NOT persisted (no zustand/persist middleware) — the access
-// token lives only in memory. On a hard refresh, ProtectedRoute triggers a
-// silent /auth/refresh call using the httpOnly refresh cookie to rehydrate.
+// Access token is memory-only. Tab session marker in sessionStorage enables
+// same-tab F5 restore; closing the tab clears it so the next visit requires login.
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   accessToken: null,
   isAuthenticated: false,
-  setAuth: (user, accessToken) => set({ user, accessToken, isAuthenticated: true }),
+  setAuth: (user, accessToken) => {
+    markTabSession();
+    set({ user, accessToken, isAuthenticated: true });
+  },
   setAccessToken: (accessToken) => set({ accessToken }),
-  clearAuth: () => set({ user: null, accessToken: null, isAuthenticated: false }),
+  clearAuth: () => {
+    clearTabSession();
+    set({ user: null, accessToken: null, isAuthenticated: false });
+  },
 }));

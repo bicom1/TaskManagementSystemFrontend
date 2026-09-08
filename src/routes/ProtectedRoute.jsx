@@ -3,8 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../features/auth/api/authApi';
 import { userApi } from '../features/users/api/userApi';
-import { LoadingScreen } from '../components/ui/Spinner';
 import { hasPermission } from '../lib/permissions';
+import { clearTabSession, hasTabSession } from '../lib/tabSession';
 
 async function hydrateSession(setAuth) {
   const { user: refreshedUser, accessToken } = await authApi.refresh();
@@ -16,35 +16,57 @@ async function hydrateSession(setAuth) {
   }
 }
 
+/**
+ * Auth gate — tab-session approach:
+ * - Cold open / new tab / after leaving: no sessionStorage flag → instant /login (no splash, no refresh call)
+ * - Same-tab reload (F5) while logged in: flag present → silent refresh once (no full-page spinner)
+ * Memory auth store is never persisted across tab close.
+ */
 export function ProtectedRoute({ children, allowedRoles, requiredPermission }) {
-  const { isAuthenticated, user, setAuth, accessToken } = useAuthStore();
-  const [isBootstrapping, setIsBootstrapping] = useState(!isAuthenticated);
+  const { isAuthenticated, user, setAuth, accessToken, clearAuth } = useAuthStore();
+  const [isBootstrapping, setIsBootstrapping] = useState(() => {
+    if (isAuthenticated) return false;
+    return hasTabSession();
+  });
 
   useEffect(() => {
+    let cancelled = false;
+
     if (isAuthenticated) {
-      // Enrich with permissions if missing
       if (user && !user.permissions && accessToken) {
         userApi
           .me()
-          .then((full) => setAuth({ ...user, ...full }, accessToken))
+          .then((full) => {
+            if (!cancelled) setAuth({ ...user, ...full }, accessToken);
+          })
           .catch(() => {});
       }
       setIsBootstrapping(false);
-      return;
+      return undefined;
+    }
+
+    // No tab session → require login immediately (zero network wait)
+    if (!hasTabSession()) {
+      setIsBootstrapping(false);
+      return undefined;
     }
 
     hydrateSession(setAuth)
-      .catch(() => {})
-      .finally(() => setIsBootstrapping(false));
-  }, [isAuthenticated, setAuth, user, accessToken]);
+      .catch(() => {
+        clearTabSession();
+        clearAuth();
+      })
+      .finally(() => {
+        if (!cancelled) setIsBootstrapping(false);
+      });
 
-  if (isBootstrapping) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-canvas">
-        <LoadingScreen />
-      </div>
-    );
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, setAuth, clearAuth, user, accessToken]);
+
+  // Never show a full-page loading gate — blank frame only during rare same-tab F5 restore
+  if (isBootstrapping) return null;
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

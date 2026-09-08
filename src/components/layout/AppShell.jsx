@@ -6,7 +6,6 @@ import { TopBar } from './TopBar';
 import { InviteModal } from '@/components/InviteModal';
 import { CreateProjectFlow } from '@/features/spaces/components/CreateProjectFlow';
 import { useCreateProjectUiStore } from '@/features/spaces/createProjectUiStore';
-import { LoadingScreen } from '@/components/ui/Spinner';
 import { useLiveSpaces } from '@/features/projects/hooks/useProjects';
 import { useLiveUsers, usePresenceSync } from '@/features/presence/usePresence';
 import { cn } from '@/lib/utils';
@@ -132,7 +131,7 @@ export function AppShell() {
               location.pathname.startsWith('/inbox') && 'h-full overflow-hidden'
             )}
           >
-            <Suspense fallback={<LoadingScreen message="Loading workspace…" />}>
+            <Suspense fallback={null}>
               <Outlet />
             </Suspense>
           </div>

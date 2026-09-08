@@ -8,8 +8,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AcceptInvitePage from './pages/AcceptInvitePage';
 import GoogleCallbackPage from './pages/GoogleCallbackPage';
+import HomePage from './pages/HomePage';
 
-const HomePage = lazy(() => import('./pages/HomePage'));
 const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'));
 const MyTasksPage = lazy(() => import('./pages/MyTasksPage'));
 const AllTasksPage = lazy(() => import('./pages/AllTasksPage'));
@@ -84,7 +84,7 @@ export default function App() {
         <Route path="settings" element={<SettingsPage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

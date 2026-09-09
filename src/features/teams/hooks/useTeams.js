@@ -88,10 +88,13 @@ export function useRemoveTeamMember() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: [KEY, variables.teamId] });
-      toast.success('Member removed');
+      const name = variables?.name ? String(variables.name) : 'Member';
+      toast.success('Member removed', {
+        description: `${name} is no longer on this team.`,
+      });
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message ?? 'Failed to remove member');
+      toast.error(error?.response?.data?.message ?? 'Unable to remove member from team');
     },
   });
 }

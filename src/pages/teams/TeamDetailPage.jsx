@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { ArrowLeft, FolderKanban, MessageSquare, Plus, UserMinus, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   useTeam,
   useAddTeamMember,
@@ -226,9 +227,22 @@ export default function TeamDetailPage() {
                 <button
                   type="button"
                   title="Remove from team"
-                  onClick={() =>
-                    removeMember.mutate({ teamId: team._id, userId: person._id })
-                  }
+                  onClick={() => {
+                    toast('Remove from team?', {
+                      description: `${person.name} will no longer be a member of this team.`,
+                      duration: 10_000,
+                      action: {
+                        label: 'Confirm',
+                        onClick: () =>
+                          removeMember.mutate({
+                            teamId: team._id,
+                            userId: person._id,
+                            name: person.name,
+                          }),
+                      },
+                      cancel: { label: 'Cancel' },
+                    });
+                  }}
                   className="absolute right-2 top-2 rounded-md bg-paper/90 p-1.5 text-graphite shadow hover:text-bloom-coral"
                 >
                   <UserMinus className="h-3.5 w-3.5" />

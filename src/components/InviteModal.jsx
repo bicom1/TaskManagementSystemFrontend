@@ -284,13 +284,9 @@ export function InviteModal({
           teamId: data?.teamId,
         });
         if (data?.emailSent) {
-          toast.success(
-            data?.emailRedirectedTo
-              ? `Invite emailed to ${data.emailRedirectedTo} (Resend test mode). Share the Google sign-in link with ${values.email}.`
-              : 'Invite created and email sent from BIWORKSPACE'
-          );
+          toast.success(`Invitation sent to ${values.email}`);
         } else {
-          toast.success('Invite ready — share the link below (email may still be catching up)');
+          toast.success('Invite ready — share the link below');
         }
       },
     });

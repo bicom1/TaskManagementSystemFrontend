@@ -80,10 +80,11 @@ export function useDeactivateUser() {
       });
       toastError(error, 'Failed to deactivate user');
     },
-    onSuccess: (_data, id) => {
+    onSuccess: (data, id) => {
       removeUserFromUsersCache(queryClient, id);
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
+      toastSuccess(`${data?.name || 'Member'} has been deactivated`);
     },
   });
 }
@@ -125,7 +126,8 @@ export function useDeleteUser() {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       const name = data?.deletedName || data?.name || 'Member';
-      toastSuccess(`${name} deleted — invite again to restore access with Google`, {
+      toastSuccess('Member removed', {
+        description: `${name} has been permanently removed from the workspace.`,
         duration: 5500,
       });
     },

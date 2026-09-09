@@ -1,4 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -37,6 +38,24 @@ export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTea
     person.role !== ROLES.SUPER_ADMIN;
 
   const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
+
+  const askDeleteMember = () => {
+    toast('Remove member from workspace?', {
+      description: `${person.name} will be permanently removed. A new invitation will be required to rejoin.`,
+      duration: 12_000,
+      action: {
+        label: 'Confirm',
+        onClick: () => {
+          deleteUser.mutate(person._id, {
+            onSuccess: () => onClose(),
+          });
+        },
+      },
+      cancel: {
+        label: 'Cancel',
+      },
+    });
+  };
 
   return (
     <Modal open={open} onClose={onClose} title="Member profile" size="md">
@@ -143,15 +162,7 @@ export function PersonDetailModal({ person, teams = [], open, onClose, onOpenTea
             <Button
               variant="destructive"
               disabled={deleteUser.isPending}
-              onClick={() => {
-                const ok = window.confirm(
-                  `Permanently delete ${person.name}? Their account is removed from the database. If you invite this email again, they must accept with Google as a new member.`
-                );
-                if (!ok) return;
-                deleteUser.mutate(person._id, {
-                  onSuccess: () => onClose(),
-                });
-              }}
+              onClick={askDeleteMember}
             >
               Delete
             </Button>

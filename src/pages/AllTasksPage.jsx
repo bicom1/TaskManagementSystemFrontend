@@ -479,7 +479,7 @@ export default function AllTasksPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col bg-paper">
+    <div className="page-shell-flush flex h-[calc(100vh-7rem)] flex-col bg-paper">
       <div className="border-b border-hairline bg-paper px-4 pt-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-base font-semibold text-ink">{workspaceName}</h1>

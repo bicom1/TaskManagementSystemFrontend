@@ -71,7 +71,7 @@ export default function DashboardPage() {
 
   if (projectsLoading) {
     return (
-      <div className="mx-auto max-w-7xl px-5 py-10">
+      <div className="page-shell">
         <LoadingScreen />
       </div>
     );
@@ -83,7 +83,7 @@ export default function DashboardPage() {
     hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <div className="mx-auto max-w-[1300px] px-5 py-8 lg:px-8 lg:py-10 animate-fade-in">
+    <div className="page-shell animate-fade-in">
 
       {/* ── Welcome Header ── */}
       <div className="mb-8">

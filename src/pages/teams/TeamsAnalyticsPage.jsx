@@ -45,7 +45,7 @@ export default function TeamsAnalyticsPage() {
   const maxTeamSize = Math.max(1, ...stats.teamSizes.map((t) => t.size));
 
   return (
-    <div className="px-4 py-6 lg:px-8">
+    <div className="page-shell">
       <h1 className="page-title mb-2 text-ink">Analytics</h1>
       <p className="mb-8 text-sm text-graphite">People and team health across the workspace.</p>
 

@@ -43,7 +43,7 @@ export default function AuditLogsPage() {
   const activityRows = activity.data?.data ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-4 py-6">
+    <div className="page-shell space-y-8">
       <header>
         <h1 className="page-title text-ink">Audit & activity</h1>
         <p className="mt-1 text-sm text-graphite">

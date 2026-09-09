@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { messageApi } from '../api/messageApi';
 import { getSocket } from '../../../api/socketClient';
 import { useAuthStore } from '../../../store/authStore';
+import { isDuplicateEvent } from '@/lib/socketDedupe';
 
 const INBOX_KEY = 'messages-inbox';
 
@@ -76,7 +77,10 @@ export function useLiveMessages() {
       queryClient.invalidateQueries({ queryKey: [INBOX_KEY] });
       // Chat events use chat:message; avoid double toast for chat type
       if (message?.type === 'chat') return;
-      toast.info(`New message: ${message.subject || message.body?.slice(0, 40) || 'Inbox'}`);
+      if (isDuplicateEvent(`message:${message?._id}`)) return;
+      toast.info(`New message: ${message.subject || message.body?.slice(0, 40) || 'Inbox'}`, {
+        id: `message:${message?._id}`,
+      });
     };
 
     socket.on('message:new', handleNew);

@@ -7,7 +7,12 @@ import {
   useUpdateTeam,
   useDeleteTeam,
 } from '@/features/teams/hooks/useTeams';
-import { useDepartments, useCreateDepartment } from '@/features/departments/hooks/useDepartments';
+import {
+  useDepartments,
+  useCreateDepartment,
+  useUpdateDepartment,
+  useDeleteDepartment,
+} from '@/features/departments/hooks/useDepartments';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useAuthStore } from '@/store/authStore';
 import { InviteModal } from '@/components/InviteModal';
@@ -20,7 +25,7 @@ import { Select } from '@/components/ui/Select';
 import {
   canManageOrg,
   DEPARTMENT_PRESETS,
-  getMainDepartments,
+  getSelectableDepartments,
   normalizeDepartmentCode,
 } from '@/lib/roles';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
@@ -44,6 +49,8 @@ export default function TeamsHubLayout() {
   const [deptModalOpen, setDeptModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [deletingTeam, setDeletingTeam] = useState(null);
+  const [editingDept, setEditingDept] = useState(null);
+  const [deletingDept, setDeletingDept] = useState(null);
 
   const { data: teamsData } = useTeams({ limit: 100 });
   const { data: departmentsData } = useDepartments({ limit: 100 });
@@ -52,10 +59,12 @@ export default function TeamsHubLayout() {
   const updateTeam = useUpdateTeam();
   const deleteTeam = useDeleteTeam();
   const createDepartment = useCreateDepartment();
+  const updateDepartment = useUpdateDepartment();
+  const deleteDepartment = useDeleteDepartment();
 
   const teams = teamsData?.data ?? [];
   const departments = useMemo(
-    () => getMainDepartments(departmentsData?.data ?? []),
+    () => getSelectableDepartments(departmentsData?.data ?? []),
     [departmentsData?.data]
   );
 
@@ -75,6 +84,10 @@ export default function TeamsHubLayout() {
 
   const editTeamForm = useForm({
     defaultValues: { name: '', description: '', department: '', lead: '' },
+  });
+
+  const editDeptForm = useForm({
+    defaultValues: { name: '', description: '' },
   });
 
   const deptForm = useForm({
@@ -118,6 +131,18 @@ export default function TeamsHubLayout() {
         if (!canManageTeams || !team) return;
         setDeletingTeam(team);
       },
+      openEditDept: (dept) => {
+        if (!canCreateDept || !dept) return;
+        editDeptForm.reset({
+          name: dept.name ?? '',
+          description: dept.description ?? '',
+        });
+        setEditingDept(dept);
+      },
+      openDeleteDept: (dept) => {
+        if (!canCreateDept || !dept) return;
+        setDeletingDept(dept);
+      },
       canInvite: userCanInvite,
       canCreateTeam,
       canCreateDept,
@@ -136,10 +161,37 @@ export default function TeamsHubLayout() {
       isSuperAdmin,
       editTeamForm,
       deptForm,
+      editDeptForm,
       nextDeptDefaults,
       navigate,
     ]
   );
+
+  const onEditDept = (values) => {
+    if (!editingDept) return;
+    updateDepartment.mutate(
+      {
+        id: editingDept._id,
+        payload: {
+          name: values.name.trim(),
+          description: values.description?.trim() ?? '',
+        },
+      },
+      {
+        onSuccess: () => {
+          setEditingDept(null);
+          editDeptForm.reset();
+        },
+      }
+    );
+  };
+
+  const onDeleteDept = () => {
+    if (!deletingDept) return;
+    deleteDepartment.mutate(deletingDept._id, {
+      onSuccess: () => setDeletingDept(null),
+    });
+  };
 
   const onCreateTeam = (values) => {
     createTeam.mutate(values, {
@@ -386,6 +438,68 @@ export default function TeamsHubLayout() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        open={Boolean(editingDept)}
+        onClose={() => setEditingDept(null)}
+        title="Edit department"
+      >
+        <form onSubmit={editDeptForm.handleSubmit(onEditDept)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-dept-code">Code</Label>
+            <Input id="edit-dept-code" value={editingDept?.code ?? ''} disabled readOnly />
+            <p className="text-xs text-graphite">
+              The code is the department&apos;s permanent identifier and cannot be changed.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-dept-name">Name</Label>
+            <Input
+              id="edit-dept-name"
+              {...editDeptForm.register('name', { required: 'Name is required' })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-dept-description">Description</Label>
+            <Textarea id="edit-dept-description" {...editDeptForm.register('description')} />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setEditingDept(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateDepartment.isPending}>
+              {updateDepartment.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(deletingDept)}
+        onClose={() => setDeletingDept(null)}
+        title="Delete department"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-charcoal">
+            Delete <span className="font-semibold text-ink">{deletingDept?.name}</span>? It is
+            removed from every list and picker. Departments that still have teams cannot be
+            deleted — move or delete those teams first.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setDeletingDept(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={onDeleteDept}
+              disabled={deleteDepartment.isPending}
+            >
+              {deleteDepartment.isPending ? 'Deleting…' : 'Delete department'}
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal open={deptModalOpen} onClose={() => setDeptModalOpen(false)} title="Create department">

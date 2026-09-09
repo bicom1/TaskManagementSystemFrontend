@@ -33,6 +33,22 @@ export function useCreateDepartment() {
   });
 }
 
+export function useDeleteDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => departmentApi.deactivate(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: [KEY] });
+      queryClient.invalidateQueries({ queryKey: [KEY, id] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      toast.success('Department deleted');
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message ?? 'Failed to delete department');
+    },
+  });
+}
+
 export function useUpdateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({

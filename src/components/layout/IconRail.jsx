@@ -1,6 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Sparkles,
   Users,
   LayoutDashboard,
   CalendarDays,
@@ -48,6 +47,68 @@ export function getSectionFromPath(pathname) {
   return 'home';
 }
 
+/**
+ * Paths each rail section legitimately contains.
+ *
+ * Some routes belong to more than one section — /home/meetings is in both Home and
+ * Planner, /home/my-tasks in both Home and Planner. Deriving the rail purely from the
+ * URL made those links kick you out of the section you were browsing, so the shell
+ * keeps the current section whenever it owns the destination.
+ */
+const SECTION_PATHS = {
+  home: [
+    '/inbox',
+    '/home/my-tasks',
+    '/home/assigned-comments',
+    '/home/meetings',
+    '/all-tasks',
+    '/projects',
+    '/spaces',
+    // Home lists teams too — opening one must not jump the rail to Teams.
+    '/teams',
+  ],
+  planner: ['/home/agenda', '/home/meetings', '/home/my-tasks'],
+  teams: ['/teams'],
+  // Dashboard lists "My Projects" and the project list.
+  dashboard: ['/boards', '/reports', '/projects'],
+  // More links to Reports.
+  more: ['/settings', '/audit', '/approvals', '/reports'],
+};
+
+export function sectionOwnsPath(sectionId, pathname) {
+  if (!sectionId || !pathname) return false;
+  return (SECTION_PATHS[sectionId] || []).some(
+    (base) => pathname === base || pathname.startsWith(`${base}/`)
+  );
+}
+
+/**
+ * Which rail section the user is browsing is UI state, not URL state: the same
+ * /teams/123 is reachable from Home and from Teams. Persisting it per tab keeps a
+ * refresh (F5) on the section you were actually in, instead of silently resolving
+ * to a different sidebar than the one you were looking at a second earlier.
+ *
+ * Scoped to sessionStorage so a brand-new tab or a shared link still resolves from
+ * the URL alone, which is the correct behaviour for someone arriving cold.
+ */
+const SECTION_STORAGE_KEY = 'biworkspace-active-section';
+
+export function readStoredSection() {
+  try {
+    return sessionStorage.getItem(SECTION_STORAGE_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function storeSection(sectionId) {
+  try {
+    sessionStorage.setItem(SECTION_STORAGE_KEY, sectionId);
+  } catch {
+    /* private mode / blocked storage — the URL fallback still works */
+  }
+}
+
 export function getSectionDefaultPath(sectionId) {
   const map = {
     home: '/',
@@ -63,7 +124,6 @@ export function getSectionDefaultPath(sectionId) {
 const RAIL_ITEMS = [
   { id: 'home', label: 'Home', icon: House },
   { id: 'planner', label: 'Planner', icon: CalendarDays },
-  { id: 'ai', label: 'AI', icon: Sparkles },
   { id: 'teams', label: 'Teams', icon: Users },
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'more', label: 'More', icon: Grid },

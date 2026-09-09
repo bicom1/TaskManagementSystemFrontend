@@ -98,24 +98,46 @@ export function resolveDepartmentCode(deptOrCode) {
   return resolveDepartmentCode(deptOrCode.name || '');
 }
 
-export function getMainDepartments(departments) {
+/**
+ * Every department the workspace can see or pick.
+ *
+ * This used to return only the three built-in codes (seo / development / designing),
+ * which silently discarded every department created through the UI — they saved fine
+ * but never appeared in the department cards, the Create Team dropdown, or the invite
+ * picker, so a custom department was unusable.
+ *
+ * Built-ins keep their canonical labels and lead the list; custom departments follow,
+ * alphabetically. The API already filters out deactivated ones.
+ */
+export function getSelectableDepartments(departments) {
   const list = departments ?? [];
-  const byCode = new Map();
-  for (const d of list) {
-    const code = resolveDepartmentCode(d);
-    if (!code || byCode.has(code)) continue;
-    if (MAIN_DEPARTMENT_CODES.includes(code)) byCode.set(code, d);
+  const seen = new Set();
+  const builtIns = [];
+  const custom = [];
+
+  for (const dept of list) {
+    if (!dept) continue;
+    const code = normalizeDepartmentCode(dept.code);
+    if (!code || seen.has(code)) continue;
+    seen.add(code);
+
+    if (MAIN_DEPARTMENT_CODES.includes(code)) {
+      // Stored name wins so renaming a built-in department actually shows;
+      // the canonical label is only a fallback for rows with no name.
+      builtIns.push({ ...dept, code, name: dept.name || DEPARTMENT_CODE_LABELS[code] });
+    } else {
+      custom.push({ ...dept, code, name: dept.name || code });
+    }
   }
 
-  return MAIN_DEPARTMENT_CODES.map((code) => {
-    const dept = byCode.get(code);
-    if (!dept) return null;
-    return {
-      ...dept,
-      code,
-      name: DEPARTMENT_CODE_LABELS[code] || dept.name,
-    };
-  }).filter(Boolean);
+  builtIns.sort(
+    (a, b) => MAIN_DEPARTMENT_CODES.indexOf(a.code) - MAIN_DEPARTMENT_CODES.indexOf(b.code)
+  );
+  custom.sort((a, b) =>
+    String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' })
+  );
+
+  return [...builtIns, ...custom];
 }
 
 export const DEPARTMENT_ALLOWED_ROLES = {
@@ -204,9 +226,13 @@ export function normalizeDepartmentCode(code) {
 
 export function getAllowedRolesForDepartment(deptCode) {
   const code = normalizeDepartmentCode(deptCode);
+  // Custom departments get the same roles as the built-ins — the old fallback
+  // silently dropped Superadmin, so nobody could be invited as one into a
+  // department created through the UI. Who may *grant* each role is still gated
+  // separately by getInvitableRoles(actorRole).
   return DEPARTMENT_ALLOWED_ROLES[code]
     ? [...DEPARTMENT_ALLOWED_ROLES[code]]
-    : [ROLES.ADMIN, ROLES.MEMBER];
+    : [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.MEMBER];
 }
 
 export function getInviteRoleLabel(deptCode, role) {

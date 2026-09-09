@@ -1,6 +1,12 @@
 import { Suspense, useRef, useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { IconRail, getSectionFromPath } from './IconRail';
+import {
+  IconRail,
+  getSectionFromPath,
+  sectionOwnsPath,
+  readStoredSection,
+  storeSection,
+} from './IconRail';
 import { SidebarPanel } from './SidebarPanel';
 import { TopBar } from './TopBar';
 import { InviteModal } from '@/components/InviteModal';
@@ -14,7 +20,13 @@ export function AppShell() {
   const location = useLocation();
   const createBtnRef = useRef(null);
 
-  const [activeSection, setActiveSection] = useState(() => getSectionFromPath(location.pathname));
+  const [activeSection, setActiveSection] = useState(() => {
+    // Restore the section this tab was in, but only if it still contains the
+    // current route — otherwise the URL decides (deep link, shared link, new tab).
+    const stored = readStoredSection();
+    if (stored && sectionOwnsPath(stored, location.pathname)) return stored;
+    return getSectionFromPath(location.pathname);
+  });
   const [panelOpen, setPanelOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -32,8 +44,18 @@ export function AppShell() {
   useLiveUsers();
 
   useEffect(() => {
-    setActiveSection(getSectionFromPath(location.pathname));
+    // Stay put when the section you are already in contains this route — only
+    // routes that belong elsewhere move the rail.
+    setActiveSection((current) =>
+      sectionOwnsPath(current, location.pathname)
+        ? current
+        : getSectionFromPath(location.pathname)
+    );
   }, [location.pathname]);
+
+  useEffect(() => {
+    storeSection(activeSection);
+  }, [activeSection]);
 
   const handleSectionClick = (sectionId) => {
     if (activeSection === sectionId) {

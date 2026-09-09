@@ -98,7 +98,7 @@ export function QuickCreateKindModal({ open, kind, onClose }) {
       {
         onSuccess: (project) => {
           onClose?.();
-          toast.success(`${meta.title.replace('Create ', '')} created`);
+          // useCreateProject already toasts — a second one here would double up.
           if (project?._id) navigate(`/projects/${project._id}?view=list`);
         },
         onError: (error) => {

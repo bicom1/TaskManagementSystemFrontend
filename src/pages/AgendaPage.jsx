@@ -347,7 +347,7 @@ export default function AgendaPage() {
   }
 
   return (
-    <div className="min-h-full bg-[var(--color-surface-1)] px-4 py-6 sm:px-8 lg:px-12">
+    <div className="page-shell min-h-full bg-[var(--color-surface-1)]">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-graphite">

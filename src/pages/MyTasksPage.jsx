@@ -155,7 +155,7 @@ export default function MyTasksPage() {
       });
       queryClient.invalidateQueries({ queryKey: ['home'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast.success(`Project “${name}” created`);
+      // useCreateProject already toasts — a second one here would double up.
       return created;
     } catch (err) {
       toast.error(err?.response?.data?.message ?? 'Could not create project');
@@ -204,7 +204,7 @@ export default function MyTasksPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 lg:px-8">
+    <div className="page-shell">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title text-ink">My Tasks</h1>

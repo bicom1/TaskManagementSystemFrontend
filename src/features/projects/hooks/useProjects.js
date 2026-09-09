@@ -27,9 +27,11 @@ export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: projectApi.create,
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
-      toastSuccess('Created successfully');
+      // Single source of truth for the success toast — callers must not add their
+      // own, or one create shows two toasts.
+      toastSuccess(created?.name ? `“${created.name}” created` : 'Created successfully');
     },
     onError: (error) => {
       toastError(error, 'Failed to create');

@@ -8,7 +8,6 @@ import {
   MoreHorizontal,
   Plus,
   Hash,
-  Sparkles,
   BarChart2,
   Users,
   Lock,
@@ -144,6 +143,42 @@ function SectionTitle({ title, action }) {
   );
 }
 
+/**
+ * A nav row that both navigates and expands: the label is a normal link, the
+ * chevron reveals its children underneath. Keeps long lists (every team in the
+ * workspace) out of the sidebar until asked for.
+ */
+function ExpandableNavItem({ to, label, icon, badge, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div>
+      <div className="flex items-center gap-0.5">
+        <div className="min-w-0 flex-1">
+          <ClickUpNavItem to={to} end label={label} icon={icon} badge={badge} />
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label={open ? `Hide ${label}` : `Show ${label}`}
+          title={open ? `Hide ${label}` : `Show ${label}`}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+        >
+          {open ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+      {open && (
+        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-gray-200 pl-2">{children}</div>
+      )}
+    </div>
+  );
+}
+
 function CollapsibleSection({ title, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -240,18 +275,28 @@ function SidebarProjectsList({ projects, limit }) {
 /* ────────────────────────────────────────────────────────────
    1. HOME VIEW (100% Dynamic Data)
    ──────────────────────────────────────────────────────────── */
-function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, users, user }) {
+function HomeView({
+  onCreateClick,
+  onAddProject,
+  unreadCount,
+  projects,
+  home,
+  teams = [],
+  users,
+  user,
+}) {
   const navigate = useNavigate();
   const handleAddProject = onAddProject || onCreateClick;
-  const aiChats = useAiStore((s) => s.chats);
 
   // Dynamic counts from live backend overview
   const assignedCount = home?.cards?.assigned_to_me?.length || 0;
   const meetingsCount = home?.cards?.meetings?.length || 0;
   const commentsCount = home?.cards?.commentNotifs?.length || 0;
 
-  // Real teams from workspace overview
-  const workspaceTeams = home?.workspace?.teams || [];
+  // Every team this user is allowed to see — the same source the All Teams page
+  // uses. `home.workspace.teams` is only the teams you lead or belong to, which
+  // made a list labelled "All Teams" show just your own.
+  const workspaceTeams = teams;
 
   // Real workspace colleagues (excluding current user)
   const colleagues = useMemo(
@@ -285,13 +330,6 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
           badge={unreadCount > 0 ? unreadCount : undefined}
           badgeColor="bg-brand-50 text-brand-700"
         />
-        <ClickUpNavItem to="/ai/skills" label="Skills" icon={Zap} />
-        <ClickUpNavItem
-          to="/home/assigned-comments"
-          label="Assigned Comments"
-          icon={MessageSquareText}
-          badge={commentsCount > 0 ? commentsCount : undefined}
-        />
         <ClickUpNavItem
           to="/home/meetings"
           label="Meetings"
@@ -306,24 +344,6 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
           badgeColor="bg-brand-50 text-brand-700"
         />
         <ClickUpNavItem to="/all-tasks" label="All Tasks" icon={MoreHorizontal} />
-      </div>
-
-      {/* AI Chats */}
-      <SectionTitle title="AI Chats" />
-      <div className="space-y-0.5">
-        {aiChats.slice(0, 4).map((chat) => (
-          <ClickUpNavItem
-            key={chat.id}
-            to={`/ai/chat/${chat.id}`}
-            label={chat.title}
-            iconNode={<BrainLogo size={16} />}
-          />
-        ))}
-        <ClickUpNavItem
-          to="/ai"
-          label="Ask, Build, Create"
-          icon={Sparkles}
-        />
       </div>
 
       {/* All Projects — top slot (was Channels) */}
@@ -405,15 +425,25 @@ function HomeView({ onCreateClick, onAddProject, unreadCount, projects, home, us
       <SectionTitle title="Teams" />
       <div className="space-y-0.5 pb-4">
         <ClickUpNavItem to="/all-tasks" label="All Workspace Tasks" icon={Layers} />
-        <ClickUpNavItem to="/teams/all" label="All Teams" icon={Users} />
-        {workspaceTeams.map((t) => (
-          <ClickUpNavItem
-            key={t._id}
-            to={`/teams/${t._id}`}
-            label={t.name}
-            icon={Building2}
-          />
-        ))}
+        <ExpandableNavItem
+          to="/teams/all"
+          label="All Teams"
+          icon={Users}
+          badge={workspaceTeams.length > 0 ? workspaceTeams.length : undefined}
+        >
+          {workspaceTeams.length > 0 ? (
+            workspaceTeams.map((t) => (
+              <ClickUpNavItem
+                key={t._id}
+                to={`/teams/${t._id}`}
+                label={t.name}
+                icon={Building2}
+              />
+            ))
+          ) : (
+            <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No teams yet</p>
+          )}
+        </ExpandableNavItem>
       </div>
     </div>
   );
@@ -718,7 +748,7 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
   const { data: unreadCount = 0 } = useUnreadCount();
   const { data: home } = useHomeOverview();
   const { data: projectsData } = useProjects({ limit: 500 });
-  const { data: teamsData } = useTeams({ limit: 50 });
+  const { data: teamsData } = useTeams({ limit: 100 });
   const { data: usersData } = useUsers({ limit: 30 });
 
   const projects = projectsData?.data ?? [];
@@ -738,6 +768,7 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
           unreadCount={unreadCount}
           projects={projects}
           home={home}
+          teams={teamsData?.data ?? []}
           users={users}
           user={user}
         />

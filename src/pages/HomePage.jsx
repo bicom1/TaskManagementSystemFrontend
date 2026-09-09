@@ -118,7 +118,7 @@ export default function HomePage() {
   const comments = cards?.assigned_comments || [];
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="page-shell">
       {/* Header — clear, calm */}
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">

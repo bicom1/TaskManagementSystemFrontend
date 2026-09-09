@@ -333,8 +333,14 @@ export default function NotificationsPage() {
       className={cn(
         'mx-auto flex h-full min-h-0 w-full flex-col',
         view === 'chat'
-          ? cn('px-3 pb-2 pt-2 lg:px-6', displayMode === 'fullscreen' ? 'max-w-[1600px]' : 'max-w-6xl')
-          : cn('px-4 py-4 lg:px-8', displayMode === 'fullscreen' ? 'max-w-[1600px]' : 'max-w-4xl')
+          ? cn(
+              'px-3 pb-2 pt-2 lg:px-6',
+              displayMode === 'fullscreen' ? 'max-w-[1600px]' : 'max-w-[1366px]'
+            )
+          : cn(
+              'px-4 py-4 lg:px-8',
+              displayMode === 'fullscreen' ? 'max-w-[1600px]' : 'max-w-[1366px]'
+            )
       )}
     >
       <div className={cn('shrink-0', view === 'chat' ? 'mb-2' : 'mb-4')}>

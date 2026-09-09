@@ -65,7 +65,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[800px] px-4 py-8 lg:px-8">
+    <div className="page-shell">
       <div className="mb-8">
         <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-graphite">
           Account

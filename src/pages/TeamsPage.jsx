@@ -82,7 +82,7 @@ export default function TeamsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1366px] px-4 py-8 lg:px-8">
+    <div className="page-shell">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-graphite">

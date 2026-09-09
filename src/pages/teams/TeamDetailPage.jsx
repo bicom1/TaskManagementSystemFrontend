@@ -87,7 +87,7 @@ export default function TeamDetailPage() {
     'Department';
 
   return (
-    <div className="px-4 py-6 lg:px-8">
+    <div className="page-shell">
       <Link
         to="/teams/all"
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-graphite hover:text-ink"

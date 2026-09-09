@@ -24,15 +24,13 @@ import {
   List,
   Trash2,
   Activity,
-  Search,
-  Settings,
-  Filter,
   ChevronDown,
   Star,
   Calendar,
   Flag,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useProjectFavoritesStore } from '@/features/projects/projectFavoritesStore';
 import { useProject, useUpdateProject } from '@/features/projects/hooks/useProjects';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import {
@@ -632,6 +630,10 @@ export default function ProjectBoardPage() {
   const { id: projectId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const isFavorite = useProjectFavoritesStore((s) =>
+    s.favoriteIds.includes(String(projectId))
+  );
+  const toggleFavorite = useProjectFavoritesStore((s) => s.toggleFavorite);
   const [searchParams, setSearchParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
 
@@ -959,12 +961,21 @@ export default function ProjectBoardPage() {
             </h1>
             <button
               type="button"
-              className="rounded-md p-1 text-graphite transition hover:bg-cloud hover:text-primary"
-              title="Favorite"
+              onClick={() => {
+                toggleFavorite(projectId);
+                toast.success(
+                  isFavorite ? 'Removed from favorites' : 'Added to favorites'
+                );
+              }}
+              aria-pressed={isFavorite}
+              className={cn(
+                'rounded-md p-1 transition hover:bg-cloud',
+                isFavorite ? 'text-amber-500' : 'text-graphite hover:text-primary'
+              )}
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
             >
-              <Star className="h-4 w-4" />
+              <Star className={cn('h-4 w-4', isFavorite && 'fill-current')} />
             </button>
-            <ChevronDown className="h-4 w-4 shrink-0 text-steel" />
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -1026,27 +1037,6 @@ export default function ProjectBoardPage() {
           <SubtasksMenu value={subtaskMode} onChange={setSubtaskMode} />
         </div>
         <div className="flex items-center gap-0.5 text-graphite">
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-cloud hover:text-ink"
-            title="Filter"
-          >
-            <Filter className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-cloud hover:text-ink"
-            title="Search"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-cloud hover:text-ink"
-            title="Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
           <Button
             size="sm"
             onClick={openCreate}

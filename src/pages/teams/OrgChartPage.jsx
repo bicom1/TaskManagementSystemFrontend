@@ -46,7 +46,7 @@ export default function OrgChartPage() {
   };
 
   return (
-    <div className="px-4 py-6 lg:px-8">
+    <div className="page-shell">
       <h1 className="page-title mb-2 text-ink">Org Chart</h1>
       <p className="mb-8 text-[13.5px] text-graphite">
         Workspace hierarchy by department and team lead.

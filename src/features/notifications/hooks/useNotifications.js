@@ -9,6 +9,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { playMessageNotifySound } from '../../../lib/notifySound';
 import { ROLES, normalizeRole } from '@/lib/roles';
 import { SYSTEM_ONLY_NOTIFICATION_TYPES } from '@/features/inbox/inboxNotificationTypes';
+import { isDuplicateEvent } from '@/lib/socketDedupe';
 
 export const NOTIF_LIST_KEY = 'notifications';
 export const NOTIF_COUNT_KEY = 'notifications-unread-count';
@@ -134,6 +135,7 @@ export function useLiveNotifications() {
   const navigate = useNavigate();
   const token = useAuthStore((s) => s.accessToken);
   const role = useAuthStore((s) => s.user?.role);
+  const userId = useAuthStore((s) => s.user?._id);
 
   useEffect(() => {
     if (!token) return undefined;
@@ -142,6 +144,10 @@ export function useLiveNotifications() {
     const isSuperadmin = normalizeRole(role) === ROLES.SUPERADMIN;
 
     const handleNew = (notification) => {
+      // One toast and one badge increment per notification, however many times
+      // the socket delivers it.
+      if (isDuplicateEvent(`notification:${notification?._id}`)) return;
+
       // Members never surface Superadmin system events (delete user/project/task, …)
       if (!isSuperadmin && isSystemNotification(notification)) {
         return;
@@ -171,9 +177,15 @@ export function useLiveNotifications() {
         return;
       }
 
+      // Self-triggered ("You created …") — the inbox entry and badge still update
+      // above, but the mutation already toasted, so don't toast the same act twice.
+      const senderId = String(notification?.sender?._id || notification?.sender || '');
+      if (userId && senderId === String(userId)) return;
+
       const deleteTypes = new Set(['task_deleted', 'project_deleted', 'user_deleted']);
       if (deleteTypes.has(notification?.type)) {
         toast.success(notification.message || 'Item deleted', {
+          id: `notification:${notification?._id}`,
           duration: 6000,
           description: 'Open Inbox → Activity for details',
           action: {
@@ -185,6 +197,7 @@ export function useLiveNotifications() {
       }
 
       toast(notification.message, {
+        id: `notification:${notification?._id}`,
         duration: 8000,
         action: isTaskAssigned
           ? {
@@ -213,5 +226,5 @@ export function useLiveNotifications() {
       socket.off('task:created', refreshInbox);
       socket.off('task:updated', refreshInbox);
     };
-  }, [queryClient, navigate, token, role]);
+  }, [queryClient, navigate, token, role, userId]);
 }

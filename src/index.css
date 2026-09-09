@@ -306,6 +306,36 @@ th, td, time, [data-numeric], .tabular-nums {
 }
 
 /* ============================================================
+   Page Shell
+   ============================================================ */
+
+/* The single content container for everything right of the sidebar.
+   Pages used to size themselves (max-w-3xl / 5xl / 7xl / 1100 / 1280 / 1300 / 1366px),
+   so the content column jumped width on every navigation. One width lives here —
+   pages must not set their own mx-auto / max-w-* / outer padding. */
+.page-shell {
+  width: 100%;
+  max-width: 1366px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  padding-block: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .page-shell {
+    padding-inline: 2rem;
+  }
+}
+
+/* Same column, for pages that own the full shell height and scroll internally
+   (Inbox, board views) — width only, no vertical padding. */
+.page-shell-flush {
+  width: 100%;
+  max-width: 1366px;
+  margin-inline: auto;
+}
+
+/* ============================================================
    Typography Utilities
    ============================================================ */
 

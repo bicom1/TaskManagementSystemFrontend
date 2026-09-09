@@ -58,14 +58,14 @@ export default function ProjectsPage() {
   // Only block the page on the first load — keep cards visible while refreshing
   if (isPending && !data) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-8">
+      <div className="page-shell">
         <LoadingScreen />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[1366px] px-4 py-8 lg:px-8">
+    <div className="page-shell">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-graphite">

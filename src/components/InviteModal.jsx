@@ -13,7 +13,7 @@ import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useAuthStore } from '@/store/authStore';
 import {
   getInvitableRolesForDepartment,
-  getMainDepartments,
+  getSelectableDepartments,
   resolveDepartmentCode,
   ROLES,
 } from '@/lib/roles';
@@ -45,7 +45,10 @@ export function InviteModal({
   const { data: teamsData } = useTeams({ limit: 100 });
   const allDepartments = departmentsData?.data ?? [];
   /** Invite form: SEO · Development · UI/UX Designing only */
-  const mainDepartments = useMemo(() => getMainDepartments(allDepartments), [allDepartments]);
+  const mainDepartments = useMemo(
+    () => getSelectableDepartments(allDepartments),
+    [allDepartments]
+  );
   const mainDepartmentIds = useMemo(
     () => new Set(mainDepartments.map((d) => String(d._id))),
     [mainDepartments]

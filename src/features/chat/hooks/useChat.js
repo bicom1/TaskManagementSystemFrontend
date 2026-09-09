@@ -9,6 +9,7 @@ import { playMessageNotifySound } from '../../../lib/notifySound';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { getActiveChatId, setActiveChatId } from '../chatActiveStore';
 import { toastError } from '@/lib/toast';
+import { isDuplicateEvent } from '@/lib/socketDedupe';
 
 export const CHAT_CONVERSATIONS_KEY = 'chat-conversations';
 export const CHAT_MESSAGES_KEY = 'chat-messages';
@@ -255,6 +256,9 @@ export function useLiveChatNotifications() {
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
       // Do not append here — useLiveChat owns the thread cache (avoids duplicate bubbles).
 
+      // One toast and one sound per message, however many times it is delivered.
+      if (isDuplicateEvent(`chat:message:${message?._id}`)) return;
+
       const fromId = String(message.from?._id || message.from);
       if (!userId || fromId === String(userId)) return;
 
@@ -267,6 +271,7 @@ export function useLiveChatNotifications() {
       playMessageNotifySound();
 
       toast(`${name} sent you a message`, {
+        id: `chat:${message?._id}`,
         description: preview,
         duration: 5500,
         action: {

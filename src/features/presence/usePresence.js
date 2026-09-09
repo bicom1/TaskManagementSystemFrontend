@@ -100,6 +100,14 @@ export function useLiveUsers() {
             total: typeof old.total === 'number' ? Math.max(0, old.total - 1) : next.length,
           };
         });
+        queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
+        queryClient.invalidateQueries({ queryKey: ['chat-people'] });
+        queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
+        queryClient.invalidateQueries({ queryKey: ['task-board'] });
+        queryClient.invalidateQueries({ queryKey: ['task'] });
+        queryClient.invalidateQueries({ queryKey: ['teams'] });
+        queryClient.invalidateQueries({ queryKey: ['home'] });
       }
 
       refresh();

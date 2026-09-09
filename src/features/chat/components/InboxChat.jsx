@@ -8,8 +8,6 @@ import {
   MessageSquare,
   Users,
   Building2,
-  Copy,
-  Check,
   Hash,
   Paperclip,
   X,
@@ -27,11 +25,12 @@ import { ChatImage, FileThumb } from '@/features/chat/components/ChatImage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingScreen } from '@/components/ui/Spinner';
-import { toastSuccess, toastError } from '@/lib/toast';
+import { toastError } from '@/lib/toast';
 import {
   useChatPeople,
   useChatDirectory,
   useConversations,
+  useConversation,
   useConversationMessages,
   useLoadOlderMessages,
   useStartDm,
@@ -110,7 +109,10 @@ function conversationSubtitle(conversation, currentUserId) {
     const n = conversation.participants?.length || 0;
     return `Team channel · ${n} member${n === 1 ? '' : 's'}`;
   }
-  if (conversation?.type === 'department') return 'Department channel';
+  if (conversation?.type === 'department') {
+    const n = conversation.participants?.length || 0;
+    return n ? `Department group · ${n} members` : 'Department group';
+  }
   if (conversation?.type === 'task') return 'Task discussion';
   if (conversation?.type === 'project') return 'Project channel';
   return '';
@@ -249,13 +251,13 @@ export function InboxChat() {
   const [mentionQuery, setMentionQuery] = useState('');
   const [pendingMentions, setPendingMentions] = useState([]);
   const [typingUser, setTypingUser] = useState(null);
-  const [copied, setCopied] = useState(false);
-  const [sidebarMode, setSidebarMode] = useState('chats'); 
+  const [sidebarMode, setSidebarMode] = useState('chats');
   const [pendingFiles, setPendingFiles] = useState([]);
   const [pendingLinks, setPendingLinks] = useState([]);
   const [linkDraft, setLinkDraft] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
   const [linkOpen, setLinkOpen] = useState(false);
+  const [pendingGroupTitle, setPendingGroupTitle] = useState('');
 
   const bottomRef = useRef(null);
   const messagesScrollRef = useRef(null);
@@ -284,7 +286,7 @@ export function InboxChat() {
 
   const { data: directory } = useChatDirectory(true);
   const myTeams = uniqueById(directory?.myTeams ?? directory?.teams ?? []);
-  const departments = uniqueById(directory?.departments ?? []);
+  const departments = uniqueById(directory?.departmentGroups ?? directory?.departments ?? []);
   const limits = directory?.limits || {
     maxFiles: CHAT_LIMITS.MAX_FILES,
     maxLinks: CHAT_LIMITS.MAX_LINKS,
@@ -334,12 +336,58 @@ export function InboxChat() {
     [activeId, userId]
   );
 
-  useLiveChat(activeId, { onTyping });
+  const openConversation = useCallback(
+    (id, meta = {}) => {
+      setActiveId(id);
+      if (meta.title) setPendingGroupTitle(meta.title);
+      else if (!id) setPendingGroupTitle('');
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('view', 'chat');
+          if (id) next.set('chat', String(id));
+          else next.delete('chat');
+          next.delete('dm');
+          return next;
+        },
+        { replace: true }
+      );
+      setSidebarMode('chats');
+      setPeopleQuery('');
+      setPendingFiles([]);
+      setPendingLinks([]);
+      setLinkOpen(false);
+    },
+    [setSearchParams]
+  );
 
-  const activeConversation = useMemo(
+  useLiveChat(activeId, {
+    onTyping,
+  });
+
+  const activeConversationFromList = useMemo(
     () => conversations.find((c) => String(c._id) === String(activeId)),
     [conversations, activeId]
   );
+  const { data: fetchedConversation } = useConversation(
+    activeId && !activeConversationFromList ? activeId : null
+  );
+  const activeConversation = useMemo(() => {
+    const base = activeConversationFromList || fetchedConversation || null;
+    if (!base) {
+      if (!activeId || !pendingGroupTitle) return null;
+      return {
+        _id: activeId,
+        type: 'department',
+        title: pendingGroupTitle,
+        participants: [],
+      };
+    }
+    if (pendingGroupTitle && !base.title) {
+      return { ...base, title: pendingGroupTitle };
+    }
+    return base;
+  }, [activeConversationFromList, fetchedConversation, activeId, pendingGroupTitle]);
 
   const mentionCandidates = useMemo(() => {
     const participants = activeConversation?.participants || [];
@@ -401,23 +449,6 @@ export function InboxChat() {
     scrollMessagesToBottom(true);
   }, [activeId, messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openConversation = (id) => {
-    setActiveId(id);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set('view', 'chat');
-      if (id) next.set('chat', String(id));
-      else next.delete('chat');
-      next.delete('dm');
-      return next;
-    }, { replace: true });
-    setSidebarMode('chats');
-    setPeopleQuery('');
-    setPendingFiles([]);
-    setPendingLinks([]);
-    setLinkOpen(false);
-  };
-
   /** WhatsApp-style: tap a person → open their DM immediately */
   const handleStartDm = (person) => {
     if (!person?._id || startDm.isPending) return;
@@ -439,16 +470,34 @@ export function InboxChat() {
   };
 
   const handleOpenTeamChat = (team) => {
+    const title = team?.name || 'Team chat';
     const existing = conversations.find(
       (c) =>
         c.type === 'team' && String(c.team?._id || c.team) === String(team._id)
     );
     if (existing) {
-      openConversation(existing._id);
+      openConversation(existing._id, { title: existing.title || title });
       return;
     }
     startTeam.mutate(team._id, {
-      onSuccess: (c) => openConversation(c._id),
+      onSuccess: (c) => openConversation(c._id, { title: c?.title || title }),
+    });
+  };
+
+  /** Open department group with its real name (WhatsApp-style). */
+  const handleOpenDepartmentGroup = (dept) => {
+    if (!dept?._id || startDept.isPending) return;
+    const title = dept.name || 'Department group';
+    setPendingGroupTitle(title);
+
+    // Always sync roster via API so every member is in the group, then open.
+    startDept.mutate(dept._id, {
+      onSuccess: (c) => {
+        if (c?._id) {
+          openConversation(c._id, { title: c.title || title });
+        }
+      },
+      onError: (err) => toastError(err, 'Could not open department group'),
     });
   };
 
@@ -553,30 +602,14 @@ export function InboxChat() {
     setPendingLinks([]);
   };
 
-  const shareLink =
-    activeConversation?.shareUrl ||
-    (activeId ? `${window.location.origin}/inbox?chat=${activeId}` : '');
-
-  const copyShareLink = async () => {
-    if (!shareLink) return;
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      setCopied(true);
-      toastSuccess('Chat link copied');
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toastError('Could not copy link');
-    }
-  };
-
   const canSend =
     Boolean(draft.trim()) || pendingFiles.length > 0 || pendingLinks.length > 0;
 
   const listForSidebar =
     sidebarMode === 'chats'
       ? conversations
-      : sidebarMode === 'teams'
-        ? teamChats
+      : sidebarMode === 'groups'
+        ? conversations.filter((c) => c.type === 'department' || c.type === 'team')
         : [];
 
   return (
@@ -586,13 +619,13 @@ export function InboxChat() {
           <div>
             <h2 className="text-[15px] font-semibold tracking-tight text-ink">Inbox</h2>
             <p className="text-[11px] text-graphite">
-              Direct messages · team channels · media &amp; links
+              Direct messages · department groups · media
             </p>
           </div>
           <div className="flex gap-1 rounded-xl bg-cloud p-1">
             {[
               { id: 'chats', label: 'Chats', icon: MessageSquare },
-              { id: 'teams', label: 'Teams', icon: Hash },
+              { id: 'groups', label: 'Groups', icon: Building2 },
               { id: 'people', label: 'People', icon: Users },
             ].map((tab) => (
               <button
@@ -699,34 +732,38 @@ export function InboxChat() {
                   })}
               </ul>
             </div>
-          ) : sidebarMode === 'teams' ? (
+          ) : sidebarMode === 'groups' ? (
             <div className="space-y-3 p-2">
               <div>
                 <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
-                  Your teams
+                  Department groups
                 </p>
-                {myTeams.length === 0 ? (
+                {departments.length === 0 ? (
                   <p className="px-2 py-3 text-xs text-graphite">
-                    Join a team to get a shared team channel for leads and employees.
+                    Join a department to open its group chat — everyone in that department is included.
                   </p>
                 ) : (
                   <ul className="space-y-0.5">
-                    {myTeams.map((team) => (
-                      <li key={team._id}>
+                    {departments.map((dept) => (
+                      <li key={dept._id}>
                         <button
                           type="button"
-                          onClick={() => handleOpenTeamChat(team)}
-                          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-paper"
+                          disabled={startDept.isPending}
+                          onClick={() => handleOpenDepartmentGroup(dept)}
+                          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-paper disabled:opacity-60"
                         >
                           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-on-ink">
-                            <Hash className="h-4 w-4" />
+                            <Building2 className="h-4 w-4" />
                           </span>
-                          <span className="min-w-0">
+                          <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-medium text-ink">
-                              {team.name}
+                              {dept.name}
                             </span>
                             <span className="block truncate text-[11px] text-graphite">
-                              {team.department?.name || 'Team channel'} · lead &amp; members
+                              Group ·{' '}
+                              {dept.memberCount > 0
+                                ? `${dept.memberCount} members`
+                                : 'All department members'}
                             </span>
                           </span>
                         </button>
@@ -735,27 +772,30 @@ export function InboxChat() {
                   </ul>
                 )}
               </div>
-              {departments.length > 0 && (
+              {myTeams.length > 0 && (
                 <div>
                   <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
-                    Departments
+                    Team channels
                   </p>
                   <ul className="space-y-0.5">
-                    {departments.slice(0, 8).map((dept) => (
-                      <li key={dept._id}>
+                    {myTeams.map((team) => (
+                      <li key={team._id}>
                         <button
                           type="button"
-                          onClick={() =>
-                            startDept.mutate(dept._id, {
-                              onSuccess: (c) => openConversation(c._id),
-                              onError: (err) =>
-                                toastError(err, 'Could not open channel'),
-                            })
-                          }
-                          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-paper"
+                          onClick={() => handleOpenTeamChat(team)}
+                          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-paper"
                         >
-                          <Building2 className="h-4 w-4 text-graphite" />
-                          <span className="truncate">{dept.name}</span>
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cloud text-ink">
+                            <Hash className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-ink">
+                              {team.name}
+                            </span>
+                            <span className="block truncate text-[11px] text-graphite">
+                              {team.department?.name || 'Team'} · lead &amp; members
+                            </span>
+                          </span>
                         </button>
                       </li>
                     ))}
@@ -773,8 +813,8 @@ export function InboxChat() {
               <Button type="button" variant="outline" size="sm" onClick={() => setSidebarMode('people')}>
                 Message a person
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setSidebarMode('teams')}>
-                Open team chat
+              <Button type="button" variant="outline" size="sm" onClick={() => setSidebarMode('groups')}>
+                Open department group
               </Button>
             </div>
           ) : (
@@ -813,7 +853,11 @@ export function InboxChat() {
                         </span>
                       ) : (
                         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/90 text-on-ink">
-                          <Hash className="h-4 w-4" />
+                          {c.type === 'department' ? (
+                            <Building2 className="h-4 w-4" />
+                          ) : (
+                            <Hash className="h-4 w-4" />
+                          )}
                         </span>
                       )}
                       <span className="min-w-0 flex-1">
@@ -837,7 +881,7 @@ export function InboxChat() {
                         ) : null}
                         {c.type === 'team' || c.type === 'department' ? (
                           <span className="mt-0.5 inline-block text-[10px] font-medium uppercase tracking-wide text-graphite/80">
-                            {c.type}
+                            {c.type === 'department' ? 'Group' : 'Team'}
                           </span>
                         ) : null}
                       </span>
@@ -866,10 +910,10 @@ export function InboxChat() {
               <MessageSquare className="h-7 w-7 text-graphite" />
             </div>
             <div>
-              <p className="text-base font-semibold text-ink">Professional workplace chat</p>
+              <p className="text-base font-semibold text-ink">Workplace chat</p>
               <p className="mt-1 max-w-md text-sm text-graphite">
-                Message colleagues one-to-one, or open a team channel where the lead and all
-                employees on that team can talk, share media, documents, and links.
+                Message anyone one-to-one, or open your department group — everyone in that
+                department is in the same chat, like WhatsApp.
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-2">
@@ -877,13 +921,13 @@ export function InboxChat() {
                 <Users className="h-4 w-4" />
                 Direct message
               </Button>
-              <Button type="button" onClick={() => setSidebarMode('teams')}>
-                <Hash className="h-4 w-4" />
-                Team chat
+              <Button type="button" onClick={() => setSidebarMode('groups')}>
+                <Building2 className="h-4 w-4" />
+                Department groups
               </Button>
             </div>
             <p className="max-w-sm text-[11px] text-graphite">
-              Recent DMs: {dmChats.length} · Team channels open: {teamChats.length}
+              Recent DMs: {dmChats.length} · Groups: {departments.length}
             </p>
           </div>
         ) : (
@@ -895,12 +939,15 @@ export function InboxChat() {
                 </h2>
                 <p className="truncate text-xs text-graphite">
                   {conversationSubtitle(activeConversation, userId)}
-                  {activeConversation?.type === 'team' && activeConversation?.participants?.length
-                    ? ` · ${uniqueById(activeConversation.participants)
-                        .map((p) => p.name)
-                        .filter(Boolean)
-                        .slice(0, 6)
-                        .join(', ')}${(activeConversation.participants.length || 0) > 6 ? '…' : ''}`
+                  {activeConversation?.type === 'team' ||
+                  activeConversation?.type === 'department'
+                    ? activeConversation?.participants?.length
+                      ? ` · ${uniqueById(activeConversation.participants)
+                          .map((p) => p.name)
+                          .filter(Boolean)
+                          .slice(0, 6)
+                          .join(', ')}${(activeConversation.participants.length || 0) > 6 ? '…' : ''}`
+                      : ''
                     : ''}
                   {typingUser ? ' · typing…' : ''}
                 </p>
@@ -918,17 +965,6 @@ export function InboxChat() {
                   />
                 ) : null}
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={copyShareLink}
-                title="Copy chat link"
-                className="h-8 rounded-lg normal-case tracking-normal"
-              >
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
-                Share
-              </Button>
             </header>
 
             <div
@@ -1159,34 +1195,10 @@ export function InboxChat() {
                       }
                     }}
                     rows={2}
-                    placeholder="Write a message… @mention · attach files · share links"
+                    placeholder="Write a message… @mention · attach files"
                     className="w-full resize-none bg-transparent px-1 py-1.5 text-sm text-ink outline-none placeholder:text-graphite"
                   />
                 </div>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  title="Copy chat URL into thread"
-                  onClick={() => {
-                    if (!activeId) return;
-                    sendMessage.mutate({
-                      body: 'Shared a chat link',
-                      shareLinks: [
-                        {
-                          url: shareLink,
-                          label: 'Open this chat',
-                          kind: 'conversation',
-                          refId: activeId,
-                        },
-                      ],
-                    });
-                  }}
-                  disabled={sendMessage.isPending}
-                  className="h-9 w-9 shrink-0 rounded-lg"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
                 <Button
                   type="button"
                   onClick={(e) => {

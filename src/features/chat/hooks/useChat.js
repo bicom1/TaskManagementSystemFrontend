@@ -17,9 +17,15 @@ export const CHAT_PEOPLE_KEY = 'chat-people';
 
 export function useChatDirectory(enabled = true) {
   const token = useAuthStore((s) => s.accessToken);
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ['chat-directory'],
-    queryFn: () => chatApi.directory(),
+    queryFn: async () => {
+      const data = await chatApi.directory();
+      // Department groups are ensured server-side — refresh chat list to show them.
+      queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
+      return data;
+    },
     enabled: enabled && Boolean(token),
     staleTime: 30_000,
   });
@@ -42,6 +48,16 @@ export function useConversations() {
     queryKey: [CHAT_CONVERSATIONS_KEY],
     queryFn: () => chatApi.listConversations({ limit: 50 }),
     enabled: Boolean(token),
+  });
+}
+
+export function useConversation(conversationId) {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['chat-conversation', conversationId],
+    queryFn: () => chatApi.getConversation(conversationId),
+    enabled: Boolean(conversationId && token),
+    staleTime: 15_000,
   });
 }
 
@@ -119,6 +135,7 @@ export function useStartDepartmentChat() {
     mutationFn: (departmentId) => chatApi.startDepartmentChat(departmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
     },
     onError: (error) => {
       toastError(error, 'Could not open department chat');

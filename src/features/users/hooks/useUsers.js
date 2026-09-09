@@ -84,6 +84,13 @@ export function useDeactivateUser() {
       removeUserFromUsersCache(queryClient, id);
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-people'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['task-board'] });
+      queryClient.invalidateQueries({ queryKey: ['task'] });
+      queryClient.invalidateQueries({ queryKey: ['home'] });
       toastSuccess(`${data?.name || 'Member'} has been deactivated`);
     },
   });
@@ -123,7 +130,14 @@ export function useDeleteUser() {
       removeUserFromUsersCache(queryClient, id);
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-people'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
       queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['task-board'] });
+      queryClient.invalidateQueries({ queryKey: ['task'] });
+      queryClient.invalidateQueries({ queryKey: ['home'] });
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       const name = data?.deletedName || data?.name || 'Member';
       toastSuccess('Member removed', {

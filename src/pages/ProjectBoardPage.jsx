@@ -1089,7 +1089,14 @@ export default function ProjectBoardPage() {
                 + Add group
               </button>
             </div>
-            <DragOverlay>
+            {/*
+              dropAnimation={null}: the default animation flies the overlay back to
+              the dragged card's ORIGINAL rect (measured at drag start) before
+              unmounting. The board updates optimistically, so the card is already
+              in its new column — the return flight reads as the task moving
+              backwards. Dropping the animation lets the optimistic position stand.
+            */}
+            <DragOverlay dropAnimation={null}>
               {activeTask ? (
                 <div className="w-72 rounded-xl border border-primary bg-paper p-3 opacity-90 shadow-lg">
                   <p className="text-xs text-graphite">{activeTask.key}</p>

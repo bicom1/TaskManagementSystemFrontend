@@ -112,7 +112,7 @@ export function storeSection(sectionId) {
 export function getSectionDefaultPath(sectionId) {
   const map = {
     home: '/',
-    planner: '/home/agenda',
+    planner: '/home/my-tasks?view=today',
     ai: '/ai',
     teams: '/teams/all',
     dashboard: '/boards',

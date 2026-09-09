@@ -86,8 +86,9 @@ views.forEach((view, i) => {
 });
 
 // A rail icon must always land on its own section, or the rail fights itself.
+// Compare on the pathname only — that is what react-router hands the shell.
 for (const [, section] of VIEW_SECTIONS) {
-  const target = getSectionDefaultPath(section);
+  const target = getSectionDefaultPath(section).split('?')[0];
   const landed = sectionOwnsPath(section, target) ? section : getSectionFromPath(target);
   checked += 1;
   if (landed !== section) {

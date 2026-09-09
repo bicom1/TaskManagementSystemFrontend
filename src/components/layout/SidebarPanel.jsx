@@ -3,7 +3,6 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Inbox,
   MessageSquareText,
-  Phone,
   UserCheck,
   MoreHorizontal,
   Plus,
@@ -18,7 +17,6 @@ import {
   ChevronDown,
   Settings,
   Clock,
-  Calendar,
   FolderKanban,
   Building2,
   GitBranch,
@@ -73,12 +71,26 @@ function ClickUpNavItem({
   const location = useLocation();
   const prefixActive = matchPrefix && location.pathname.startsWith(matchPrefix);
 
+  // NavLink matches on pathname alone, so sibling links that differ only by query
+  // string (/home/my-tasks?view=today vs ?view=assigned) would all highlight at
+  // once. When a link carries a query, every one of its params must match too.
+  const [, toSearch] = String(to).split('?');
+  const searchActive = useMemo(() => {
+    if (!toSearch) return true;
+    const target = new URLSearchParams(toSearch);
+    const current = new URLSearchParams(location.search);
+    for (const [key, value] of target) {
+      if (current.get(key) !== value) return false;
+    }
+    return true;
+  }, [toSearch, location.search]);
+
   return (
     <NavLink
       to={to}
       end={end}
       className={({ isActive }) => {
-        const active = isActive || prefixActive;
+        const active = (isActive || prefixActive) && searchActive;
         return cn(
           'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium',
           'transition-colors duration-100',
@@ -89,7 +101,7 @@ function ClickUpNavItem({
       }}
     >
       {({ isActive }) => {
-        const active = isActive || prefixActive;
+        const active = (isActive || prefixActive) && searchActive;
         return (
           <>
             <span
@@ -290,7 +302,6 @@ function HomeView({
 
   // Dynamic counts from live backend overview
   const assignedCount = home?.cards?.assigned_to_me?.length || 0;
-  const meetingsCount = home?.cards?.meetings?.length || 0;
   const commentsCount = home?.cards?.commentNotifs?.length || 0;
 
   // Every team this user is allowed to see — the same source the All Teams page
@@ -329,12 +340,6 @@ function HomeView({
           icon={Inbox}
           badge={unreadCount > 0 ? unreadCount : undefined}
           badgeColor="bg-brand-50 text-brand-700"
-        />
-        <ClickUpNavItem
-          to="/home/meetings"
-          label="Meetings"
-          icon={Phone}
-          badge={meetingsCount > 0 ? meetingsCount : undefined}
         />
         <ClickUpNavItem
           to="/home/my-tasks"
@@ -695,7 +700,6 @@ function DashboardView({ onCollapse, onCreateClick, onAddProject, projects, user
    ──────────────────────────────────────────────────────────── */
 function PlannerView({ home }) {
   const assignedCount = home?.cards?.assigned_to_me?.length || 0;
-  const meetingsCount = home?.cards?.meetings?.length || 0;
 
   return (
     <div className="flex-1 overflow-y-auto px-2.5 py-3 select-none">
@@ -703,18 +707,11 @@ function PlannerView({ home }) {
         <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)] tracking-[-0.01em]">Planner</h2>
       </div>
       <div className="space-y-0.5">
-        <ClickUpNavItem to="/home/agenda" end label="Calendar &amp; Agenda" icon={Calendar} />
         <ClickUpNavItem
           to="/home/my-tasks?view=today"
           label="Today &amp; Overdue"
           icon={Clock}
           badge={assignedCount > 0 ? assignedCount : undefined}
-        />
-        <ClickUpNavItem
-          to="/home/meetings"
-          label="Meetings Schedule"
-          icon={Phone}
-          badge={meetingsCount > 0 ? meetingsCount : undefined}
         />
         <ClickUpNavItem to="/home/my-tasks?view=assigned" label="Assigned Tasks" icon={UserCheck} />
       </div>

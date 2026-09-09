@@ -43,7 +43,7 @@ export function CreateListModal({ open, onClose, onUseTemplates }) {
           );
         }}
       >
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor="list-name">
             Name <span className="text-danger-text">*</span>
           </Label>
@@ -56,7 +56,7 @@ export function CreateListModal({ open, onClose, onUseTemplates }) {
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor="list-space">Space</Label>
           <select
             id="list-space"
@@ -73,7 +73,7 @@ export function CreateListModal({ open, onClose, onUseTemplates }) {
           </select>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor="list-developer">Developer</Label>
           <select
             id="list-developer"

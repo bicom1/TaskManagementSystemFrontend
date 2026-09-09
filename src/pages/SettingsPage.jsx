@@ -169,20 +169,6 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>In-app alerts for assignments, comments, and invites</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-graphite">
-              You receive inbox notifications for task assignments, status changes, due dates,
-              comments, and teammate invites. Email delivery is used when SMTP is configured on the
-              server.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Session</CardTitle>
             <CardDescription>Sign out of this device</CardDescription>
           </CardHeader>

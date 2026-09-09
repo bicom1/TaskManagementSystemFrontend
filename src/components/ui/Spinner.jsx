@@ -97,9 +97,14 @@ export function CardGridSkeleton({ cards = 4 }) {
  *   description — Supporting text
  *   action      — React node (e.g. a Button)
  */
-export function EmptyState({ icon: Icon, title, description, action }) {
+export function EmptyState({ icon: Icon, title, description, action, className }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border-base bg-surface-1 px-6 py-14 text-center">
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center rounded-xl border border-dashed border-border-base bg-surface-1 px-6 py-14 text-center',
+        className
+      )}
+    >
       {Icon && (
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-2">
           <Icon className="h-6 w-6 text-text-muted" />

@@ -343,25 +343,30 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
         </div>
 
         {visible.length === 0 ? (
-          <EmptyState
-            icon={Bell}
-            title={
-              activeBucket === 'cleared'
-                ? 'Nothing cleared yet'
-                : activeBucket === 'later'
-                  ? 'Nothing saved for later'
-                  : activeBucket === 'all'
-                    ? 'No activity'
-                    : activeBucket === 'other'
-                      ? 'No other activity'
-                      : 'All caught up'
-            }
-            description={
-              activeBucket === 'primary'
-                ? 'Open or dismiss items to move them to Other. Customize importance in settings.'
-                : 'Activity from your workspace will show in this tab.'
-            }
-          />
+          // Fill the rest of the panel — the list branch below is flex-1, so an
+          // intrinsically-sized empty state left white space under it.
+          <div className="min-h-0 flex-1 p-2">
+            <EmptyState
+              className="h-full"
+              icon={Bell}
+              title={
+                activeBucket === 'cleared'
+                  ? 'Nothing cleared yet'
+                  : activeBucket === 'later'
+                    ? 'Nothing saved for later'
+                    : activeBucket === 'all'
+                      ? 'No activity'
+                      : activeBucket === 'other'
+                        ? 'No other activity'
+                        : 'All caught up'
+              }
+              description={
+                activeBucket === 'primary'
+                  ? 'Open or dismiss items to move them to Other. Customize importance in settings.'
+                  : 'Activity from your workspace will show in this tab.'
+              }
+            />
+          </div>
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto">
             {groupByDate ? (

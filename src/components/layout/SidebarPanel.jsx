@@ -29,6 +29,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
 import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useTeams } from '@/features/teams/hooks/useTeams';
+import { useConversations } from '@/features/chat/hooks/useChat';
+import { canManageOrg } from '@/lib/roles';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
 import { projectPath } from '@/features/spaces/spaceKinds';
@@ -294,6 +296,7 @@ function HomeView({
   projects,
   home,
   teams = [],
+  conversations = [],
   users,
   user,
 }) {
@@ -309,12 +312,36 @@ function HomeView({
   // made a list labelled "All Teams" show just your own.
   const workspaceTeams = teams;
 
-  // Real workspace colleagues (excluding current user)
-  const colleagues = useMemo(
-    () => users.filter((u) => String(u._id) !== String(user?._id)).slice(0, 6),
-    [users, user?._id]
-  );
-  usePresenceQuery(colleagues.map((m) => m._id));
+  // Recent 1:1 chats that carry messages. This listed every person in the
+  // workspace before, so it read as a directory rather than "your chats".
+  // A Super Admin also sees chats between other people, labelled with both
+  // names, so they can tell at a glance who has been talking to whom.
+  const isSuperAdmin = canManageOrg(user?.role);
+  const recentDms = useMemo(() => {
+    const seen = new Set();
+    const rows = [];
+    for (const c of conversations || []) {
+      if (c.type !== 'dm') continue;
+      const parts = (c.participants || []).filter((p) => p?._id);
+      const mine = parts.some((p) => String(p._id) === String(user?._id));
+      if (!mine && !isSuperAdmin) continue;
+
+      const other = mine ? parts.find((p) => String(p._id) !== String(user?._id)) : parts[0];
+      if (!other?._id || seen.has(String(c._id))) continue;
+      seen.add(String(c._id));
+
+      rows.push({
+        conversationId: c._id,
+        person: other,
+        label: mine
+          ? other.name
+          : parts.map((p) => p.name).filter(Boolean).join(' ↔ '),
+      });
+      if (rows.length >= 8) break;
+    }
+    return rows;
+  }, [conversations, user?._id, isSuperAdmin]);
+  usePresenceQuery(recentDms.map((d) => d.person._id));
 
   return (
     <div className="flex-1 overflow-y-auto px-2.5 py-3 select-none">
@@ -376,29 +403,29 @@ function HomeView({
       {/* Real Direct Messages Section */}
       <SectionTitle title="Direct Messages" />
       <div className="space-y-0.5">
-        {colleagues.length > 0 ? (
-          colleagues.map((member) => (
+        {recentDms.length > 0 ? (
+          recentDms.map(({ conversationId, person, label }) => (
             <NavLink
-              key={member._id}
-              to={`/inbox?view=chat&dm=${member._id}`}
+              key={conversationId}
+              to={`/inbox?view=chat&chat=${conversationId}`}
               className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-700 hover:bg-[#f4f5f7] hover:text-gray-950 transition-colors"
             >
               <div className="relative flex shrink-0">
-                <UserAvatar user={member} size="xs" rounded="full" className="h-4.5 w-4.5 text-[9px]" />
-                <PresenceAvatarDot userId={member._id} person={member} />
+                <UserAvatar user={person} size="xs" rounded="full" className="h-4.5 w-4.5 text-[9px]" />
+                <PresenceAvatarDot userId={person._id} person={person} />
               </div>
               <span className="min-w-0 flex-1">
-                <span className="block truncate">{member.name}</span>
+                <span className="block truncate">{label || person.name}</span>
                 <PresenceIndicator
-                  userId={member._id}
-                  person={member}
+                  userId={person._id}
+                  person={person}
                   className="mt-0.5 text-[10px] font-normal text-gray-500"
                 />
               </span>
             </NavLink>
           ))
         ) : (
-          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No teammates yet</p>
+          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No chats yet</p>
         )}
         <NavLink
           to="/inbox?view=chat"
@@ -746,6 +773,7 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
   const { data: home } = useHomeOverview();
   const { data: projectsData } = useProjects({ limit: 500 });
   const { data: teamsData } = useTeams({ limit: 100 });
+  const { data: conversationsData } = useConversations();
   const { data: usersData } = useUsers({ limit: 30 });
 
   const projects = projectsData?.data ?? [];
@@ -766,6 +794,7 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
           projects={projects}
           home={home}
           teams={teamsData?.data ?? []}
+          conversations={conversationsData?.data ?? []}
           users={users}
           user={user}
         />

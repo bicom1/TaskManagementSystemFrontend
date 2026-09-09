@@ -350,7 +350,7 @@ function HomeView({
         <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)] tracking-[-0.01em]">Home</h2>
         <button
           type="button"
-          onClick={onCreateClick}
+          onClick={handleAddProject}
           className="flex items-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-2.5 py-1 text-[12px] font-semibold text-white transition-colors hover:bg-black"
         >
           <Plus className="h-3.5 w-3.5" />

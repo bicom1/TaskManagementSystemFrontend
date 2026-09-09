@@ -132,7 +132,7 @@ export function AppShell() {
           createButtonRef={createBtnRef}
           onMenuClick={() => setMobileOpen(true)}
           onInvite={() => setInviteOpen(true)}
-          onCreate={() => openCreate({ centered: false })}
+          onCreate={null}
           panelOpen={panelOpen}
           onTogglePanel={() => setPanelOpen((prev) => !prev)}
           activeSection={activeSection}

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/Label';
 import { useCreateProjectModal } from './createProjectShared';
 
 export function CreateListModal({ open, onClose, onUseTemplates }) {
-  const { teams, developers, submit, isPending } = useCreateProjectModal();
+  const { teams, getAssignableConfig, submit, isPending } = useCreateProjectModal();
   const [name, setName] = useState('');
   const [team, setTeam] = useState('');
   const [developer, setDeveloper] = useState('');
@@ -19,14 +19,19 @@ export function CreateListModal({ open, onClose, onUseTemplates }) {
     setTeam(teams[0]?._id || '');
   }, [open, teams]);
 
+  useEffect(() => {
+    setDeveloper('');
+  }, [team]);
+
   const canCreate = name.trim().length >= 2 && Boolean(team);
+  const assignable = getAssignableConfig(team);
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Create List"
-      description="Track tasks, projects, and people in a focused list workspace."
+      title="Create Project"
+      description="Create a project and assign the right team member for delivery."
       size="md"
       variant="premium"
       badge="New list"
@@ -50,7 +55,7 @@ export function CreateListModal({ open, onClose, onUseTemplates }) {
           <Input
             id="list-name"
             autoFocus
-            placeholder="Your list or project name"
+            placeholder="Project name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -74,24 +79,25 @@ export function CreateListModal({ open, onClose, onUseTemplates }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="list-developer">Developer</Label>
+          <Label htmlFor="list-developer">{assignable.label}</Label>
           <select
             id="list-developer"
             className="flex h-10 w-full rounded-lg border border-hairline bg-paper px-3 text-sm"
             value={developer}
             onChange={(e) => setDeveloper(e.target.value)}
+            disabled={!team}
           >
-            <option value="">Select a developer</option>
-            {developers.map((d) => (
+            <option value="">{team ? assignable.placeholder : 'Select a team first'}</option>
+            {assignable.people.map((d) => (
               <option key={d._id} value={d._id}>
                 {d.name}
                 {d.jobTitle ? ` — ${d.jobTitle}` : ''}
               </option>
             ))}
           </select>
-          {!developers.length ? (
+          {team && !assignable.people.length ? (
             <p className="text-xs text-graphite">
-              No developers found in the Development team yet.
+              {assignable.emptyText}
             </p>
           ) : null}
         </div>
@@ -106,7 +112,7 @@ export function CreateListModal({ open, onClose, onUseTemplates }) {
               Cancel
             </Button>
             <Button type="submit" disabled={!canCreate || isPending}>
-              {isPending ? 'Creating…' : 'Create'}
+              {isPending ? 'Creating…' : 'Create Project'}
             </Button>
           </div>
         </div>

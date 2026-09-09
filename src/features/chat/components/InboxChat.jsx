@@ -403,7 +403,14 @@ export function InboxChat() {
 
   const openConversation = (id) => {
     setActiveId(id);
-    setSearchParams(id ? { chat: id } : {});
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('view', 'chat');
+      if (id) next.set('chat', String(id));
+      else next.delete('chat');
+      next.delete('dm');
+      return next;
+    }, { replace: true });
     setSidebarMode('chats');
     setPeopleQuery('');
     setPendingFiles([]);
@@ -411,9 +418,23 @@ export function InboxChat() {
     setLinkOpen(false);
   };
 
+  /** WhatsApp-style: tap a person → open their DM immediately */
   const handleStartDm = (person) => {
-    startDm.mutate(person._id, {
-      onSuccess: (conv) => openConversation(conv._id),
+    if (!person?._id || startDm.isPending) return;
+    const otherId = String(person._id);
+    const existing = conversations.find(
+      (c) =>
+        c.type === 'dm' &&
+        (c.participants || []).some((p) => String(p._id) === otherId)
+    );
+    if (existing?._id) {
+      openConversation(existing._id);
+      return;
+    }
+    startDm.mutate(otherId, {
+      onSuccess: (conv) => {
+        if (conv?._id) openConversation(conv._id);
+      },
     });
   };
 
@@ -613,41 +634,69 @@ export function InboxChat() {
           {sidebarMode === 'people' || peopleQuery.trim() ? (
             <div className="p-2">
               <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
-                Message anyone
+                {peopleQuery.trim() ? 'Search results' : 'People'}
               </p>
               {peopleLoading && (
                 <p className="px-2 py-3 text-xs text-graphite">Searching…</p>
               )}
               {!peopleLoading && people.length === 0 && (
-                <p className="px-2 py-3 text-xs text-graphite">No people matched.</p>
+                <p className="px-2 py-3 text-xs text-graphite">
+                  {peopleQuery.trim()
+                    ? 'No matching members found.'
+                    : 'Type a name to find someone and open chat.'}
+                </p>
               )}
               <ul className="space-y-0.5">
-                {people.filter((p, i, arr) => arr.findIndex((x) => String(x._id) === String(p._id)) === i).map((person) => (
-                  <li key={person._id}>
-                    <button
-                      type="button"
-                      onClick={() => handleStartDm(person)}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-paper"
-                    >
-                      <UserAvatar user={person} size="md" className="h-8 w-8 text-[11px]" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-ink">
-                          {person.name}
-                        </span>
-                        <span className="block truncate text-[11px] text-graphite">
-                          {[getRoleLabel(person.role), person.jobTitle, person.department?.name]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </span>
-                        <PresenceIndicator
-                          userId={person._id}
-                          person={person}
-                          className="mt-0.5"
-                        />
-                      </span>
-                    </button>
-                  </li>
-                ))}
+                {people
+                  .filter(
+                    (p, i, arr) =>
+                      arr.findIndex((x) => String(x._id) === String(p._id)) === i
+                  )
+                  .map((person) => {
+                    const hasChat = dmChats.some((c) =>
+                      (c.participants || []).some(
+                        (p) => String(p._id) === String(person._id)
+                      )
+                    );
+                    return (
+                      <li key={person._id}>
+                        <button
+                          type="button"
+                          disabled={startDm.isPending}
+                          onClick={() => handleStartDm(person)}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition hover:bg-paper disabled:opacity-60"
+                        >
+                          <UserAvatar
+                            user={person}
+                            size="md"
+                            className="h-8 w-8 text-[11px]"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-ink">
+                              {person.name}
+                            </span>
+                            <span className="block truncate text-[11px] text-graphite">
+                              {[
+                                getRoleLabel(person.role),
+                                person.jobTitle,
+                                person.department?.name,
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </span>
+                            <PresenceIndicator
+                              userId={person._id}
+                              person={person}
+                              className="mt-0.5"
+                            />
+                          </span>
+                          <span className="shrink-0 text-[11px] font-medium text-primary">
+                            {hasChat ? 'Open' : 'Chat'}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
               </ul>
             </div>
           ) : sidebarMode === 'teams' ? (

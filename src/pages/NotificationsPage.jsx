@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -327,36 +327,22 @@ export default function NotificationsPage() {
     navigate(`/inbox?${params.toString()}`, { replace: true });
   };
 
-  // Fill the shell with flex only — no absolute positioning (avoids height collapse / ghost scroll).
+  // Shared chrome (header + tabs) stays identical across views so switching
+  // Inbox / Chat / Queries never shifts layout.
   return (
     <div
       className={cn(
-        'mx-auto flex h-full min-h-0 w-full flex-col',
-        view === 'chat'
-          ? cn(
-              'px-3 pb-2 pt-2 lg:px-6',
-              displayMode === 'fullscreen' ? 'max-w-[1600px]' : 'max-w-[1366px]'
-            )
-          : cn(
-              'px-4 py-4 lg:px-8',
-              displayMode === 'fullscreen' ? 'max-w-[1600px]' : 'max-w-[1366px]'
-            )
+        'mx-auto flex h-full min-h-0 w-full flex-col px-4 py-4 lg:px-8',
+        displayMode === 'fullscreen' ? 'max-w-[1600px]' : 'max-w-[1366px]'
       )}
     >
-      <div className={cn('shrink-0', view === 'chat' ? 'mb-2' : 'mb-4')}>
+      <div className="mb-4 shrink-0">
         <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-graphite">Home</p>
-        <h1 className={cn('page-title', view === 'chat' && 'text-xl')}>Inbox</h1>
-        {view !== 'chat' && (
-          <p className="page-subtitle">Task activity, chat, and queries in one place</p>
-        )}
+        <h1 className="page-title">Inbox</h1>
+        <p className="page-subtitle">Task activity, chat, and queries in one place</p>
       </div>
 
-      <div
-        className={cn(
-          'flex shrink-0 gap-1 rounded-lg border border-hairline bg-cloud p-1',
-          view === 'chat' ? 'mb-2' : 'mb-4'
-        )}
-      >
+      <div className="mb-4 flex shrink-0 gap-1 rounded-lg border border-hairline bg-cloud p-1">
         {modes.map((m) => {
           const Icon = m.icon;
           return (
@@ -365,19 +351,25 @@ export default function NotificationsPage() {
               type="button"
               onClick={() => setView(m.id)}
               className={cn(
-                'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                'flex min-h-[40px] flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 view === m.id
                   ? 'bg-paper text-ink shadow-[var(--shadow-soft-lift)]'
                   : 'text-charcoal hover:text-ink'
               )}
             >
-              <Icon className="h-4 w-4" />
-              {m.label}
-              {m.unread > 0 && (
-                <span className="rounded-sm bg-primary px-1.5 py-0.5 text-[10px] font-bold text-on-ink">
-                  {m.unread > 99 ? '99+' : m.unread}
-                </span>
-              )}
+              <Icon className="h-4 w-4 shrink-0" />
+              <span>{m.label}</span>
+              <span
+                className={cn(
+                  'inline-flex min-w-[1.25rem] items-center justify-center rounded-sm px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                  m.unread > 0
+                    ? 'bg-primary text-on-ink'
+                    : 'invisible bg-primary text-on-ink'
+                )}
+                aria-hidden={m.unread <= 0}
+              >
+                {m.unread > 0 ? (m.unread > 99 ? '99+' : m.unread) : '0'}
+              </span>
             </button>
           );
         })}

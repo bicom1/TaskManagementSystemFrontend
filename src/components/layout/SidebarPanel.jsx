@@ -29,8 +29,6 @@ import { useAuthStore } from '@/store/authStore';
 import { useHomeOverview } from '@/features/home/hooks/useHome';
 import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useTeams } from '@/features/teams/hooks/useTeams';
-import { useConversations } from '@/features/chat/hooks/useChat';
-import { canManageOrg } from '@/lib/roles';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
 import { projectPath } from '@/features/spaces/spaceKinds';
@@ -42,12 +40,6 @@ import {
   sortProjectsByFavorite,
   useProjectFavoritesStore,
 } from '@/features/projects/projectFavoritesStore';
-import { UserAvatar } from '@/components/UserAvatar';
-import {
-  PresenceAvatarDot,
-  PresenceIndicator,
-} from '@/features/presence/PresenceIndicator';
-import { usePresenceQuery } from '@/features/presence/usePresence';
 import { cn } from '@/lib/utils';
 import { BrainLogo } from '@/features/ai/components/BrainLogo';
 import { AiUsageRing } from '@/features/ai/components/AiUsageRing';
@@ -296,52 +288,16 @@ function HomeView({
   projects,
   home,
   teams = [],
-  conversations = [],
-  users,
-  user,
 }) {
-  const navigate = useNavigate();
   const handleAddProject = onAddProject || onCreateClick;
 
   // Dynamic counts from live backend overview
   const assignedCount = home?.cards?.assigned_to_me?.length || 0;
-  const commentsCount = home?.cards?.commentNotifs?.length || 0;
 
   // Every team this user is allowed to see — the same source the All Teams page
   // uses. `home.workspace.teams` is only the teams you lead or belong to, which
   // made a list labelled "All Teams" show just your own.
   const workspaceTeams = teams;
-
-  // Recent 1:1 chats that carry messages. This listed every person in the
-  // workspace before, so it read as a directory rather than "your chats".
-  // A Super Admin also sees chats between other people, labelled with both
-  // names, so they can tell at a glance who has been talking to whom.
-  const isSuperAdmin = canManageOrg(user?.role);
-  const recentDms = useMemo(() => {
-    const seen = new Set();
-    const rows = [];
-    for (const c of conversations || []) {
-      if (c.type !== 'dm') continue;
-      const parts = (c.participants || []).filter((p) => p?._id);
-      const mine = parts.some((p) => String(p._id) === String(user?._id));
-      if (!mine && !isSuperAdmin) continue;
-
-      const other = mine ? parts.find((p) => String(p._id) !== String(user?._id)) : parts[0];
-      if (!other?._id || seen.has(String(c._id))) continue;
-      seen.add(String(c._id));
-
-      rows.push({
-        conversationId: c._id,
-        person: other,
-        label: mine
-          ? other.name
-          : parts.map((p) => p.name).filter(Boolean).join(' ↔ '),
-      });
-      if (rows.length >= 8) break;
-    }
-    return rows;
-  }, [conversations, user?._id, isSuperAdmin]);
-  usePresenceQuery(recentDms.map((d) => d.person._id));
 
   return (
     <div className="flex-1 overflow-y-auto px-2.5 py-3 select-none">
@@ -399,59 +355,6 @@ function HomeView({
           </button>
         </div>
       </CollapsibleSection>
-
-      {/* Real Direct Messages Section */}
-      <SectionTitle title="Direct Messages" />
-      <div className="space-y-0.5">
-        {recentDms.length > 0 ? (
-          recentDms.map(({ conversationId, person, label }) => (
-            <NavLink
-              key={conversationId}
-              to={`/inbox?view=chat&chat=${conversationId}`}
-              className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-700 hover:bg-[#f4f5f7] hover:text-gray-950 transition-colors"
-            >
-              <div className="relative flex shrink-0">
-                <UserAvatar user={person} size="xs" rounded="full" className="h-4.5 w-4.5 text-[9px]" />
-                <PresenceAvatarDot userId={person._id} person={person} />
-              </div>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{label || person.name}</span>
-                <PresenceIndicator
-                  userId={person._id}
-                  person={person}
-                  className="mt-0.5 text-[10px] font-normal text-gray-500"
-                />
-              </span>
-            </NavLink>
-          ))
-        ) : (
-          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No chats yet</p>
-        )}
-        <NavLink
-          to="/inbox?view=chat"
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-500 hover:bg-[#f4f5f7] hover:text-gray-900 transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>New message</span>
-        </NavLink>
-        <NavLink
-          to="/inbox?view=chat"
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-700 hover:bg-[#f4f5f7] hover:text-gray-950 transition-colors"
-        >
-          <div className="relative flex shrink-0">
-            <UserAvatar user={user} size="xs" rounded="full" className="h-4.5 w-4.5 text-[9px]" />
-            <PresenceAvatarDot userId={user?._id} person={user} />
-          </div>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate">{user?.name || 'You'} — You</span>
-            <PresenceIndicator
-              userId={user?._id}
-              person={user}
-              className="mt-0.5 text-[10px] font-normal text-gray-500"
-            />
-          </span>
-        </NavLink>
-      </div>
 
       {/* Teams */}
       <SectionTitle title="Teams" />
@@ -773,11 +676,9 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
   const { data: home } = useHomeOverview();
   const { data: projectsData } = useProjects({ limit: 500 });
   const { data: teamsData } = useTeams({ limit: 100 });
-  const { data: conversationsData } = useConversations();
   const { data: usersData } = useUsers({ limit: 30 });
 
   const projects = projectsData?.data ?? [];
-  const users = usersData?.data ?? [];
 
   return (
     <div
@@ -794,9 +695,6 @@ export function SidebarPanel({ activeSection, onInvite, onToggleCollapse, onCrea
           projects={projects}
           home={home}
           teams={teamsData?.data ?? []}
-          conversations={conversationsData?.data ?? []}
-          users={users}
-          user={user}
         />
       )}
       {activeSection === 'ai' && <AIView />}

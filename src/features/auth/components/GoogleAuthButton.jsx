@@ -1,3 +1,6 @@
+import { useSearchParams } from 'react-router-dom';
+import { sanitizeNextPath } from '@/lib/postLoginRedirect';
+
 const INVITE_TOKEN_KEY = 'bw_invite_token';
 
 export function storeInviteToken(token) {
@@ -31,21 +34,24 @@ export function GoogleAuthButton({
   inviteToken = '',
 }) {
   const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api/v1';
+  const [params] = useSearchParams();
 
   const handleClick = () => {
-    const params = new URLSearchParams();
-    params.set('clientUrl', window.location.origin);
+    const qs = new URLSearchParams();
+    qs.set('clientUrl', window.location.origin);
     const hint = String(loginHint || '').trim().toLowerCase();
     const token = String(inviteToken || readInviteToken() || '').trim();
-    if (hint) params.set('loginHint', hint);
+    const next = sanitizeNextPath(params.get('next') || params.get('returnTo'));
+    if (hint) qs.set('loginHint', hint);
+    if (next) qs.set('next', next);
     if (token) {
       storeInviteToken(token);
-      params.set('token', token);
+      qs.set('token', token);
       // Dedicated invite start validates the invite before Google redirect
-      window.location.href = `${apiBase}/auth/google/invite?${params.toString()}`;
+      window.location.href = `${apiBase}/auth/google/invite?${qs.toString()}`;
       return;
     }
-    window.location.href = `${apiBase}/auth/google?${params.toString()}`;
+    window.location.href = `${apiBase}/auth/google?${qs.toString()}`;
   };
 
   return (

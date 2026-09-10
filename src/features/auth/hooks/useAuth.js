@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import { userApi } from '../../users/api/userApi';
 import { useAuthStore } from '../../../store/authStore';
 import { disconnectSocket } from '../../../api/socketClient';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { readNextFromSearchParams } from '@/lib/postLoginRedirect';
 
 async function setAuthWithPermissions(setAuth, user, accessToken) {
   try {
@@ -20,6 +21,7 @@ export function useLogin() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   return useMutation({
     mutationFn: (payload) => authApi.login(payload),
@@ -27,7 +29,7 @@ export function useLogin() {
       await setAuthWithPermissions(setAuth, user, accessToken);
       queryClient.invalidateQueries();
       toastSuccess(`Welcome back, ${user.name}`);
-      navigate('/', { replace: true });
+      navigate(readNextFromSearchParams(params) || '/', { replace: true });
     },
     onError: (error) => {
       toastError(error, 'Invalid email or password');
@@ -59,6 +61,7 @@ export function useGoogleAuth() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   return useMutation({
     mutationFn: (payload) => authApi.google(payload),
@@ -66,7 +69,7 @@ export function useGoogleAuth() {
       setAuth(user, accessToken);
       queryClient.invalidateQueries();
       toastSuccess(`Welcome, ${user.name}`);
-      navigate('/', { replace: true });
+      navigate(readNextFromSearchParams(params) || '/', { replace: true });
     },
     onError: (error) => {
       toastError(error, 'Google Sign-In failed');

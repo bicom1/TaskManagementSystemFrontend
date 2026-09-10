@@ -706,7 +706,40 @@ export default function ProjectBoardPage() {
 
   const setView = (mode) => {
     setViewMode(mode);
-    setSearchParams({ view: mode }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('view', mode);
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  const openTaskFromBoard = (taskId) => {
+    if (suppressOpenRef.current) return;
+    setSelectedTaskId(taskId);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('view', viewMode);
+        next.set('task', String(taskId));
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  const closeTaskDetail = () => {
+    setSelectedTaskId(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('task');
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   const statusLabels = useMemo(() => {
@@ -801,7 +834,7 @@ export default function ProjectBoardPage() {
       },
       {
         onSuccess: (task) => {
-          if (options.open !== false && task?._id) setSelectedTaskId(task._id);
+          if (options.open !== false && task?._id) openTaskFromBoard(task._id);
           options.onSuccess?.(task);
         },
       }
@@ -863,7 +896,7 @@ export default function ProjectBoardPage() {
       }
       setCreateModalOpen(false);
       setCreateForm({ ...EMPTY_TASK_FORM });
-      if (task?._id) setSelectedTaskId(task._id);
+      if (task?._id) openTaskFromBoard(task._id);
     } catch {
       /* toast handled by mutation */
     }
@@ -881,11 +914,6 @@ export default function ProjectBoardPage() {
       if (board[status].some((t) => String(t._id) === id)) return status;
     }
     return null;
-  };
-
-  const openTaskFromBoard = (taskId) => {
-    if (suppressOpenRef.current) return;
-    setSelectedTaskId(taskId);
   };
 
   const handleDragStart = (event) => {
@@ -971,7 +999,7 @@ export default function ProjectBoardPage() {
             <span className="text-steel">/</span>
             <Link
               to={projectPath(projectId, viewMode)}
-              onClick={() => setSelectedTaskId(null)}
+              onClick={closeTaskDetail}
               className="group flex min-w-0 items-center gap-2 rounded-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/30"
               title={`Open ${project?.name || 'project'}`}
             >
@@ -1145,7 +1173,7 @@ export default function ProjectBoardPage() {
           <ClickUpTasksList
             tasks={allTasks}
             selectedId={selectedTaskId}
-            onTaskClick={setSelectedTaskId}
+            onTaskClick={openTaskFromBoard}
             onCreateTask={(fields, options) =>
               createQuickTask(fields, { open: false, ...options })
             }
@@ -1172,8 +1200,8 @@ export default function ProjectBoardPage() {
           catalogLabel={catalogLabel}
           assignablePeople={assignablePeople}
           statusLabels={statusLabels}
-          onClose={() => setSelectedTaskId(null)}
-          onOpenTask={setSelectedTaskId}
+          onClose={closeTaskDetail}
+          onOpenTask={openTaskFromBoard}
         />
       )}
 

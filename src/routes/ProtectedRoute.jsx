@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../features/auth/api/authApi';
 import { userApi } from '../features/users/api/userApi';
 import { hasPermission } from '../lib/permissions';
 import { clearTabSession, hasTabSession } from '../lib/tabSession';
+import { sanitizeNextPath, withNextParam } from '../lib/postLoginRedirect';
 
 async function hydrateSession(setAuth) {
   const { user: refreshedUser, accessToken } = await authApi.refresh();
@@ -24,6 +25,7 @@ async function hydrateSession(setAuth) {
  */
 export function ProtectedRoute({ children, allowedRoles, requiredPermission }) {
   const { isAuthenticated, user, setAuth, accessToken, clearAuth } = useAuthStore();
+  const location = useLocation();
   const [isBootstrapping, setIsBootstrapping] = useState(() => {
     if (isAuthenticated) return false;
     return hasTabSession();
@@ -69,7 +71,8 @@ export function ProtectedRoute({ children, allowedRoles, requiredPermission }) {
   if (isBootstrapping) return null;
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const next = sanitizeNextPath(`${location.pathname}${location.search || ''}`);
+    return <Navigate to={withNextParam('/login', next)} replace />;
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
@@ -85,8 +88,11 @@ export function ProtectedRoute({ children, allowedRoles, requiredPermission }) {
 
 export function PublicRoute({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const location = useLocation();
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    const params = new URLSearchParams(location.search || '');
+    const next = sanitizeNextPath(params.get('next') || params.get('returnTo'));
+    return <Navigate to={next || '/'} replace />;
   }
   return children;
 }

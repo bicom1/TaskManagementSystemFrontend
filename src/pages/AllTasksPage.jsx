@@ -355,6 +355,17 @@ export default function AllTasksPage() {
     };
   }, [queryClient]);
 
+  // Email / deep-link: /all-tasks?task=… → open that task inside its project
+  useEffect(() => {
+    const taskId = searchParams.get('task');
+    if (!taskId || !tasks.length) return;
+    const task = tasks.find((t) => String(t._id) === String(taskId));
+    const projectId = task?.project?._id || task?.project;
+    if (projectId) {
+      navigate(`${projectPath(projectId)}?view=${viewMode}&task=${taskId}`, { replace: true });
+    }
+  }, [searchParams, tasks, navigate, viewMode]);
+
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return undefined;

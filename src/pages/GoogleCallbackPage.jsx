@@ -6,6 +6,7 @@ import { userApi } from '@/features/users/api/userApi';
 import { decodeOAuthProfile } from '@/features/auth/googleProfile';
 import { clearInviteToken, readInviteToken } from '@/features/auth/components/GoogleAuthButton';
 import { LoadingScreen } from '@/components/ui/Spinner';
+import { readNextFromSearchParams } from '@/lib/postLoginRedirect';
 
 export default function GoogleCallbackPage() {
   const [params] = useSearchParams();
@@ -20,6 +21,7 @@ export default function GoogleCallbackPage() {
       const accessToken = params.get('accessToken');
       const profile = decodeOAuthProfile(params.get('profile'));
       const inviteToken = readInviteToken();
+      const next = readNextFromSearchParams(params);
 
       if (!accessToken) {
         toast.error('Google Sign-In failed — missing token');
@@ -29,7 +31,12 @@ export default function GoogleCallbackPage() {
             { replace: true }
           );
         } else {
-          navigate('/login?googleError=missing_token', { replace: true });
+          navigate(
+            next
+              ? `/login?googleError=missing_token&next=${encodeURIComponent(next)}`
+              : '/login?googleError=missing_token',
+            { replace: true }
+          );
         }
         return;
       }
@@ -48,7 +55,7 @@ export default function GoogleCallbackPage() {
 
       if (cancelled) return;
       toast.success(`Welcome${baseUser.name ? `, ${baseUser.name}` : ''}`);
-      navigate('/', { replace: true });
+      navigate(next || '/', { replace: true });
     }
 
     finish().catch(() => {
@@ -56,13 +63,19 @@ export default function GoogleCallbackPage() {
       setStatus('Could not complete Google Sign-In');
       toast.error('Google Sign-In failed. Please try again.');
       const inviteToken = readInviteToken();
+      const next = readNextFromSearchParams(params);
       if (inviteToken) {
         navigate(
           `/accept-invite?token=${encodeURIComponent(inviteToken)}&googleError=session`,
           { replace: true }
         );
       } else {
-        navigate('/login?googleError=session', { replace: true });
+        navigate(
+          next
+            ? `/login?googleError=session&next=${encodeURIComponent(next)}`
+            : '/login?googleError=session',
+          { replace: true }
+        );
       }
     });
 

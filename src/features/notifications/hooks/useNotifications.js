@@ -33,6 +33,10 @@ function markListsRead(queryClient, predicate) {
 }
 
 async function openTaskNotification(notification, navigate) {
+  if (notification?.entityType === 'Project' && notification?.entityId) {
+    navigate(`/projects/${notification.entityId}?view=list`);
+    return;
+  }
   if (notification?.entityType !== 'Task' || !notification?.entityId) {
     navigate('/inbox?view=activity');
     return;
@@ -41,13 +45,13 @@ async function openTaskNotification(notification, navigate) {
     const task = await taskApi.getById(notification.entityId);
     const projectId = task?.project?._id || task?.project;
     if (projectId) {
-      navigate(`/projects/${projectId}?task=${notification.entityId}`);
+      navigate(`/projects/${projectId}?view=list&task=${notification.entityId}`);
       return;
     }
   } catch {
     // fall through
   }
-  navigate('/home/my-tasks?view=assigned');
+  navigate(`/all-tasks?task=${notification.entityId}`);
 }
 
 export function useNotifications(params) {

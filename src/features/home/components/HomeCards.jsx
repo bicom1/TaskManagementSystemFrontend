@@ -3,6 +3,7 @@ import { format, formatDistanceToNow, isPast, isToday } from 'date-fns';
 import { PRIORITY_LABELS, STATUS_LABELS } from '@/features/tasks/api/taskApi';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
+import { TaskTitleDisplay } from '@/features/tasks/taskTitle';
 
 export function HomePanel({ title, count, action, children, className }) {
   return (
@@ -43,7 +44,13 @@ export function TaskRow({ task, onOpen }) {
         {task.key}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-ink">{task.title}</p>
+        <TaskTitleDisplay
+          task={task}
+          as="p"
+          className="w-full"
+          titleClassName="truncate text-sm font-medium text-ink"
+          labelClassName="shrink-0 whitespace-nowrap text-[11px] font-medium text-graphite"
+        />
         <p className="truncate text-xs text-graphite">
           {task.project?.name || 'Project'} · {STATUS_LABELS[task.status] || task.status}
         </p>

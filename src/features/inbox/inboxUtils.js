@@ -7,6 +7,7 @@ import {
 } from 'date-fns';
 import { notificationKey, taskFeedKey } from './inboxTriageStore';
 import { STATUS_LABELS } from '@/features/tasks/api/taskApi';
+import { formatTaskTitle } from '@/features/tasks/taskTitle';
 
 import { DEFAULT_IMPORTANT_TYPES } from './inboxNotificationTypes';
 
@@ -95,7 +96,9 @@ export function buildInboxFeedItem(notification, taskMap = {}, overrides = {}, p
   const taskId = task?._id || notification.entityId;
   const projectId = task?.project?._id || task?.project || null;
   const projectName = task?.project?.name || null;
-  const taskTitle = task?.title || extractNotificationTitle(notification.message);
+  const taskTitle = task
+    ? formatTaskTitle(task)
+    : extractNotificationTitle(notification.message);
   const senderName = notification.sender?.name;
   const isIncoming = isIncomingTaskNotification(notification);
   const isCompleted = isCompletedNotification(notification);
@@ -234,7 +237,7 @@ export function buildTaskFeedItem(task, overrides = {}, userId) {
     taskId,
     projectId: projectId ? String(projectId) : null,
     projectName,
-    taskTitle: task.title,
+    taskTitle: formatTaskTitle(task),
     taskStatus: task.status,
     actionText,
     statusFrom: null,

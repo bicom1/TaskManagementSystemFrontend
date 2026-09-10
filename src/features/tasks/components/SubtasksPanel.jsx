@@ -12,6 +12,7 @@ import { STATUS_LABELS } from '@/features/tasks/api/taskApi';
 import { useCreateTask, useTaskSubtasks } from '@/features/tasks/hooks/useTasks';
 import { toggleAssigneeId } from '@/features/tasks/taskAssignees';
 import { fromDatetimeLocalValue } from './TaskFormFields';
+import { TaskTitleDisplay } from '@/features/tasks/taskTitle';
 
 const EMPTY_SUBTASK_FORM = {
   title: '',
@@ -183,7 +184,13 @@ export function SubtasksPanel({
               >
                 <GitBranch className="mt-1 h-4 w-4 shrink-0 text-graphite" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
+                  <TaskTitleDisplay
+                    task={item}
+                    as="p"
+                    className="w-full"
+                    titleClassName="truncate text-sm font-semibold text-ink"
+                    labelClassName="shrink-0 whitespace-nowrap text-[11px] font-medium text-graphite"
+                  />
                   {item.description ? (
                     <p className="mt-0.5 line-clamp-2 text-xs text-graphite">{item.description}</p>
                   ) : null}

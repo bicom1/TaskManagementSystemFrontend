@@ -43,6 +43,7 @@ import { ListSkeleton } from '@/components/ui/Spinner';
 import { UserAvatar } from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { projectPath } from '@/features/spaces/spaceKinds';
+import { TaskTitleDisplay } from '@/features/tasks/taskTitle';
 
 const VIEW_TABS = [
   { id: 'list', label: 'List', icon: List },
@@ -76,7 +77,13 @@ function AllTasksCard({ task, onClick, isDragging }) {
         onClick?.(task._id);
       }}
     >
-      <p className="mb-3 text-[13px] font-medium leading-snug text-ink">{task.title}</p>
+      <TaskTitleDisplay
+        task={task}
+        as="p"
+        className="mb-3 w-full"
+        titleClassName="text-[13px] font-medium leading-snug text-ink"
+        labelClassName="shrink-0 whitespace-nowrap text-[11px] font-medium text-graphite"
+      />
       <div className="flex items-center gap-1.5 text-graphite">
         {task.assignees?.length ? (
           <div className="flex -space-x-1.5">
@@ -295,7 +302,13 @@ function AllTasksBoard({
       <DragOverlay>
         {activeTask ? (
           <div className="w-72 rounded-xl border border-primary bg-paper p-3 opacity-90 shadow-lg">
-            <p className="text-sm font-medium text-ink">{activeTask.title}</p>
+            <TaskTitleDisplay
+              task={activeTask}
+              as="p"
+              className="w-full"
+              titleClassName="text-sm font-medium text-ink"
+              labelClassName="shrink-0 whitespace-nowrap text-[11px] font-medium text-graphite"
+            />
           </div>
         ) : null}
       </DragOverlay>

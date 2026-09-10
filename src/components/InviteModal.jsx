@@ -284,9 +284,13 @@ export function InviteModal({
           teamId: data?.teamId,
         });
         if (data?.emailSent) {
-          toast.success(`Invitation sent to ${values.email}`);
+          toast.success(`Invitation emailed to ${values.email}`);
+        } else if (data?.emailRedirectedTo) {
+          toast.error(
+            `Email did not reach ${values.email}. Share the invite link instead.`
+          );
         } else {
-          toast.success('Invite ready — share the link below');
+          toast.success('Invite ready — share the link if they did not get email');
         }
       },
     });
@@ -322,7 +326,7 @@ export function InviteModal({
       open={open}
       onClose={handleClose}
       title="Invite to BIWORKSPACE"
-      description="Create an invite, then share the direct link on WhatsApp. Email is sent in the background."
+      description="Invite email is sent only to the address you enter. Share the link if email delivery fails."
       size="md"
     >
       {!userCanInvite ? (
@@ -444,7 +448,8 @@ export function InviteModal({
             />
             {errors.email && <p className="text-sm text-bloom-coral">{errors.email.message}</p>}
             <p className="text-xs text-graphite">
-              BIWORKSPACE will email an invite. They must sign in with Google using this address.
+              Invite email goes to this inbox only. They must accept with Google using the same
+              address.
             </p>
           </div>
 

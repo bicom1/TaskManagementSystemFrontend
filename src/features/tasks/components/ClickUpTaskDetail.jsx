@@ -415,13 +415,22 @@ export function ClickUpTaskDetail({
               {catalogLabel}
             </Link>
             <span className="text-graphite">/</span>
-            <span
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-              style={{ backgroundColor: project?.color || '#292524' }}
+            <Link
+              to={projectId ? `/projects/${projectId}?view=list` : catalogHref}
+              onClick={onClose}
+              className="group flex min-w-0 items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              title={`Open ${project?.name || 'project'}`}
             >
-              {(project?.icon || project?.name?.[0] || 'P').toString().slice(0, 1)}
-            </span>
-            <span className="truncate font-medium text-ink">{project?.name || 'Project'}</span>
+              <span
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
+                style={{ backgroundColor: project?.color || '#292524' }}
+              >
+                {(project?.icon || project?.name?.[0] || 'P').toString().slice(0, 1)}
+              </span>
+              <span className="truncate font-medium text-ink group-hover:text-primary group-hover:underline">
+                {project?.name || 'Project'}
+              </span>
+            </Link>
             {parentTask?.title ? (
               <>
                 <span className="text-graphite">/</span>
@@ -550,23 +559,28 @@ export function ClickUpTaskDetail({
                 </p>
               ) : null}
 
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onBlur={saveTitle}
-                readOnly={!canEditTask}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    e.currentTarget.blur();
-                  }
-                }}
-                className={cn(
-                  'w-full bg-transparent text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] text-ink outline-none placeholder:text-graphite/40',
-                  !canEditTask && 'cursor-default'
-                )}
-                placeholder="Task name"
-              />
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={saveTitle}
+                  readOnly={!canEditTask}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  className={cn(
+                    'min-w-0 flex-1 bg-transparent text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] text-ink outline-none placeholder:text-graphite/40',
+                    !canEditTask && 'cursor-default'
+                  )}
+                  placeholder={isSubtask ? 'Subtask name' : 'Task name'}
+                />
+                {isSubtask ? (
+                  <span className="shrink-0 text-sm font-medium text-graphite">(Subtask)</span>
+                ) : null}
+              </div>
 
               {!canEditTask && (
                 <p className="mt-2 text-xs text-graphite">

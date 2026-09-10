@@ -27,6 +27,7 @@ import { Select } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingScreen, EmptyState } from '@/components/ui/Spinner';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/features/tasks/api/taskApi';
+import { formatTaskTitle } from '@/features/tasks/taskTitle';
 import { WorkloadAnalytics } from '@/features/reports/components/WorkloadAnalytics';
 
 const PIE_COLORS = ['#6f64c4', '#8f83d4', '#4a4090', '#e9e7f7', '#8a8a93', '#3d3d3d'];
@@ -404,7 +405,7 @@ export default function ReportsPage() {
                         <li key={item.id} className="flex items-start justify-between gap-3 py-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-ink">
-                              {item.key} · {item.title}
+                              {item.key} · {formatTaskTitle(item)}
                             </p>
                             <p className="text-xs text-graphite">
                               {item.projectKey || item.project}

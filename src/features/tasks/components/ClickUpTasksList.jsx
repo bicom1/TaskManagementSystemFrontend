@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '@/features/tasks/api/taskApi';
 import { StatusGroupHeader } from '@/features/tasks/components/StatusGroupHeader';
 import { toggleAssigneeId } from '@/features/tasks/taskAssignees';
+import { TaskTitleDisplay } from '@/features/tasks/taskTitle';
 
 function priorityFlagClass(priority) {
   if (priority === 'urgent') return 'text-danger-500';
@@ -434,13 +435,15 @@ export function ClickUpTasksList({
             {isSubtask ? (
               <GitBranch className="h-3 w-3 shrink-0 text-graphite/70" />
             ) : null}
-            <span className="truncate text-[13px] text-ink group-hover:underline">
-              {task.title}
-            </span>
+            <TaskTitleDisplay
+              task={task}
+              className="min-w-0"
+              titleClassName="truncate text-[13px] text-ink group-hover:underline"
+              labelClassName="shrink-0 whitespace-nowrap text-[11px] font-medium text-graphite"
+            />
             {hasSubtasks && !isSubtask ? (
-              <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-graphite">
-                <GitBranch className="h-3 w-3" />
-                {childCount}
+              <span className="shrink-0 whitespace-nowrap text-[11px] font-medium text-graphite">
+                ({childCount} {childCount === 1 ? 'Subtask' : 'Subtasks'})
               </span>
             ) : null}
           </div>

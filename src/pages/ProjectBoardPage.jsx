@@ -85,6 +85,8 @@ import {
   resolveStatusTone,
 } from '@/features/tasks/components/StatusGroupHeader';
 import { BoardTaskComposer } from '@/features/tasks/components/BoardTaskComposer';
+import { TaskTitleDisplay } from '@/features/tasks/taskTitle';
+import { projectPath } from '@/features/spaces/spaceKinds';
 
 function canDragTask(task, user) {
   return canManageTask(user, task);
@@ -123,7 +125,13 @@ function TaskCard({ task, onClick, isDragging, user }) {
         onClick?.();
       }}
     >
-      <p className="mb-3 text-[13px] font-medium leading-snug text-ink">{task.title}</p>
+      <TaskTitleDisplay
+        task={task}
+        as="p"
+        className="mb-3 w-full"
+        titleClassName="text-[13px] font-medium leading-snug text-ink"
+        labelClassName="shrink-0 whitespace-nowrap text-[11px] font-medium text-graphite"
+      />
       <div className="flex items-center gap-1.5 text-graphite">
         {task.assignees?.length ? (
           <div className="flex -space-x-1.5">
@@ -426,7 +434,13 @@ function TaskDrawer({
                 </form>
               ) : (
                 <>
-                  <h3 className="text-xl font-medium text-ink">{task.title}</h3>
+                  <TaskTitleDisplay
+                    task={task}
+                    as="h3"
+                    className="w-full"
+                    titleClassName="text-xl font-medium text-ink"
+                    labelClassName="shrink-0 whitespace-nowrap text-sm font-medium text-graphite"
+                  />
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Badge>{STATUS_LABELS[task.status]}</Badge>
                     <Badge variant="secondary">{PRIORITY_LABELS[task.priority]}</Badge>
@@ -514,7 +528,12 @@ function TaskDrawer({
                           onChange={() => toggleBlockedBy(t._id)}
                         />
                         <span className="text-graphite">{t.key}</span>
-                        <span className="truncate text-ink">{t.title}</span>
+                        <TaskTitleDisplay
+                          task={t}
+                          className="min-w-0"
+                          titleClassName="truncate text-ink"
+                          labelClassName="shrink-0 whitespace-nowrap text-[11px] font-medium text-graphite"
+                        />
                       </label>
                     ))
                   )}
@@ -950,17 +969,24 @@ export default function ProjectBoardPage() {
               {catalogLabel}
             </Link>
             <span className="text-steel">/</span>
-            <span
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white shadow-soft-lift"
-              style={{ backgroundColor: project?.color || '#1a1a1a' }}
+            <Link
+              to={projectPath(projectId, viewMode)}
+              onClick={() => setSelectedTaskId(null)}
+              className="group flex min-w-0 items-center gap-2 rounded-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/30"
+              title={`Open ${project?.name || 'project'}`}
             >
-              {(project?.icon || project?.name?.[0] || 'P')
-                .toString()
-                .slice(0, 1)}
-            </span>
-            <h1 className="truncate text-[15px] font-semibold tracking-tight text-ink">
-              {project?.name ?? entityLabel}
-            </h1>
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white shadow-soft-lift"
+                style={{ backgroundColor: project?.color || '#1a1a1a' }}
+              >
+                {(project?.icon || project?.name?.[0] || 'P')
+                  .toString()
+                  .slice(0, 1)}
+              </span>
+              <h1 className="truncate text-[15px] font-semibold tracking-tight text-ink group-hover:text-primary group-hover:underline">
+                {project?.name ?? entityLabel}
+              </h1>
+            </Link>
             <button
               type="button"
               onClick={() => {
@@ -1102,7 +1128,13 @@ export default function ProjectBoardPage() {
               {activeTask ? (
                 <div className="w-72 rounded-xl border border-primary bg-paper p-3 opacity-90 shadow-lg">
                   <p className="text-xs text-graphite">{activeTask.key}</p>
-                  <p className="text-sm font-medium text-ink">{activeTask.title}</p>
+                  <TaskTitleDisplay
+                    task={activeTask}
+                    as="p"
+                    className="w-full"
+                    titleClassName="text-sm font-medium text-ink"
+                    labelClassName="shrink-0 whitespace-nowrap text-[11px] font-medium text-graphite"
+                  />
                 </div>
               ) : null}
             </DragOverlay>

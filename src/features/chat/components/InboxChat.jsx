@@ -352,8 +352,9 @@ export function InboxChat() {
         },
         { replace: true }
       );
-      setSidebarMode('chats');
-      setPeopleQuery('');
+      // Stay on People / Groups / Chats until the user changes the tab themselves.
+      if (meta.sidebarMode) setSidebarMode(meta.sidebarMode);
+      if (meta.clearSearch) setPeopleQuery('');
       setPendingFiles([]);
       setPendingLinks([]);
       setLinkOpen(false);
@@ -449,7 +450,7 @@ export function InboxChat() {
     scrollMessagesToBottom(true);
   }, [activeId, messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** WhatsApp-style: tap a person → open their DM immediately */
+  /** WhatsApp-style: tap a person → open their DM; stay on People tab */
   const handleStartDm = (person) => {
     if (!person?._id || startDm.isPending) return;
     const otherId = String(person._id);
@@ -459,12 +460,12 @@ export function InboxChat() {
         (c.participants || []).some((p) => String(p._id) === otherId)
     );
     if (existing?._id) {
-      openConversation(existing._id);
+      openConversation(existing._id, { sidebarMode: 'people' });
       return;
     }
     startDm.mutate(otherId, {
       onSuccess: (conv) => {
-        if (conv?._id) openConversation(conv._id);
+        if (conv?._id) openConversation(conv._id, { sidebarMode: 'people' });
       },
     });
   };
@@ -476,11 +477,15 @@ export function InboxChat() {
         c.type === 'team' && String(c.team?._id || c.team) === String(team._id)
     );
     if (existing) {
-      openConversation(existing._id, { title: existing.title || title });
+      openConversation(existing._id, {
+        title: existing.title || title,
+        sidebarMode: 'groups',
+      });
       return;
     }
     startTeam.mutate(team._id, {
-      onSuccess: (c) => openConversation(c._id, { title: c?.title || title }),
+      onSuccess: (c) =>
+        openConversation(c._id, { title: c?.title || title, sidebarMode: 'groups' }),
     });
   };
 
@@ -494,7 +499,10 @@ export function InboxChat() {
     startDept.mutate(dept._id, {
       onSuccess: (c) => {
         if (c?._id) {
-          openConversation(c._id, { title: c.title || title });
+          openConversation(c._id, {
+            title: c.title || title,
+            sidebarMode: 'groups',
+          });
         }
       },
       onError: (err) => toastError(err, 'Could not open department group'),
@@ -549,6 +557,44 @@ export function InboxChat() {
     e.target.value = '';
     for (const file of list) {
       addPendingFile(file);
+    }
+  };
+
+  const handleComposerPaste = (e) => {
+    const clipboard = e.clipboardData;
+    if (!clipboard) return;
+
+    const files = Array.from(clipboard.items || [])
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+
+    if (files.length) {
+      e.preventDefault();
+      for (const file of files) addPendingFile(file);
+      return;
+    }
+
+    const text = String(clipboard.getData('text/plain') || '').trim();
+    if (!text) return;
+
+    // Pure URL paste → attach as a link chip (Ctrl+V media)
+    const looksLikeUrl =
+      /^(https?:\/\/|www\.)\S+$/i.test(text) && !/\s/.test(text);
+    if (looksLikeUrl) {
+      e.preventDefault();
+      if (pendingLinks.length >= limits.maxLinks) {
+        toastError(`Maximum ${limits.maxLinks} links per message`);
+        return;
+      }
+      setPendingLinks((prev) => [
+        ...prev,
+        {
+          url: normalizeHref(text),
+          label: text,
+          kind: 'external',
+        },
+      ]);
     }
   };
 
@@ -631,7 +677,10 @@ export function InboxChat() {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setSidebarMode(tab.id)}
+                onClick={() => {
+                  setSidebarMode(tab.id);
+                  if (tab.id !== 'people') setPeopleQuery('');
+                }}
                 className={cn(
                   'flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition',
                   sidebarMode === tab.id
@@ -1188,6 +1237,7 @@ export function InboxChat() {
                   <textarea
                     value={draft}
                     onChange={(e) => handleDraftChange(e.target.value)}
+                    onPaste={handleComposerPaste}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -1195,7 +1245,7 @@ export function InboxChat() {
                       }
                     }}
                     rows={2}
-                    placeholder="Write a message… @mention · attach files"
+                    placeholder="Write a message… paste images/links · @mention · attach"
                     className="w-full resize-none bg-transparent px-1 py-1.5 text-sm text-ink outline-none placeholder:text-graphite"
                   />
                 </div>

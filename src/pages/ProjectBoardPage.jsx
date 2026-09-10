@@ -764,10 +764,12 @@ export default function ProjectBoardPage() {
   const createQuickTask = (fields, options = {}) => {
     const title = fields?.title?.trim();
     if (!title || title.length < 2) return;
-    const status =
+    const allowed = new Set(['backlog', 'todo', 'in_progress', 'in_review', 'done']);
+    const rawStatus =
       fields.status ||
       (boardStatuses.includes('todo') ? 'todo' : boardStatuses[0]) ||
       'todo';
+    const status = allowed.has(String(rawStatus)) ? String(rawStatus) : 'todo';
     createTask.mutate(
       {
         title,
@@ -1112,7 +1114,9 @@ export default function ProjectBoardPage() {
             tasks={allTasks}
             selectedId={selectedTaskId}
             onTaskClick={setSelectedTaskId}
-            onCreateTask={createQuickTask}
+            onCreateTask={(fields, options) =>
+              createQuickTask(fields, { open: false, ...options })
+            }
             creating={createTask.isPending}
             people={assignablePeople}
             onUpdateTask={onInlineUpdateTask}

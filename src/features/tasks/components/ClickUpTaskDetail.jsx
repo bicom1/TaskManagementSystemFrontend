@@ -241,6 +241,45 @@ export function ClickUpTaskDetail({
     });
   };
 
+  const normalizeCommentHref = (raw) => {
+    const url = String(raw || '').trim();
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+    if (/^www\./i.test(url)) return `https://${url}`;
+    return url;
+  };
+
+  const handleCommentPaste = (e) => {
+    const clipboard = e.clipboardData;
+    if (!clipboard) return;
+
+    const files = Array.from(clipboard.items || [])
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+
+    if (files.length) {
+      e.preventDefault();
+      addPendingFiles(files);
+      return;
+    }
+
+    const text = String(clipboard.getData('text/plain') || '').trim();
+    if (!text) return;
+    const looksLikeUrl =
+      /^(https?:\/\/|www\.)\S+$/i.test(text) && !/\s/.test(text);
+    if (!looksLikeUrl) return;
+
+    e.preventDefault();
+    const url = normalizeCommentHref(text);
+    if (!url) return;
+    setPendingLinks((prev) => {
+      if (prev.some((l) => l.url === url)) return prev;
+      if (prev.length >= 5) return prev;
+      return [...prev, { url, title: text }];
+    });
+  };
+
   const addPendingLink = () => {
     const raw = linkDraft.trim();
     if (!raw) return;
@@ -965,10 +1004,11 @@ export function ClickUpTaskDetail({
             >
               <div className="rounded-xl border border-hairline bg-cloud/30 focus-within:border-ink/20 focus-within:bg-paper">
                 <textarea
-                  placeholder="Write a comment, paste a link, or attach a file…"
+                  placeholder="Write a comment, paste a link or image (Ctrl+V), or attach a file…"
                   rows={2}
                   className="w-full resize-none bg-transparent px-2.5 py-2 text-sm text-ink outline-none placeholder:text-graphite"
                   {...register('content')}
+                  onPaste={handleCommentPaste}
                 />
 
                 {(pendingFiles.length > 0 || pendingLinks.length > 0) && (

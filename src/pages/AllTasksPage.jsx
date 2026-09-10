@@ -558,7 +558,9 @@ export default function AllTasksPage() {
             tasks={tasks}
             selectedId={selectedTaskId}
             onTaskClick={onTaskClick}
-            onCreateTask={createQuickTask}
+            onCreateTask={(fields, options) =>
+              createQuickTask(fields, { open: false, ...options })
+            }
             creating={createTask.isPending}
             people={people}
             onUpdateTask={onInlineUpdate}

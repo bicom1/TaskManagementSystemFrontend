@@ -17,17 +17,11 @@ export const CHAT_PEOPLE_KEY = 'chat-people';
 
 export function useChatDirectory(enabled = true) {
   const token = useAuthStore((s) => s.accessToken);
-  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ['chat-directory'],
-    queryFn: async () => {
-      const data = await chatApi.directory();
-      // Department groups are ensured server-side — refresh chat list to show them.
-      queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
-      return data;
-    },
+    queryFn: () => chatApi.directory(),
     enabled: enabled && Boolean(token),
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 }
 

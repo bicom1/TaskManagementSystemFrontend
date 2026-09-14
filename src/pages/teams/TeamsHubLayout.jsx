@@ -175,28 +175,23 @@ export default function TeamsHubLayout() {
 
   const onEditDept = (values) => {
     if (!editingDept) return;
-    updateDepartment.mutate(
-      {
-        id: editingDept._id,
-        payload: {
-          name: values.name.trim(),
-          description: values.description?.trim() ?? '',
-        },
+    const id = editingDept._id;
+    setEditingDept(null);
+    editDeptForm.reset();
+    updateDepartment.mutate({
+      id,
+      payload: {
+        name: values.name.trim(),
+        description: values.description?.trim() ?? '',
       },
-      {
-        onSuccess: () => {
-          setEditingDept(null);
-          editDeptForm.reset();
-        },
-      }
-    );
+    });
   };
 
   const onDeleteDept = () => {
     if (!deletingDept) return;
-    deleteDepartment.mutate(deletingDept._id, {
-      onSuccess: () => setDeletingDept(null),
-    });
+    const id = deletingDept._id;
+    setDeletingDept(null);
+    deleteDepartment.mutate(id);
   };
 
   const onCreateTeam = (values) => {
@@ -211,30 +206,23 @@ export default function TeamsHubLayout() {
 
   const onEditTeam = (values) => {
     if (!editingTeam) return;
-    updateTeam.mutate(
-      {
-        teamId: editingTeam._id,
-        payload: {
-          name: values.name.trim(),
-          description: values.description?.trim() ?? '',
-          department: values.department,
-          lead: values.lead,
-        },
-      },
-      {
-        onSuccess: () => {
-          setEditingTeam(null);
-          editTeamForm.reset();
-        },
-      }
-    );
+    const teamId = editingTeam._id;
+    const payload = {
+      name: values.name.trim(),
+      description: values.description?.trim() ?? '',
+      department: values.department,
+      lead: values.lead,
+    };
+    setEditingTeam(null);
+    editTeamForm.reset();
+    updateTeam.mutate({ teamId, payload });
   };
 
   const onDeleteTeam = () => {
     if (!deletingTeam) return;
-    deleteTeam.mutate(deletingTeam._id, {
-      onSuccess: () => setDeletingTeam(null),
-    });
+    const id = deletingTeam._id;
+    setDeletingTeam(null);
+    deleteTeam.mutate(id);
   };
 
   const onCreateDept = (values) => {
@@ -415,8 +403,8 @@ export default function TeamsHubLayout() {
               <Button type="button" variant="outline" onClick={() => setEditingTeam(null)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateTeam.isPending}>
-                {updateTeam.isPending ? 'Saving…' : 'Save changes'}
+              <Button type="submit">
+                Save changes
               </Button>
             </div>
           </form>
@@ -444,9 +432,8 @@ export default function TeamsHubLayout() {
                 type="button"
                 variant="destructive"
                 onClick={onDeleteTeam}
-                disabled={deleteTeam.isPending}
               >
-                {deleteTeam.isPending ? 'Deleting…' : 'Delete team'}
+                Delete team
               </Button>
             </div>
           </div>
@@ -481,8 +468,8 @@ export default function TeamsHubLayout() {
             <Button type="button" variant="outline" onClick={() => setEditingDept(null)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={updateDepartment.isPending}>
-              {updateDepartment.isPending ? 'Saving…' : 'Save changes'}
+            <Button type="submit">
+              Save changes
             </Button>
           </div>
         </form>
@@ -507,9 +494,8 @@ export default function TeamsHubLayout() {
               type="button"
               variant="destructive"
               onClick={onDeleteDept}
-              disabled={deleteDepartment.isPending}
             >
-              {deleteDepartment.isPending ? 'Deleting…' : 'Delete department'}
+              Delete department
             </Button>
           </div>
         </div>

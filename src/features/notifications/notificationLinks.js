@@ -17,8 +17,8 @@ export function entityHref(entityType, entityId) {
     case 'Team':
       return `/teams/${entityId}`;
     case 'Department':
-      // No per-department page — departments are shown on the All Teams page.
-      return '/teams/all';
+      // Members land on People; admins see the teams catalog.
+      return '/teams/people';
     case 'User':
       return '/teams/people';
     default:

@@ -21,13 +21,17 @@ import { Label } from '@/components/ui/Label';
 import { LoadingScreen, EmptyState } from '@/components/ui/Spinner';
 import { canInvite, DEPARTMENT_CODE_LABELS, getRoleLabel } from '@/lib/roles';
 import { useAuthStore } from '@/store/authStore';
+import { canBrowseAllTeams } from '@/lib/permissions';
 import { readableTextOn } from '@/lib/contrast';
 
 export default function TeamDetailPage() {
   const { teamId } = useParams();
   const { teams, users, openInvite, navigate } = useOutletContext();
-  const role = useAuthStore((s) => s.user?.role);
+  const user = useAuthStore((s) => s.user);
+  const role = user?.role;
   const canManageMembers = canInvite(role);
+  const teamsCatalogHref = canBrowseAllTeams(user) ? '/teams/all' : '/teams/people';
+  const teamsCatalogLabel = canBrowseAllTeams(user) ? 'All Teams' : 'All People';
 
   const { data: team, isLoading } = useTeam(teamId);
   const { data: projectsRes } = useProjects({ team: teamId, limit: 50 });
@@ -74,8 +78,8 @@ export default function TeamDetailPage() {
           title="Team not found"
           description="This team may have been removed."
           action={
-            <Button asChild={false} onClick={() => navigate('/teams/all')}>
-              Back to teams
+            <Button asChild={false} onClick={() => navigate(teamsCatalogHref)}>
+              Back to {canBrowseAllTeams(user) ? 'teams' : 'people'}
             </Button>
           }
         />
@@ -91,11 +95,11 @@ export default function TeamDetailPage() {
   return (
     <div className="page-shell">
       <Link
-        to="/teams/all"
+        to={teamsCatalogHref}
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-graphite hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4" />
-        All Teams
+        {teamsCatalogLabel}
       </Link>
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

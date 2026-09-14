@@ -31,6 +31,7 @@ import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useUsers } from '@/features/users/hooks/useUsers';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
+import { canBrowseAllTeams } from '@/lib/permissions';
 import { projectPath } from '@/features/spaces/spaceKinds';
 import { ProjectSidebarItem } from '@/features/projects/components/ProjectSidebarItem';
 import { EditProjectModal } from '@/features/projects/components/EditProjectModal';
@@ -290,6 +291,8 @@ function HomeView({
   teams = [],
 }) {
   const handleAddProject = onAddProject || onCreateClick;
+  const user = useAuthStore((s) => s.user);
+  const showAllTeams = canBrowseAllTeams(user);
 
   // Dynamic counts from live backend overview
   const assignedCount = home?.cards?.assigned_to_me?.length || 0;
@@ -356,29 +359,42 @@ function HomeView({
         </div>
       </CollapsibleSection>
 
-      {/* Teams */}
-      <SectionTitle title="Teams" />
+      {/* Teams — members only see their own teams, not the full catalog */}
+      <SectionTitle title={showAllTeams ? 'Teams' : 'My Teams'} />
       <div className="space-y-0.5 pb-4">
         <ClickUpNavItem to="/all-tasks" label="All Workspace Tasks" icon={Layers} />
-        <ExpandableNavItem
-          to="/teams/all"
-          label="All Teams"
-          icon={Users}
-          badge={workspaceTeams.length > 0 ? workspaceTeams.length : undefined}
-        >
-          {workspaceTeams.length > 0 ? (
-            workspaceTeams.map((t) => (
-              <ClickUpNavItem
-                key={t._id}
-                to={`/teams/${t._id}`}
-                label={t.name}
-                icon={Building2}
-              />
-            ))
-          ) : (
-            <p className="px-2.5 py-1.5 text-[12px] text-text-muted">No teams yet</p>
-          )}
-        </ExpandableNavItem>
+        {showAllTeams ? (
+          <ExpandableNavItem
+            to="/teams/all"
+            label="All Teams"
+            icon={Users}
+            badge={workspaceTeams.length > 0 ? workspaceTeams.length : undefined}
+          >
+            {workspaceTeams.length > 0 ? (
+              workspaceTeams.map((t) => (
+                <ClickUpNavItem
+                  key={t._id}
+                  to={`/teams/${t._id}`}
+                  label={t.name}
+                  icon={Building2}
+                />
+              ))
+            ) : (
+              <p className="px-2.5 py-1.5 text-[12px] text-text-muted">No teams yet</p>
+            )}
+          </ExpandableNavItem>
+        ) : workspaceTeams.length > 0 ? (
+          workspaceTeams.map((t) => (
+            <ClickUpNavItem
+              key={t._id}
+              to={`/teams/${t._id}`}
+              label={t.name}
+              icon={Building2}
+            />
+          ))
+        ) : (
+          <p className="px-2.5 py-1.5 text-[12px] text-text-muted">No teams yet</p>
+        )}
       </div>
     </div>
   );
@@ -501,6 +517,8 @@ function AIView() {
    3. TEAMS VIEW (Real Dynamic Teams & Members)
    ──────────────────────────────────────────────────────────── */
 function TeamsView({ teamsData, usersData }) {
+  const user = useAuthStore((s) => s.user);
+  const showAllTeams = canBrowseAllTeams(user);
   const teams = teamsData?.data || [];
   const totalPeople = usersData?.pagination?.total || usersData?.data?.length || 0;
 
@@ -511,17 +529,29 @@ function TeamsView({ teamsData, usersData }) {
         <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)] tracking-[-0.01em]">Teams</h2>
       </div>
 
-      {/* Main Teams Menu */}
+      {/* Main Teams Menu — members only get All People */}
       <div className="space-y-0.5">
-        <ClickUpNavItem to="/teams/all" end label="All Teams" icon={Users} badge={teams.length > 0 ? teams.length : undefined} />
+        {showAllTeams ? (
+          <ClickUpNavItem
+            to="/teams/all"
+            end
+            label="All Teams"
+            icon={Users}
+            badge={teams.length > 0 ? teams.length : undefined}
+          />
+        ) : null}
         <ClickUpNavItem
           to="/teams/people"
           label="All People"
           iconNode={<span className="text-sm">📇</span>}
           badge={totalPeople > 0 ? totalPeople : undefined}
         />
-        <ClickUpNavItem to="/teams/org" label="Org Chart" icon={GitBranch} />
-        <ClickUpNavItem to="/teams/analytics" label="Team Analytics" icon={BarChart2} />
+        {showAllTeams ? (
+          <>
+            <ClickUpNavItem to="/teams/org" label="Org Chart" icon={GitBranch} />
+            <ClickUpNavItem to="/teams/analytics" label="Team Analytics" icon={BarChart2} />
+          </>
+        ) : null}
       </div>
 
       {/* My Teams Section (Real Dynamic Teams) */}

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   useTeams,
   useCreateTeam,
@@ -28,18 +28,24 @@ import {
   getSelectableDepartments,
   normalizeDepartmentCode,
 } from '@/lib/roles';
-import { hasPermission, PERMISSIONS } from '@/lib/permissions';
+import { canBrowseAllTeams, hasPermission, PERMISSIONS } from '@/lib/permissions';
+
+const MEMBER_TEAM_PATHS = new Set(['/teams/all', '/teams/org', '/teams/analytics']);
 
 export default function TeamsHubLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = canManageOrg(user?.role);
   const userCanInvite = hasPermission(user, PERMISSIONS.USER_INVITE);
+  const showAllTeams = canBrowseAllTeams(user);
   // Team leads and admins still manage members; the team itself
   // (create / edit / delete) is Super Admin only — mirrors the backend.
   const canManageTeams = isSuperAdmin;
   const canCreateTeam = canManageTeams;
   const canCreateDept = hasPermission(user, PERMISSIONS.DEPARTMENT_MANAGE);
+  const blockCatalogForMember =
+    !showAllTeams && MEMBER_TEAM_PATHS.has(location.pathname);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteTeamId, setInviteTeamId] = useState('');
@@ -240,16 +246,23 @@ export default function TeamsHubLayout() {
     });
   };
 
+  if (blockCatalogForMember) {
+    return <Navigate to="/teams/people" replace />;
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Mobile Teams sub-nav */}
       <div className="flex gap-1 overflow-x-auto border-b border-hairline bg-paper px-2 py-2 md:hidden">
-        {[
-          { to: '/teams/people', label: 'People' },
-          { to: '/teams/all', label: 'Teams' },
-          { to: '/teams/org', label: 'Org' },
-          { to: '/teams/analytics', label: 'Analytics' },
-        ].map((item) => (
+        {(showAllTeams
+          ? [
+              { to: '/teams/people', label: 'People' },
+              { to: '/teams/all', label: 'Teams' },
+              { to: '/teams/org', label: 'Org' },
+              { to: '/teams/analytics', label: 'Analytics' },
+            ]
+          : [{ to: '/teams/people', label: 'People' }]
+        ).map((item) => (
           <button
             key={item.to}
             type="button"

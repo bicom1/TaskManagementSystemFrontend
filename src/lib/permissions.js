@@ -80,6 +80,11 @@ export function hasAnyPermission(user, ...permissions) {
   return permissions.some((p) => hasPermission(user, p));
 }
 
+/** Admins + Superadmins can browse the full teams catalog (/teams/all). Members only see People. */
+export function canBrowseAllTeams(user) {
+  return hasPermission(user, PERMISSIONS.TEAM_MANAGE);
+}
+
 export function getInvitableRoles(actorRole) {
   return INVITABLE_ROLES_BY_ACTOR[normalizeRole(actorRole)] || [];
 }

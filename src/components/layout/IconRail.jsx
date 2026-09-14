@@ -8,6 +8,8 @@ import {
   House,
 } from 'lucide-react';
 import { useUnreadCount } from '@/features/notifications/hooks/useNotifications';
+import { useAuthStore } from '@/store/authStore';
+import { canBrowseAllTeams } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
 /* ============================================================
@@ -109,12 +111,13 @@ export function storeSection(sectionId) {
   }
 }
 
-export function getSectionDefaultPath(sectionId) {
+export function getSectionDefaultPath(sectionId, user = null) {
+  const teamsHome = canBrowseAllTeams(user) ? '/teams/all' : '/teams/people';
   const map = {
     home: '/',
     planner: '/home/my-tasks?view=today',
     ai: '/ai',
-    teams: '/teams/all',
+    teams: teamsHome,
     dashboard: '/boards',
     more: '/settings',
   };
@@ -190,6 +193,7 @@ function RailButton({ item, active, badge, onClick }) {
 export function IconRail({ activeSection, onSectionClick, onInviteClick }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
   const { data: unreadCount = 0 } = useUnreadCount();
 
   const currentSection = activeSection || getSectionFromPath(location.pathname);
@@ -200,7 +204,7 @@ export function IconRail({ activeSection, onSectionClick, onInviteClick }) {
     // rail item just toggles the detail panel (handled by the parent) and must
     // not yank the user off their current sub-page.
     if (sectionId !== currentSection) {
-      navigate(getSectionDefaultPath(sectionId));
+      navigate(getSectionDefaultPath(sectionId, user));
     }
   };
 

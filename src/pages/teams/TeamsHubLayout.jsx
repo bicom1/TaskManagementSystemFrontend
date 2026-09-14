@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -22,12 +22,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
-import {
-  canManageOrg,
-  DEPARTMENT_PRESETS,
-  getSelectableDepartments,
-  normalizeDepartmentCode,
-} from '@/lib/roles';
+import { canManageOrg, getSelectableDepartments } from '@/lib/roles';
 import { canBrowseAllTeams, hasPermission, PERMISSIONS } from '@/lib/permissions';
 
 const MEMBER_TEAM_PATHS = new Set(['/teams/all', '/teams/org', '/teams/analytics']);
@@ -74,14 +69,6 @@ export default function TeamsHubLayout() {
     [departmentsData?.data]
   );
 
-  // `code` and `name` are unique in Mongo, so suggesting a department that
-  // already exists guarantees a 409. Only offer presets that are still free.
-  const availableCodePresets = useMemo(() => {
-    const taken = new Set(
-      (departmentsData?.data ?? []).map((d) => normalizeDepartmentCode(d.code))
-    );
-    return DEPARTMENT_PRESETS.filter((preset) => !taken.has(preset.code));
-  }, [departmentsData?.data]);
   const users = usersData?.data ?? [];
 
   const teamForm = useForm({
@@ -100,11 +87,6 @@ export default function TeamsHubLayout() {
     defaultValues: { name: '', description: '', code: '' },
   });
 
-  // Prefill with a preset only while one is still unused, otherwise start blank.
-  const nextDeptDefaults = useCallback(() => {
-    const preset = availableCodePresets[0];
-    return { name: preset?.name ?? '', description: '', code: preset?.code ?? '' };
-  }, [availableCodePresets]);
 
   const contextValue = useMemo(
     () => ({
@@ -120,7 +102,8 @@ export default function TeamsHubLayout() {
       openCreateTeam: () => canCreateTeam && setTeamModalOpen(true),
       openCreateDept: () => {
         if (!canCreateDept) return;
-        deptForm.reset(nextDeptDefaults());
+        // Always start empty; unused presets are offered as optional suggestions.
+        deptForm.reset({ name: '', description: '', code: '' });
         setDeptModalOpen(true);
       },
       openEditTeam: (team) => {
@@ -168,7 +151,6 @@ export default function TeamsHubLayout() {
       editTeamForm,
       deptForm,
       editDeptForm,
-      nextDeptDefaults,
       navigate,
     ]
   );
@@ -505,37 +487,40 @@ export default function TeamsHubLayout() {
         <form onSubmit={deptForm.handleSubmit(onCreateDept)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="dept-code">Code</Label>
+            {/* Plain text field. A <datalist> here drew the browser's own ▼ arrow. */}
             <Input
               id="dept-code"
-              placeholder="seo, development, marketing…"
-              // Hide the native datalist chevron — the suggestions still open on typing
-              className="[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-list-button]:hidden"
-              {...(availableCodePresets.length > 0 && { list: 'dept-code-presets' })}
+              placeholder="e.g. marketing"
+              autoComplete="off"
+              aria-invalid={Boolean(deptForm.formState.errors.code)}
               {...deptForm.register('code', {
-                required: true,
+                required: 'Code is required',
                 pattern: {
                   value: /^[a-z0-9][a-z0-9_-]*$/,
-                  message: 'Lowercase letters, numbers, _ or -',
+                  message: 'Use lowercase letters, numbers, - or _ (no spaces)',
                 },
               })}
             />
-            {availableCodePresets.length > 0 && (
-              <datalist id="dept-code-presets">
-                {availableCodePresets.map((preset) => (
-                  <option key={preset.code} value={preset.code} />
-                ))}
-              </datalist>
+            {deptForm.formState.errors.code ? (
+              <p className="text-xs text-bloom-coral">{deptForm.formState.errors.code.message}</p>
+            ) : (
+              <p className="text-xs text-graphite">
+                A short unique ID — lowercase letters, numbers, - or _.
+              </p>
             )}
-            <p className="text-xs text-graphite">
-              Unique slug for the department — it must not match an existing one.
-              {availableCodePresets.length > 0
-                ? ` Still free: ${availableCodePresets.map((p) => p.code).join(', ')}.`
-                : ' All built-in presets are taken, so pick a new one.'}
-            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="dept-name">Name</Label>
-            <Input id="dept-name" {...deptForm.register('name', { required: true })} />
+            <Input
+              id="dept-name"
+              placeholder="e.g. Marketing"
+              autoComplete="off"
+              aria-invalid={Boolean(deptForm.formState.errors.name)}
+              {...deptForm.register('name', { required: 'Name is required' })}
+            />
+            {deptForm.formState.errors.name ? (
+              <p className="text-xs text-bloom-coral">{deptForm.formState.errors.name.message}</p>
+            ) : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="dept-description">Description</Label>

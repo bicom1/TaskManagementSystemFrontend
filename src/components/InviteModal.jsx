@@ -63,6 +63,21 @@ export function InviteModal({
 
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(null);
+  const [linkSecondsLeft, setLinkSecondsLeft] = useState(null);
+
+  useEffect(() => {
+    if (!result?.expiresAt) {
+      setLinkSecondsLeft(null);
+      return undefined;
+    }
+    const tick = () => {
+      const ms = new Date(result.expiresAt).getTime() - Date.now();
+      setLinkSecondsLeft(Math.max(0, Math.ceil(ms / 1000)));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [result?.expiresAt]);
 
   const invitableByActor = useMemo(() => getInvitableRoles(role), [role]);
 
@@ -272,6 +287,8 @@ export function InviteModal({
               ? `${window.location.origin}/accept-invite?token=${data.inviteToken}`
               : data?.acceptUrl,
           loginUrl: data?.loginUrl || `${window.location.origin}/login`,
+          expiresAt: data?.expiresAt || null,
+          expiresInMinutes: data?.expiresInMinutes ?? 5,
           emailSent: data?.emailSent,
           emailError: data?.emailError,
           emailTo: data?.emailTo || values.email,
@@ -315,7 +332,7 @@ export function InviteModal({
         `Or open login → Continue with Google: ${result.loginUrl}`,
         `Google email must be: ${result.email}`,
         ``,
-        `Invited accounts sign in with Google only (no password). Link expires in 7 days.`,
+        `Invited accounts sign in with Google only (no password). Link expires in ${result.expiresInMinutes ?? 5} minutes.`,
       ]
         .filter(Boolean)
         .join('\n')
@@ -377,6 +394,23 @@ export function InviteModal({
                   Open this link → Continue with Google as{' '}
                   <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
                   Password login will not work for invited members.
+                </p>
+                <p
+                  className={`text-xs font-medium ${
+                    linkSecondsLeft === 0
+                      ? 'text-bloom-coral'
+                      : linkSecondsLeft != null && linkSecondsLeft <= 60
+                        ? 'text-amber-700'
+                        : 'text-ink'
+                  }`}
+                >
+                  {linkSecondsLeft == null
+                    ? `This invite link expires in ${result.expiresInMinutes ?? 5} minutes.`
+                    : linkSecondsLeft === 0
+                      ? 'This invite link has expired. Create a new invite.'
+                      : `Link expires in ${Math.floor(linkSecondsLeft / 60)}:${String(
+                          linkSecondsLeft % 60
+                        ).padStart(2, '0')} (valid for ${result.expiresInMinutes ?? 5} minutes).`}
                 </p>
               </div>
             )}

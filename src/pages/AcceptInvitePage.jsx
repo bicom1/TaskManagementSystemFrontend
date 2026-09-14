@@ -138,6 +138,13 @@ export default function AcceptInvitePage() {
                     Invited members must sign in with Google using{' '}
                     <span className="font-medium text-text-secondary">{invitedEmail}</span>.
                     You will not be sent to a password login.
+                    {preview?.expiresAt ? (
+                      <>
+                        {' '}
+                        This invite link expires in {preview.expiresInMinutes ?? 5} minutes from
+                        when it was created.
+                      </>
+                    ) : null}
                   </p>
                 </>
               )}

@@ -78,7 +78,7 @@ export default function LoginPage() {
 
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-border-subtle" />
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-disabled">
+                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                     or
                   </span>
                   <div className="h-px flex-1 bg-border-subtle" />

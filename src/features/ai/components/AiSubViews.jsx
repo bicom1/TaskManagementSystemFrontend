@@ -11,8 +11,8 @@ export function AiSkillsView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900">Skills</h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <h1 className="text-2xl font-bold text-text-primary">Skills</h1>
+      <p className="mt-1 text-sm text-text-secondary">
         Specialized capabilities for Brain — pick a skill to get started.
       </p>
 
@@ -25,12 +25,12 @@ export function AiSkillsView() {
             className={`rounded-2xl border p-4 text-left transition ${
               active === skill.id
                 ? 'border-brand-400 bg-brand-50 shadow-sm'
-                : 'border-gray-200 bg-white hover:border-gray-300'
+                : 'border-border-subtle bg-surface-0 hover:border-border-base'
             }`}
           >
             <span className="text-2xl">{skill.icon}</span>
-            <p className="mt-2 font-semibold text-gray-900">{skill.name}</p>
-            <p className="text-[12px] text-gray-500">{skill.desc}</p>
+            <p className="mt-2 font-semibold text-text-primary">{skill.name}</p>
+            <p className="text-[12px] text-text-secondary">{skill.desc}</p>
           </button>
         ))}
       </div>
@@ -43,8 +43,8 @@ export function AiAnalyticsView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900">AI Analytics</h1>
-      <p className="mt-1 text-sm text-gray-500">Usage and productivity insights for your workspace.</p>
+      <h1 className="text-2xl font-bold text-text-primary">AI Analytics</h1>
+      <p className="mt-1 text-sm text-text-secondary">Usage and productivity insights for your workspace.</p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         {[
@@ -52,9 +52,9 @@ export function AiAnalyticsView() {
           { label: 'Chats this week', value: 12 },
           { label: 'Time saved (est.)', value: '4.2h' },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-[12px] font-medium text-gray-500">{stat.label}</p>
-            <p className="mt-1 text-3xl font-bold text-gray-900">{stat.value}</p>
+          <div key={stat.label} className="rounded-2xl border border-border-subtle bg-surface-0 p-5 shadow-sm">
+            <p className="text-[12px] font-medium text-text-secondary">{stat.label}</p>
+            <p className="mt-1 text-3xl font-bold text-text-primary">{stat.value}</p>
           </div>
         ))}
       </div>
@@ -79,16 +79,16 @@ export function AiConnectionsView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900">Connections</h1>
-      <p className="mt-1 text-sm text-gray-500">Connect Brain to your favorite tools.</p>
+      <h1 className="text-2xl font-bold text-text-primary">Connections</h1>
+      <p className="mt-1 text-sm text-text-secondary">Connect Brain to your favorite tools.</p>
 
       <div className="mt-6 space-y-2">
         {connections.map((conn) => (
           <div
             key={conn.id}
-            className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3"
+            className="flex items-center justify-between rounded-xl border border-border-subtle bg-surface-0 px-4 py-3"
           >
-            <span className="font-medium text-gray-900">{conn.name}</span>
+            <span className="font-medium text-text-primary">{conn.name}</span>
             <Button
               variant={conn.connected ? 'outline' : 'default'}
               size="sm"
@@ -123,16 +123,16 @@ export function AiCreateAgentView() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900">Create Agent</h1>
-      <p className="mt-1 text-sm text-gray-500">Build a custom agent for your workflows.</p>
+      <h1 className="text-2xl font-bold text-text-primary">Create Agent</h1>
+      <p className="mt-1 text-sm text-text-secondary">Build a custom agent for your workflows.</p>
 
       <form onSubmit={handleCreate} className="mt-6 space-y-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Agent name</label>
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">Agent name</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sprint Reporter" />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Instructions</label>
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">Instructions</label>
           <Textarea
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}

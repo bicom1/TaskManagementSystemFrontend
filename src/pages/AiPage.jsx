@@ -22,14 +22,14 @@ function CreditsBanner({ creditsUsed, creditsTotal, onDismiss }) {
   if (pct < 100) return null;
 
   return (
-    <div className="flex items-center justify-between gap-3 bg-gray-900 px-4 py-2.5 text-[13px] text-white">
+    <div className="flex items-center justify-between gap-3 bg-gray-900 px-4 py-2.5 text-[13px] text-white dark:bg-surface-3">
       <span>
         <strong>{pct}%</strong> of AI Super Credits used.{' '}
         <button type="button" className="underline hover:no-underline">
           Upgrade for more
         </button>
       </span>
-      <button type="button" onClick={onDismiss} className="text-gray-400 hover:text-white">
+      <button type="button" onClick={onDismiss} className="text-text-muted hover:text-white">
         <X className="h-4 w-4" />
       </button>
     </div>
@@ -38,13 +38,13 @@ function CreditsBanner({ creditsUsed, creditsTotal, onDismiss }) {
 
 function AskAgentsTabs({ mode, onChange }) {
   return (
-    <div className="mb-6 inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+    <div className="mb-6 inline-flex rounded-full border border-border-subtle bg-surface-0 p-1 shadow-sm">
       <button
         type="button"
         onClick={() => onChange('ask')}
         className={cn(
           'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-semibold transition',
-          mode === 'ask' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-700'
+          mode === 'ask' ? 'bg-surface-2 text-text-primary' : 'text-text-secondary hover:text-text-secondary'
         )}
       >
         <BrainLogo size={16} />
@@ -55,7 +55,7 @@ function AskAgentsTabs({ mode, onChange }) {
         onClick={() => onChange('agents')}
         className={cn(
           'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-semibold transition',
-          mode === 'agents' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-700'
+          mode === 'agents' ? 'bg-surface-2 text-text-primary' : 'text-text-secondary hover:text-text-secondary'
         )}
       >
         <Glasses className="h-4 w-4" />
@@ -150,14 +150,14 @@ function AiAskWorkspace() {
 
       {/* Top gradient */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-violet-100/80 via-pink-50/40 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-violet-100/80 dark:from-violet-500/10 via-pink-50/40 dark:via-pink-500/5 to-transparent"
         aria-hidden
       />
 
       <div className="absolute right-4 top-4 z-10">
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white/80 px-3 py-1.5 text-[12px] font-medium text-gray-600 backdrop-blur-sm hover:bg-white"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-0/80 px-3 py-1.5 text-[12px] font-medium text-text-secondary backdrop-blur-sm hover:bg-surface-0"
         >
           <HardDrive className="h-3.5 w-3.5" />
           Memory
@@ -167,7 +167,7 @@ function AiAskWorkspace() {
       {hasMessages ? (
         <>
           <AiChatThread messages={activeChat.messages} isThinking={isThinking} />
-          <div className="shrink-0 border-t border-gray-100 bg-white/80 px-4 py-4 backdrop-blur-sm">
+          <div className="shrink-0 border-t border-border-subtle bg-surface-0/80 px-4 py-4 backdrop-blur-sm">
             <AiInputBar
               value={prompt}
               onChange={setPrompt}

@@ -47,7 +47,7 @@ function StatusStepper({ status }) {
             className={cn(
               'rounded-full border px-2 py-0.5 text-[10px] font-medium',
               active
-                ? 'border-primary bg-primary text-on-ink'
+                ? 'border-primary bg-primary text-white'
                 : passed
                   ? 'border-primary-soft bg-primary-soft/50 text-primary-deep'
                   : 'border-hairline bg-paper text-graphite'
@@ -302,7 +302,7 @@ export default function MyTasksPage() {
                         starred ? remove.mutate(task._id) : add.mutate(task._id)
                       }
                       title={starred ? 'Remove from Personal List' : 'Add to Personal List'}
-                      className={starred ? 'text-amber-500 hover:text-amber-600' : undefined}
+                      className={starred ? 'text-amber-500 hover:text-amber-600 dark:hover:text-amber-400' : undefined}
                     >
                       <Star className={cn('h-4 w-4', starred && 'fill-current')} />
                     </Button>

@@ -127,7 +127,7 @@ export function AppShell() {
         </div>
       )}
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#f8f9fa]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#f8f9fa] dark:bg-surface-1">
         <TopBar
           createButtonRef={createBtnRef}
           onMenuClick={() => setMobileOpen(true)}
@@ -140,7 +140,7 @@ export function AppShell() {
 
         <main
           className={cn(
-            'flex min-h-0 flex-1 flex-col bg-[#f8f9fa]',
+            'flex min-h-0 flex-1 flex-col bg-[#f8f9fa] dark:bg-surface-1',
             // Inbox (all views) stays locked to the shell — never grow the document
             location.pathname.startsWith('/inbox')
               ? 'overflow-hidden'

@@ -11,6 +11,7 @@ import { PROJECT_STATUS_LABELS } from '@/features/projects/api/projectApi';
 import { useCreateProjectUiStore } from '@/features/spaces/createProjectUiStore';
 import { projectPath } from '@/features/spaces/spaceKinds';
 import { useAuthStore } from '@/store/authStore';
+import { readableTextOn } from '@/lib/contrast';
 
 function sortByName(items) {
   return [...items].sort((a, b) =>
@@ -24,7 +25,7 @@ function sortByName(items) {
 function ProjectDeveloper({ developer }) {
   if (!developer || typeof developer !== 'object') {
     return (
-      <span className="text-[11px] text-graphite/70">Unassigned</span>
+      <span className="text-[11px] text-graphite">Unassigned</span>
     );
   }
 
@@ -113,8 +114,8 @@ export default function ProjectsPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <span
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-soft-lift transition group-hover:scale-[1.03]"
-                          style={{ backgroundColor: project.color || '#1a1a1a' }}
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-soft-lift transition group-hover:scale-[1.03] dark:ring-1 dark:ring-inset dark:ring-white/15"
+                          style={{ backgroundColor: project.color || '#1a1a1a', color: readableTextOn(project.color || '#1a1a1a') }}
                         >
                           {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
                         </span>

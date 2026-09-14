@@ -344,7 +344,7 @@ export function InviteModal({
               {result.teamId ? ' They were also added to the selected team.' : ''}
             </p>
             {result.emailNote ? (
-              <p className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-900">
+              <p className="mt-2 rounded-md border border-info-border bg-info-bg px-3 py-2 text-xs leading-relaxed text-info-text">
                 {result.emailNote}
               </p>
             ) : null}

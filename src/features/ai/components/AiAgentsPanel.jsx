@@ -21,12 +21,12 @@ export function AiAgentsPanel({ variant = 'page', filter = 'all', className }) {
             <button
               key={agent.id}
               type="button"
-              className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-brand-300 hover:shadow-md"
+              className="flex items-start gap-3 rounded-2xl border border-border-subtle bg-surface-0 p-4 text-left shadow-sm transition hover:border-brand-300 hover:shadow-md"
             >
               <span className="text-2xl">{agent.emoji || '🤖'}</span>
               <div>
-                <p className="text-[14px] font-semibold text-gray-900">{agent.name}</p>
-                <p className="text-[12px] text-gray-500">
+                <p className="text-[14px] font-semibold text-text-primary">{agent.name}</p>
+                <p className="text-[12px] text-text-secondary">
                   {agent.owner === 'workspace' ? 'Workspace agent' : 'My agent'}
                 </p>
               </div>
@@ -48,8 +48,8 @@ export function AiAgentsPanel({ variant = 'page', filter = 'all', className }) {
     <div className={cn('mx-auto max-w-3xl px-4 py-8', className)}>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Super Agents</h1>
-          <p className="mt-1 text-sm text-gray-500">Automate workflows with custom AI agents.</p>
+          <h1 className="text-2xl font-bold text-text-primary">Super Agents</h1>
+          <p className="mt-1 text-sm text-text-secondary">Automate workflows with custom AI agents.</p>
         </div>
         <Link to="/ai/agents/new">
           <Button>
@@ -63,13 +63,13 @@ export function AiAgentsPanel({ variant = 'page', filter = 'all', className }) {
         {all.map((agent) => (
           <div
             key={agent.id}
-            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+            className="rounded-2xl border border-border-subtle bg-surface-0 p-5 shadow-sm"
           >
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-xl">
-              {agent.emoji || <Glasses className="h-5 w-5 text-violet-600" />}
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-500/10 text-xl">
+              {agent.emoji || <Glasses className="h-5 w-5 text-violet-600 dark:text-violet-400" />}
             </div>
-            <h3 className="font-semibold text-gray-900">{agent.name}</h3>
-            <p className="mt-1 text-[12px] text-gray-500">
+            <h3 className="font-semibold text-text-primary">{agent.name}</h3>
+            <p className="mt-1 text-[12px] text-text-secondary">
               {agent.owner === 'workspace' ? 'Workspace' : 'Personal'}
             </p>
           </div>

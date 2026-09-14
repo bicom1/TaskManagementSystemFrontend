@@ -49,12 +49,13 @@ import {
   TASK_STATUSES,
 } from '@/features/tasks/api/taskApi';
 import { SubtasksPanel } from '@/features/tasks/components/SubtasksPanel';
+import { readableTextOn } from '@/lib/contrast';
 
 function priorityFlagClass(priority) {
   if (priority === 'urgent') return 'text-danger-500';
   if (priority === 'high') return 'text-warning-500';
   if (priority === 'medium') return 'text-brand-400';
-  if (priority === 'low') return 'text-graphite/50';
+  if (priority === 'low') return 'text-graphite/50 dark:text-graphite';
   return 'text-graphite/40';
 }
 
@@ -398,7 +399,7 @@ export function ClickUpTaskDetail({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/45 p-3 sm:p-6"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/45 p-3 sm:p-6 dark:bg-black/60"
       onClick={onClose}
     >
       <div
@@ -422,8 +423,8 @@ export function ClickUpTaskDetail({
               title={`Open ${project?.name || 'project'}`}
             >
               <span
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
-                style={{ backgroundColor: project?.color || '#292524' }}
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white dark:ring-1 dark:ring-inset dark:ring-white/15"
+                style={{ backgroundColor: project?.color || '#292524', color: readableTextOn(project?.color || '#292524') }}
               >
                 {(project?.icon || project?.name?.[0] || 'P').toString().slice(0, 1)}
               </span>
@@ -490,7 +491,7 @@ export function ClickUpTaskDetail({
                   {canEditTask ? (
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-cloud"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-cloud"
                       onClick={() => {
                         setMoreOpen(false);
                         setConfirmDelete(true);
@@ -1016,11 +1017,13 @@ export function ClickUpTaskDetail({
               onSubmit={handleSubmit(onComment)}
               className="shrink-0 border-t border-hairline bg-paper p-2.5"
             >
-              <div className="rounded-xl border border-hairline bg-cloud/30 focus-within:border-ink/20 focus-within:bg-paper">
+              <div className="rounded-xl border border-hairline bg-cloud/30 transition focus-within:border-primary focus-within:bg-paper focus-within:ring-4 focus-within:ring-primary/10">
                 <textarea
                   placeholder="Write a comment, paste a link or image (Ctrl+V), or attach a file…"
                   rows={2}
-                  className="w-full resize-none bg-transparent px-2.5 py-2 text-sm text-ink outline-none placeholder:text-graphite"
+                  // outline-none! — the box shows focus; plain outline-none loses to the
+                  // global :focus-visible ring in index.css and outlines the field inside it.
+                  className="w-full resize-none bg-transparent px-2.5 py-2 text-sm text-ink outline-none! placeholder:text-graphite"
                   {...register('content')}
                   onPaste={handleCommentPaste}
                 />
@@ -1049,7 +1052,7 @@ export function ClickUpTaskDetail({
                             <button
                               type="button"
                               onClick={() => removePendingFile(item.id)}
-                              className="absolute right-0.5 top-0.5 rounded bg-ink/70 p-0.5 text-white hover:bg-ink"
+                              className="absolute right-0.5 top-0.5 rounded bg-ink/70 p-0.5 text-white hover:bg-ink dark:bg-black/70 dark:hover:bg-black"
                               aria-label="Remove file"
                             >
                               <X className="h-3 w-3" />
@@ -1169,7 +1172,7 @@ export function ClickUpTaskDetail({
 
       {confirmDelete && (
         <div
-          className="absolute inset-0 z-[80] flex items-center justify-center bg-ink/40 p-4"
+          className="absolute inset-0 z-[80] flex items-center justify-center bg-ink/40 p-4 dark:bg-black/60"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="w-full max-w-sm rounded-xl border border-hairline bg-paper p-5 shadow-xl">

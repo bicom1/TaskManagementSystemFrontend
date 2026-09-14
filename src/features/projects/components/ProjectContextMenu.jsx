@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { canDeleteProject } from '@/lib/roles';
 import { useAuthStore } from '@/store/authStore';
+import { readableTextOn } from '@/lib/contrast';
 
 const PRIMARY_ACTIONS = [
   {
@@ -22,8 +23,8 @@ const PRIMARY_ACTIONS = [
     description: 'Pin to the top of your sidebar',
     descriptionActive: 'Unpin from favorites',
     icon: Star,
-    iconBg: 'bg-amber-50 text-amber-600',
-    ring: 'hover:ring-amber-200',
+    iconBg: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    ring: 'hover:ring-amber-200 dark:hover:ring-amber-500/30',
   },
   {
     id: 'rename',
@@ -38,8 +39,8 @@ const PRIMARY_ACTIONS = [
     label: 'Copy link',
     description: 'Share a direct link to this project',
     icon: Link2,
-    iconBg: 'bg-sky-50 text-sky-600',
-    ring: 'hover:ring-sky-200',
+    iconBg: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    ring: 'hover:ring-sky-200 dark:hover:ring-sky-500/30',
   },
 ];
 
@@ -49,16 +50,16 @@ const MANAGE_ACTIONS = [
     label: 'Edit',
     description: 'Update color, status, and details',
     icon: SquarePen,
-    iconBg: 'bg-violet-50 text-violet-600',
-    ring: 'hover:ring-violet-200',
+    iconBg: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400',
+    ring: 'hover:ring-violet-200 dark:hover:ring-violet-500/30',
   },
   {
     id: 'update',
     label: 'Update',
     description: 'Refresh project settings and metadata',
     icon: RefreshCw,
-    iconBg: 'bg-emerald-50 text-emerald-600',
-    ring: 'hover:ring-emerald-200',
+    iconBg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    ring: 'hover:ring-emerald-200 dark:hover:ring-emerald-500/30',
   },
 ];
 
@@ -74,7 +75,7 @@ function MenuAction({ item, onClick, isFavorite }) {
       role="menuitem"
       onClick={onClick}
       className={cn(
-        'group flex w-full items-center gap-3 rounded-xl border border-hairline/80 bg-gradient-to-br from-white to-surface-1/80 p-3 text-left shadow-sm ring-1 ring-transparent transition-all hover:-translate-y-0.5 hover:border-hairline hover:shadow-md',
+        'group flex w-full items-center gap-3 rounded-xl border border-hairline/80 bg-gradient-to-br from-surface-0 to-surface-1/80 p-3 text-left shadow-sm ring-1 ring-transparent transition-all hover:-translate-y-0.5 hover:border-hairline hover:shadow-md',
         item.ring
       )}
     >
@@ -97,7 +98,7 @@ function MenuAction({ item, onClick, isFavorite }) {
         </span>
         <span className="mt-0.5 block text-xs leading-relaxed text-graphite">{description}</span>
       </span>
-      <span className="text-lg font-light text-steel/50 transition group-hover:translate-x-0.5 group-hover:text-brand-400">
+      <span className="text-lg font-light text-graphite/50 dark:text-graphite transition group-hover:translate-x-0.5 group-hover:text-brand-400">
         →
       </span>
     </button>
@@ -173,7 +174,7 @@ export function ProjectContextMenu({
         ref={panelRef}
         role="menu"
         aria-label={`Project options for ${project.name}`}
-        className="relative z-[86] flex w-full max-w-[420px] flex-col overflow-hidden rounded-[22px] border border-white/60 bg-paper shadow-[0_24px_80px_rgba(15,15,19,0.22)] animate-scale-in"
+        className="relative z-[86] flex w-full max-w-[420px] flex-col overflow-hidden rounded-[22px] border border-white/60 bg-paper shadow-[0_24px_80px_rgba(15,15,19,0.22)] animate-scale-in dark:border-white/10 dark:shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
       >
         <div className="relative overflow-hidden border-b border-hairline/80 px-5 pb-4 pt-5">
           <div
@@ -188,8 +189,8 @@ export function ProjectContextMenu({
               </div>
               <div className="flex items-center gap-3">
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white shadow-sm"
-                  style={{ backgroundColor: project.color || '#4f46e5' }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white shadow-sm dark:ring-1 dark:ring-inset dark:ring-white/15"
+                  style={{ backgroundColor: project.color || '#4f46e5', color: readableTextOn(project.color || '#4f46e5') }}
                 >
                   {projectInitial}
                 </span>
@@ -202,7 +203,7 @@ export function ProjectContextMenu({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-hairline bg-white/80 text-graphite shadow-sm transition hover:bg-cloud hover:text-ink"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-hairline bg-surface-0/80 text-graphite shadow-sm transition hover:bg-cloud hover:text-ink"
               aria-label="Close"
             >
               <X className="h-4 w-4" />
@@ -235,19 +236,19 @@ export function ProjectContextMenu({
         </div>
 
         {canDelete ? (
-          <div className="border-t border-hairline/80 bg-red-50/30 px-4 py-3">
+          <div className="border-t border-hairline/80 bg-red-50/30 dark:bg-red-500/5 px-4 py-3">
             <button
               type="button"
               role="menuitem"
               onClick={onDelete}
-              className="group flex w-full items-center gap-3 rounded-xl border border-red-200/80 bg-gradient-to-br from-red-50/90 to-white p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-300 hover:shadow-md"
+              className="group flex w-full items-center gap-3 rounded-xl border border-danger-border bg-gradient-to-br from-danger-bg to-surface-0 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-300 dark:hover:border-red-500/40 hover:shadow-md"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400">
                 <Trash2 className="h-4 w-4" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-red-700">Delete project</span>
-                <span className="mt-0.5 block text-xs leading-relaxed text-red-600/80">
+                <span className="block text-sm font-semibold text-red-700 dark:text-red-300">Delete project</span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-red-600/80 dark:text-red-300/90">
                   Permanently remove this project and archive its tasks
                 </span>
               </span>

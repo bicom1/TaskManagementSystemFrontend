@@ -422,6 +422,10 @@ export function useDeleteTask(projectId) {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      // Badge + inbox task feed live under separate keys — see useDeleteProject.
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['inbox-live-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
       const title = data?.title ? `"${data.title}"` : 'Task';
       toastSuccess(`${title} deleted`);
     },

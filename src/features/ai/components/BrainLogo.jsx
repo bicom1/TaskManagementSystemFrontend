@@ -27,8 +27,8 @@ export function BrainWordmark({ className }) {
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <BrainLogo size={36} />
-      <span className="text-[28px] font-bold tracking-[-0.03em] text-gray-900">
-        Brain<span className="text-[0.65em] align-super text-gray-500">²</span>
+      <span className="text-[28px] font-bold tracking-[-0.03em] text-text-primary">
+        Brain<span className="text-[0.65em] align-super text-text-secondary">²</span>
       </span>
     </span>
   );

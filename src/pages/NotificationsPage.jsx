@@ -363,8 +363,8 @@ export default function NotificationsPage() {
                 className={cn(
                   'inline-flex min-w-[1.25rem] items-center justify-center rounded-sm px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
                   m.unread > 0
-                    ? 'bg-primary text-on-ink'
-                    : 'invisible bg-primary text-on-ink'
+                    ? 'bg-primary text-white'
+                    : 'invisible bg-primary text-white'
                 )}
                 aria-hidden={m.unread <= 0}
               >

@@ -14,9 +14,9 @@ const TABS = [
 const STATUS_DOT = {
   online: 'bg-emerald-500',
   active: 'bg-emerald-400',
-  offline: 'border-2 border-[#c8c8c8] bg-white',
+  offline: 'border-2 border-border-strong bg-surface-0',
   invited: 'bg-amber-400',
-  inactive: 'bg-[#c8c8c8]',
+  inactive: 'bg-text-disabled',
 };
 
 function matches(haystack, query) {
@@ -35,7 +35,7 @@ function PersonRow({ person, label, selected, onSelect }) {
       onClick={() => onSelect(person)}
       className={cn(
         'flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition',
-        selected ? 'bg-[#f0f0f0]' : 'hover:bg-[#f5f5f5]'
+        selected ? 'bg-surface-2' : 'hover:bg-surface-1'
       )}
     >
       <span className="relative shrink-0">
@@ -52,7 +52,7 @@ function PersonRow({ person, label, selected, onSelect }) {
           )}
         />
       </span>
-      <span className="truncate text-sm font-medium text-[#292929]">{label}</span>
+      <span className="truncate text-sm font-medium text-text-primary">{label}</span>
     </button>
   );
 }
@@ -64,14 +64,14 @@ function SimpleRow({ icon: Icon, title, subtitle, selected, onSelect }) {
       onClick={onSelect}
       className={cn(
         'flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition',
-        selected ? 'bg-[#f0f0f0]' : 'hover:bg-[#f5f5f5]'
+        selected ? 'bg-surface-2' : 'hover:bg-surface-1'
       )}
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f3f3f3] text-[#5a5a5a]">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-secondary">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-[#292929]">{title}</span>
+        <span className="block truncate text-sm font-medium text-text-primary">{title}</span>
         {subtitle ? (
           <span className="block truncate text-xs text-graphite">{subtitle}</span>
         ) : null}
@@ -233,11 +233,11 @@ export function MentionPicker({
 
   return (
     <div
-      className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-[#e6e6e6] bg-white text-left shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
+      className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-border-subtle bg-surface-0 text-left shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
       role="listbox"
       aria-label="Mention picker"
     >
-      <div className="flex items-center justify-between border-b border-[#eee] px-1">
+      <div className="flex items-center justify-between border-b border-border-subtle px-1">
         <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto px-1 pt-1">
           {TABS.map((t) => (
             <button
@@ -247,8 +247,8 @@ export function MentionPicker({
               className={cn(
                 'shrink-0 border-b-2 px-3 py-2.5 text-sm transition',
                 tab === t.id
-                  ? 'border-[#1f1f1f] font-semibold text-[#1f1f1f]'
-                  : 'border-transparent font-medium text-[#8a8a8a] hover:text-[#4a4a4a]'
+                  ? 'border-text-primary font-semibold text-text-primary'
+                  : 'border-transparent font-medium text-text-muted hover:text-text-secondary'
               )}
             >
               {t.label}
@@ -258,7 +258,7 @@ export function MentionPicker({
         <button
           type="button"
           onClick={onClose}
-          className="mr-1 rounded-md p-1.5 text-[#8a8a8a] hover:bg-[#f3f3f3] hover:text-[#1f1f1f]"
+          className="mr-1 rounded-md p-1.5 text-text-muted hover:bg-surface-2 hover:text-text-primary"
           aria-label="Hide mentions"
           title="Hide"
         >
@@ -267,7 +267,7 @@ export function MentionPicker({
       </div>
 
       <div className="max-h-72 overflow-y-auto px-1.5 py-2">
-        <p className="px-2.5 pb-1.5 text-xs font-medium text-[#9a9a9a]">{sectionLabel}</p>
+        <p className="px-2.5 pb-1.5 text-xs font-medium text-text-muted">{sectionLabel}</p>
         {items.length === 0 ? (
           <p className="px-2.5 py-6 text-center text-sm text-graphite">No matches</p>
         ) : tab === 'people' ? (
@@ -305,7 +305,7 @@ export function MentionAtButton({ active, onClick }) {
       className={cn(
         'relative rounded-md p-1.5 transition',
         active
-          ? 'bg-[#f0f0f0] text-[#1f1f1f]'
+          ? 'bg-surface-2 text-text-primary'
           : 'text-graphite hover:bg-cloud hover:text-ink'
       )}
       aria-label={active ? 'Hide mentions' : 'Mention someone'}

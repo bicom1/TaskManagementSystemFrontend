@@ -15,7 +15,8 @@ function priorityFlagClass(priority) {
   if (priority === 'urgent') return 'text-danger-500';
   if (priority === 'high') return 'text-warning-500';
   if (priority === 'medium') return 'text-brand-400';
-  return 'text-graphite/40';
+  // 40% muted is invisible on a dark page (2:1) — keep it quiet, but legible.
+  return 'text-graphite/40 dark:text-graphite';
 }
 
 function resolvePeople(ids, people, fallback = []) {
@@ -416,7 +417,7 @@ export function ClickUpTasksList({
           ROW_COLS,
           'group relative px-3 py-1.5 text-sm transition-colors sm:px-4 sm:py-2',
           'hover:bg-cloud/70',
-          selected && 'bg-[#edf4ff]'
+          selected && 'bg-[#edf4ff] dark:bg-blue-500/15'
         )}
       >
         <div className="flex justify-center">

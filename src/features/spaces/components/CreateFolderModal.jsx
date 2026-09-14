@@ -107,7 +107,7 @@ export function CreateFolderModal({ open, onClose, onUseTemplates }) {
               <span className="block text-sm font-medium text-ink">Statuses</span>
               <span className="text-xs text-graphite">Use Space statuses</span>
             </span>
-            <ChevronRight className="h-4 w-4 text-steel" />
+            <ChevronRight className="h-4 w-4 text-text-disabled" />
           </button>
         </div>
 

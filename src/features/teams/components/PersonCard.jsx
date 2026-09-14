@@ -7,8 +7,8 @@ import { PresenceIndicator } from '@/features/presence/PresenceIndicator';
 
 const STATUS_DOT = {
   online: 'bg-emerald-500',
-  active: 'bg-gray-900',
-  offline: 'bg-gray-900',
+  active: 'bg-gray-900 dark:bg-text-muted',
+  offline: 'bg-gray-900 dark:bg-text-muted',
   invited: 'bg-amber-400',
   inactive: 'bg-steel',
 };

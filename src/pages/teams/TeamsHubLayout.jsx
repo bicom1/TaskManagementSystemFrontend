@@ -286,7 +286,7 @@ export default function TeamsHubLayout() {
         ) : (
           <form onSubmit={teamForm.handleSubmit(onCreateTeam)} className="space-y-4">
             {departments.length === 0 && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-ink">
+              <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-sm text-ink">
                 Create a department first.{' '}
                 <button
                   type="button"

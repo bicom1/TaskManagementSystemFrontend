@@ -37,6 +37,7 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { LoadingScreen } from '@/components/ui/Spinner';
+import { useChartTheme } from '@/lib/chartTheme';
 
 function downloadBlob(content, filename, type) {
   const blob = new Blob([content], { type });
@@ -132,6 +133,7 @@ function printPdf(data, rangeLabel) {
 }
 
 export function WorkloadAnalytics() {
+  const chart = useChartTheme();
   const role = useAuthStore((s) => s.user?.role);
   const isSuperAdmin = role === ROLES.SUPER_ADMIN;
 
@@ -359,13 +361,13 @@ export function WorkloadAnalytics() {
                 {(data?.trend || []).length ? (
                   <ResponsiveContainer width="100%" height={260}>
                     <LineChart data={data.trend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
-                      <XAxis dataKey="date" tick={{ fill: '#8a8a93', fontSize: 10 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="completed" stroke="#6f64c4" strokeWidth={2} name="Completed" />
-                      <Line type="monotone" dataKey="created" stroke="#8f83d4" strokeWidth={2} name="Created" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                      <XAxis dataKey="date" tick={chart.tickProps(10)} />
+                      <YAxis allowDecimals={false} tick={chart.tickProps(12)} />
+                      <Tooltip {...chart.tooltip} />
+                      <Legend {...chart.legend} />
+                      <Line type="monotone" dataKey="completed" stroke={chart.primary} strokeWidth={2} name="Completed" />
+                      <Line type="monotone" dataKey="created" stroke={chart.secondary} strokeWidth={2} name="Created" />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
@@ -382,13 +384,13 @@ export function WorkloadAnalytics() {
                 {(data?.teams || []).length ? (
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={data.teams}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#ececed" />
-                      <XAxis dataKey="name" tick={{ fill: '#8a8a93', fontSize: 11 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#8a8a93', fontSize: 12 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="completed" fill="#6f64c4" name="Completed" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="open" fill="#e9e7f7" name="Open" radius={[4, 4, 0, 0]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                      <XAxis dataKey="name" tick={chart.tickProps(11)} />
+                      <YAxis allowDecimals={false} tick={chart.tickProps(12)} />
+                      <Tooltip {...chart.tooltip} />
+                      <Legend {...chart.legend} />
+                      <Bar dataKey="completed" fill={chart.primary} name="Completed" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="open" fill={chart.soft} name="Open" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

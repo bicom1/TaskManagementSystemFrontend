@@ -4,6 +4,7 @@ import { taskApi } from '@/features/tasks/api/taskApi';
 import { STATUS_LABELS } from '@/features/tasks/api/taskApi';
 import { homeApi } from '@/features/home/api/homeApi';
 import { useAuthStore } from '@/store/authStore';
+import { entityHref } from '@/features/notifications/notificationLinks';
 import {
   buildInboxFeedItem,
   filterReplies,
@@ -147,9 +148,8 @@ export function getTaskHref(item) {
     return `/projects/${item.projectId}?task=${item.taskId}`;
   }
   if (item?.taskId) return `/all-tasks?task=${item.taskId}`;
-  if (item?.notification?.entityType === 'Project' && item?.notification?.entityId) {
-    return `/projects/${item.notification.entityId}`;
-  }
+  const entityLink = entityHref(item?.notification?.entityType, item?.notification?.entityId);
+  if (entityLink) return entityLink;
   return '/all-tasks';
 }
 

@@ -4,7 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import App from './App';
+import { useThemeStore } from './lib/theme';
 import './index.css';
+
+/** Toasts follow the app's light/dark setting (sonner has its own palettes). */
+function ThemedToaster(props) {
+  const theme = useThemeStore((s) => s.resolved);
+  return <Toaster theme={theme} {...props} />;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,7 +36,7 @@ createRoot(document.getElementById('root')).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
-        <Toaster
+        <ThemedToaster
           richColors
           position="top-right"
           closeButton
@@ -49,10 +56,10 @@ createRoot(document.getElementById('root')).render(
               actionButton: 'bg-brand-600 text-white',
               cancelButton: 'bg-cloud text-ink',
               closeButton: 'border-hairline bg-paper text-graphite',
-              success: 'border-emerald-200',
-              error: 'border-red-200',
-              warning: 'border-amber-200',
-              info: 'border-sky-200',
+              success: 'border-success-border',
+              error: 'border-danger-border',
+              warning: 'border-warning-border',
+              info: 'border-info-border',
             },
           }}
         />

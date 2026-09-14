@@ -101,7 +101,7 @@ export function EditProjectModal({
           </Select>
         </div>
 
-        <div className="rounded-xl border border-hairline/80 bg-gradient-to-br from-white to-surface-1/80 p-3">
+        <div className="rounded-xl border border-hairline/80 bg-gradient-to-br from-surface-0 to-surface-1/80 p-3">
           <Label>Color</Label>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {COLOR_PRESETS.map((color) => (
@@ -111,7 +111,7 @@ export function EditProjectModal({
                 className="h-8 w-8 rounded-xl border-2 transition hover:scale-105"
                 style={{
                   backgroundColor: color,
-                  borderColor: form.color === color ? '#1a1a1a' : 'transparent',
+                  borderColor: form.color === color ? 'var(--color-text-primary)' : 'transparent',
                 }}
                 onClick={() => setForm((f) => ({ ...f, color }))}
                 aria-label={`Set color ${color}`}

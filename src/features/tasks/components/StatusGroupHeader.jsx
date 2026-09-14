@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useThemeStore } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -97,8 +98,26 @@ function StatusGlyph({ icon, fg, className }) {
   );
 }
 
+/*
+ * The backlog / to-do greys are light fills — right on a white board, glaring on
+ * a dark one. Swapped only when drawn: STATUS_TONES values are also saved as
+ * project status colors and fed to <input type="color">, so they must stay hex.
+ */
+const DARK_TONE_OVERRIDES = {
+  // Light greys glare on a dark board.
+  '#d1d5db': { bg: '#3a3a44', fg: '#d4d4dc' },
+  '#e5e7eb': { bg: '#2e2e36', fg: '#c4c4cc' },
+  // Deepened so the white label keeps AA contrast (the green pill was 2.3:1).
+  '#3b82f6': { bg: '#3472d8', fg: '#ffffff' },
+  '#8b5cf6': { bg: '#8457ea', fg: '#ffffff' },
+  '#22c55e': { bg: '#178640', fg: '#ffffff' },
+};
+
 export function StatusPill({ status, label, color, className }) {
-  const tone = resolveStatusTone(status, color);
+  const mode = useThemeStore((s) => s.resolved);
+  const baseTone = resolveStatusTone(status, color);
+  const tone =
+    mode === 'dark' ? { ...baseTone, ...DARK_TONE_OVERRIDES[String(baseTone.bg).toLowerCase()] } : baseTone;
   const text = (label || GROUP_LABELS[status] || STATUS_LABELS[status] || status).toUpperCase();
   return (
     <span

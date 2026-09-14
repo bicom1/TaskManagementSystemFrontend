@@ -139,7 +139,7 @@ export function CreateSprintFolderModal({ open, onClose }) {
                 <span className="block text-sm font-medium text-ink">Automate Sprints</span>
                 <span className="text-xs text-graphite">When Sprint ends then Mark Sprint as done…</span>
               </span>
-              <ChevronRight className="h-4 w-4 text-steel" />
+              <ChevronRight className="h-4 w-4 text-text-disabled" />
             </button>
             <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-cloud">
               <RefreshCw className="h-4 w-4 text-graphite" />
@@ -147,7 +147,7 @@ export function CreateSprintFolderModal({ open, onClose }) {
                 <span className="block text-sm font-medium text-ink">Sprint settings</span>
                 <span className="text-xs text-graphite">Format, Timezone, Start date, Start time…</span>
               </span>
-              <ChevronRight className="h-4 w-4 text-steel" />
+              <ChevronRight className="h-4 w-4 text-text-disabled" />
             </button>
           </div>
 

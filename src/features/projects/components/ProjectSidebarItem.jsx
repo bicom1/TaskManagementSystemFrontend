@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { projectPath } from '@/features/spaces/spaceKinds';
 import { useProjectFavoritesStore } from '../projectFavoritesStore';
 import { ProjectContextMenu } from './ProjectContextMenu';
+import { readableTextOn } from '@/lib/contrast';
 
 export function ProjectSidebarItem({
   project,
@@ -46,8 +47,8 @@ export function ProjectSidebarItem({
         )}
       >
         <span
-          className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white shadow-2xs"
-          style={{ backgroundColor: project.color || '#4f46e5' }}
+          className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white shadow-2xs dark:ring-1 dark:ring-inset dark:ring-white/15"
+          style={{ backgroundColor: project.color || '#4f46e5', color: readableTextOn(project.color || '#4f46e5') }}
         >
           {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
         </span>

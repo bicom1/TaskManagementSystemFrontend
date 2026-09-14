@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { UserAvatar } from '@/components/UserAvatar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { cn } from '@/lib/utils';
 
 /**
@@ -208,6 +209,8 @@ export const TopBar = forwardRef(function TopBar(
               <span>Invite</span>
             </Button>
           )}
+
+          <ThemeToggle />
 
           <Link
             to="/inbox?view=activity"

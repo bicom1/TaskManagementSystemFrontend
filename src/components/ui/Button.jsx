@@ -51,14 +51,15 @@ const buttonVariants = cva(
           'hover:bg-[var(--color-sidebar-surface)] hover:text-[var(--color-sidebar-text-active)]',
         ].join(' '),
 
+        // Inverted: text-colored fill with page-colored text — dark on light, light on dark.
         ink: [
-          'border-transparent bg-text-primary text-white',
-          'hover:bg-black',
+          'border-transparent bg-text-primary text-surface-0',
+          'hover:bg-ink-deep',
         ].join(' '),
 
         destructive: [
           'border-transparent bg-danger-500 text-white shadow-xs',
-          'hover:bg-[#b23c41]',
+          'hover:bg-danger-600',
         ].join(' '),
       },
 

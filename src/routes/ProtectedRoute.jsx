@@ -10,7 +10,9 @@ import { sanitizeNextPath, withNextParam } from '../lib/postLoginRedirect';
 async function hydrateSession(setAuth) {
   const { user: refreshedUser, accessToken } = await authApi.refresh();
   try {
-    const full = await userApi.me();
+    // The new token isn't in the store yet, so pass it — without it this request
+    // failed with a 401 on every page reload and the profile was fetched twice.
+    const full = await userApi.me({ headers: { Authorization: `Bearer ${accessToken}` } });
     setAuth({ ...refreshedUser, ...full }, accessToken);
   } catch {
     setAuth(refreshedUser, accessToken);

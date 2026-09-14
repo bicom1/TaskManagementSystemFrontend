@@ -18,8 +18,8 @@ export const CREATE_MENU_PRIMARY = [
     description: 'Group lists and related projects',
     icon: Folder,
     accent: 'from-amber-400 to-orange-500',
-    iconBg: 'bg-amber-50 text-amber-600',
-    ring: 'hover:ring-amber-200',
+    iconBg: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    ring: 'hover:ring-amber-200 dark:hover:ring-amber-500/30',
   },
   {
     id: 'sprint',
@@ -27,8 +27,8 @@ export const CREATE_MENU_PRIMARY = [
     description: 'Organize agile sprints in one place',
     icon: RefreshCw,
     accent: 'from-emerald-400 to-teal-600',
-    iconBg: 'bg-emerald-50 text-emerald-600',
-    ring: 'hover:ring-emerald-200',
+    iconBg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    ring: 'hover:ring-emerald-200 dark:hover:ring-emerald-500/30',
   },
 ];
 
@@ -49,7 +49,7 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
       aria-label="Create"
       style={style}
       className={cn(
-        'z-[80] flex w-full flex-col overflow-hidden border border-white/60 bg-paper shadow-[0_24px_80px_rgba(15,15,19,0.22)] animate-scale-in',
+        'z-[80] flex w-full flex-col overflow-hidden border border-white/60 bg-paper shadow-[0_24px_80px_rgba(15,15,19,0.22)] animate-scale-in dark:border-white/10 dark:shadow-[0_24px_80px_rgba(0,0,0,0.6)]',
         centered
           ? 'max-w-[420px] rounded-[22px]'
           : 'w-[300px] rounded-2xl border-hairline bg-paper/95 shadow-[0_12px_40px_rgba(0,0,0,0.14)] backdrop-blur-md',
@@ -80,7 +80,7 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-hairline bg-white/80 text-graphite shadow-sm transition hover:bg-cloud hover:text-ink"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-hairline bg-surface-0/80 text-graphite shadow-sm transition hover:bg-cloud hover:text-ink"
               aria-label="Close"
             >
               <X className="h-4 w-4" />
@@ -106,7 +106,7 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
                 'group flex w-full items-center gap-3.5 text-left transition-all',
                 centered
                   ? cn(
-                      'rounded-xl border border-hairline/80 bg-gradient-to-br from-white to-surface-1/80 p-3 shadow-sm ring-1 ring-transparent hover:-translate-y-0.5 hover:border-hairline hover:shadow-md',
+                      'rounded-xl border border-hairline/80 bg-gradient-to-br from-surface-0 to-surface-1/80 p-3 shadow-sm ring-1 ring-transparent hover:-translate-y-0.5 hover:border-hairline hover:shadow-md',
                       item.ring
                     )
                   : 'rounded-xl px-3 py-2.5 hover:bg-cloud'
@@ -141,7 +141,7 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
                 <span className="mt-0.5 block text-xs leading-relaxed text-graphite">{item.description}</span>
               </span>
               {centered && (
-                <span className="text-lg font-light text-steel/50 transition group-hover:translate-x-0.5 group-hover:text-brand-400">
+                <span className="text-lg font-light text-graphite/50 dark:text-graphite transition group-hover:translate-x-0.5 group-hover:text-brand-400">
                   →
                 </span>
               )}
@@ -173,7 +173,7 @@ function MenuPanel({ onSelect, onClose, centered, className, style }) {
                 className={cn(
                   'flex items-center gap-2.5 text-left transition-colors',
                   centered
-                    ? 'rounded-xl border border-hairline/80 bg-white px-3 py-2.5 hover:border-brand-200 hover:bg-brand-50/40'
+                    ? 'rounded-xl border border-hairline/80 bg-surface-0 px-3 py-2.5 hover:border-brand-200 hover:bg-brand-50/40'
                     : 'w-full rounded-lg px-3 py-2 hover:bg-cloud'
                 )}
               >
@@ -278,7 +278,7 @@ export function CreateMenuPopover({ open, onClose, onSelect, anchorRef, centered
             className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full opacity-30 blur-[100px]"
             style={{ background: 'var(--color-brand-400)' }}
           />
-          <div className="absolute bottom-1/4 right-1/4 h-48 w-48 rounded-full bg-amber-300/20 blur-[80px]" />
+          <div className="absolute bottom-1/4 right-1/4 h-48 w-48 rounded-full bg-amber-300/20 dark:bg-amber-400/15 blur-[80px]" />
         </div>
         <div ref={panelRef} className="relative flex w-full max-w-[420px] flex-col">
           <MenuPanel onSelect={onSelect} onClose={onClose} centered={centered || !anchorRef?.current} />

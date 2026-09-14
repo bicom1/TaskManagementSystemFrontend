@@ -9,7 +9,7 @@ export function AiUsageRing({ value, max = 100, color = '#22c55e', label, classN
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <svg width="28" height="28" viewBox="0 0 28 28" className="shrink-0 -rotate-90">
-        <circle cx="14" cy="14" r={r} fill="none" stroke="#e5e7eb" strokeWidth="3" />
+        <circle cx="14" cy="14" r={r} fill="none" stroke="currentColor" strokeWidth="3" className="text-surface-3" />
         <circle
           cx="14"
           cy="14"
@@ -22,7 +22,7 @@ export function AiUsageRing({ value, max = 100, color = '#22c55e', label, classN
           strokeLinecap="round"
         />
       </svg>
-      <span className="text-[11px] leading-tight text-gray-600">{label}</span>
+      <span className="text-[11px] leading-tight text-text-secondary">{label}</span>
     </div>
   );
 }

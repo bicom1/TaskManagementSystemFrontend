@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { notificationApi } from '../api/notificationApi';
 import { taskApi } from '../../tasks/api/taskApi';
+import { entityHref } from '../notificationLinks';
 import { getSocket } from '../../../api/socketClient';
 import { useAuthStore } from '../../../store/authStore';
 import { playMessageNotifySound } from '../../../lib/notifySound';
@@ -33,11 +34,12 @@ function markListsRead(queryClient, predicate) {
 }
 
 async function openTaskNotification(notification, navigate) {
-  if (notification?.entityType === 'Project' && notification?.entityId) {
-    navigate(`/projects/${notification.entityId}?view=list`);
+  if (notification?.entityType !== 'Task') {
+    // Project, Team, Department, User — one shared mapping for every link.
+    navigate(entityHref(notification?.entityType, notification?.entityId) || '/inbox?view=activity');
     return;
   }
-  if (notification?.entityType !== 'Task' || !notification?.entityId) {
+  if (!notification?.entityId) {
     navigate('/inbox?view=activity');
     return;
   }

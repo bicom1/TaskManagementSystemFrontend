@@ -9,6 +9,92 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { UserAvatar } from '@/components/UserAvatar';
+import { THEME_CHOICES } from '@/components/ThemeToggle';
+import { useThemeStore } from '@/lib/theme';
+import { cn } from '@/lib/utils';
+
+/*
+ * Miniature of the app in a given mode. Colors are fixed on purpose: each
+ * preview must show its own mode whatever mode is currently on screen.
+ */
+const PREVIEW = {
+  light: { page: '#f6f6f7', card: '#ffffff', line: '#dcdcdf', strong: '#19191f', accent: '#6f64c4' },
+  dark: { page: '#0f0f13', card: '#18181e', line: '#36363f', strong: '#ededf1', accent: '#7166d1' },
+};
+
+function ThemePreview({ mode }) {
+  const half = (m) => {
+    const c = PREVIEW[m];
+    return (
+      <div className="flex h-full flex-1 flex-col gap-1.5 p-2" style={{ background: c.page }}>
+        <div className="h-1.5 w-8 rounded-full" style={{ background: c.strong }} />
+        <div className="flex-1 space-y-1 rounded-md p-1.5" style={{ background: c.card }}>
+          <div className="h-1 w-3/4 rounded-full" style={{ background: c.line }} />
+          <div className="h-1 w-1/2 rounded-full" style={{ background: c.line }} />
+          <div className="mt-1.5 h-2 w-6 rounded" style={{ background: c.accent }} />
+        </div>
+      </div>
+    );
+  };
+  return (
+    <div className="flex h-20 overflow-hidden rounded-lg border border-border-subtle" aria-hidden>
+      {mode === 'system' ? (
+        <>
+          {half('light')}
+          {half('dark')}
+        </>
+      ) : (
+        half(mode)
+      )}
+    </div>
+  );
+}
+
+function AppearanceCard() {
+  const preference = useThemeStore((s) => s.preference);
+  const resolved = useThemeStore((s) => s.resolved);
+  const setPreference = useThemeStore((s) => s.setPreference);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Appearance</CardTitle>
+        <CardDescription>
+          Choose light or dark, or follow this device
+          {preference === 'system' ? ` (currently ${resolved})` : ''}. Saved on this browser.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div role="radiogroup" aria-label="Appearance" className="grid gap-3 sm:grid-cols-3">
+          {THEME_CHOICES.map(({ id, label, icon: Icon }) => {
+            const selected = preference === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setPreference(id)}
+                className={cn(
+                  'rounded-xl border p-2.5 text-left transition',
+                  selected
+                    ? 'border-primary bg-primary-soft/40 ring-2 ring-primary/20'
+                    : 'border-border-subtle hover:border-border-base hover:bg-surface-1'
+                )}
+              >
+                <ThemePreview mode={id} />
+                <span className="mt-2.5 flex items-center gap-2 text-sm font-medium text-text-primary">
+                  <Icon className="h-4 w-4 text-text-muted" />
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -120,6 +206,8 @@ export default function SettingsPage() {
             </form>
           </CardContent>
         </Card>
+
+        <AppearanceCard />
 
         <Card>
           <CardHeader>

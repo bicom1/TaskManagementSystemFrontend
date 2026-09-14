@@ -87,6 +87,7 @@ import {
 import { BoardTaskComposer } from '@/features/tasks/components/BoardTaskComposer';
 import { TaskTitleDisplay } from '@/features/tasks/taskTitle';
 import { projectPath } from '@/features/spaces/spaceKinds';
+import { readableTextOn } from '@/lib/contrast';
 
 function canDragTask(task, user) {
   return canManageTask(user, task);
@@ -355,7 +356,7 @@ function TaskDrawer({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-ink/30" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-ink/30 dark:bg-black/50" onClick={onClose} />
       <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col bg-paper shadow-xl">
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
           <div>
@@ -395,7 +396,7 @@ function TaskDrawer({
                           className={cn(
                             'rounded-full border px-2 py-0.5 text-[10px] font-medium',
                             active
-                              ? 'border-primary bg-primary text-on-ink'
+                              ? 'border-primary bg-primary text-white'
                               : passed
                                 ? 'border-primary-soft bg-primary-soft/50 text-primary-deep'
                                 : 'border-hairline text-graphite'
@@ -487,7 +488,7 @@ function TaskDrawer({
                       </span>
                       <button
                         type="button"
-                        className="text-steel hover:text-bloom-coral"
+                        className="text-text-disabled hover:text-bloom-coral"
                         onClick={() => removeChecklistItem(index)}
                         aria-label="Remove checklist item"
                       >
@@ -996,7 +997,7 @@ export default function ProjectBoardPage() {
             >
               {catalogLabel}
             </Link>
-            <span className="text-steel">/</span>
+            <span className="text-graphite">/</span>
             <Link
               to={projectPath(projectId, viewMode)}
               onClick={closeTaskDetail}
@@ -1004,8 +1005,8 @@ export default function ProjectBoardPage() {
               title={`Open ${project?.name || 'project'}`}
             >
               <span
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white shadow-soft-lift"
-                style={{ backgroundColor: project?.color || '#1a1a1a' }}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white shadow-soft-lift dark:ring-1 dark:ring-inset dark:ring-white/15"
+                style={{ backgroundColor: project?.color || '#1a1a1a', color: readableTextOn(project?.color || '#1a1a1a') }}
               >
                 {(project?.icon || project?.name?.[0] || 'P')
                   .toString()
@@ -1140,7 +1141,7 @@ export default function ProjectBoardPage() {
               <button
                 type="button"
                 onClick={addStatusGroup}
-                className="mt-1 shrink-0 rounded-lg px-3 py-2 text-[13px] font-medium text-graphite hover:bg-white/70 hover:text-ink"
+                className="mt-1 shrink-0 rounded-lg px-3 py-2 text-[13px] font-medium text-graphite hover:bg-surface-0/70 hover:text-ink"
               >
                 + Add group
               </button>

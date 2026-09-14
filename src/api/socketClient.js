@@ -43,13 +43,27 @@ async function recoverSocketAuth() {
     const newToken = await refreshSessionToken();
     if (socket && newToken) {
       socket.auth = { token: newToken };
-      if (!socket.connected) socket.connect();
+      connectIfIdle(socket);
     }
   } catch {
     if (socket?.connected) socket.disconnect();
   } finally {
     refreshInFlight = false;
   }
+}
+
+/**
+ * Connect only a socket that is neither connected nor on its way there.
+ *
+ * `!socket.connected` is not enough: calling connect() while the handshake is in
+ * flight sends another namespace CONNECT, and the server opens a second (third…)
+ * connection for this tab. Every event then arrived several times — each chat
+ * message reloaded the chat list three times, and toasts had to be de-duplicated.
+ * `socket.active` stays true from connect() until disconnect, including while
+ * reconnecting on its own.
+ */
+function connectIfIdle(sock) {
+  if (!sock.active) sock.connect();
 }
 
 function attachSocketHandlers(sock) {
@@ -86,12 +100,15 @@ function ensureAuthSubscription() {
     socket.auth = { token: next || null };
 
     if (next) {
-      if (socket.connected) socket.disconnect();
-      socket.connect();
+      // The token is only checked at handshake, so a live connection keeps
+      // working and uses the new token on its next reconnect. Tearing it down on
+      // every refresh (every 10 minutes) dropped events while it came back.
+      connectIfIdle(socket);
       startKeepAlive();
     } else {
       stopKeepAlive();
-      if (socket.connected) socket.disconnect();
+      // Also stop one still retrying with the signed-out token.
+      if (socket.active) socket.disconnect();
     }
   });
 }
@@ -124,7 +141,7 @@ export function getSocket() {
     attachSocketHandlers(socket);
   } else if (token) {
     socket.auth = { token };
-    if (!socket.connected) socket.connect();
+    connectIfIdle(socket);
   }
 
   return socket;

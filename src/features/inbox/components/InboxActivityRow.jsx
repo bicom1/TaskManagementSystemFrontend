@@ -30,14 +30,14 @@ export function InboxActivityRow({
   return (
     <div
       className={cn(
-        'group flex items-start gap-3 border-b border-gray-100 px-4 py-3.5 transition hover:bg-gray-50/80',
+        'group flex items-start gap-3 border-b border-border-subtle px-4 py-3.5 transition hover:bg-surface-1/80',
         !item.isRead && 'bg-brand-50/20'
       )}
     >
       <button
         type="button"
         onClick={() => onClear?.(item)}
-        className="mt-0.5 shrink-0 text-gray-300 transition hover:text-emerald-500"
+        className="mt-0.5 shrink-0 text-text-disabled transition hover:text-emerald-500"
         title={clearTitle}
       >
         {isCompleted ? (
@@ -53,7 +53,7 @@ export function InboxActivityRow({
           onClick={() => onOpen?.(item)}
           className="min-w-0 flex-1 text-left"
         >
-          <p className="truncate text-[14px] font-semibold text-gray-900">{taskTitle}</p>
+          <p className="truncate text-[14px] font-semibold text-text-primary">{taskTitle}</p>
           {item.projectName && item.href && (
             <Link
               to={item.href}
@@ -63,13 +63,13 @@ export function InboxActivityRow({
               {item.projectName}
             </Link>
           )}
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-gray-500">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-text-secondary">
             {item.sender && (
               <UserAvatar user={item.sender} size="xs" className="h-5 w-5 shrink-0" />
             )}
             {notification?.type === 'task_status_changed' && (item.statusFrom || item.statusTo) ? (
               <span className="inline-flex flex-wrap items-center gap-1">
-                <span className="text-gray-400">@</span>
+                <span className="text-text-muted">@</span>
                 <span>{item.sender?.name || 'Someone'}</span>
                 <span>changed status:</span>
                 {item.statusFrom && <StatusChip label={item.statusFrom} />}
@@ -80,12 +80,12 @@ export function InboxActivityRow({
               <span className="min-w-0 truncate">{actionText}</span>
             )}
             {isIncoming && !item.isRead && (
-              <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-blue-700">
+              <span className="rounded bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-blue-700 dark:text-blue-300">
                 New
               </span>
             )}
             {isCompleted && (
-              <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+              <span className="rounded bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300">
                 Completed
               </span>
             )}
@@ -95,7 +95,7 @@ export function InboxActivityRow({
         <div className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
           <div className="flex items-center gap-2">
             {isHighPriority && <Flag className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />}
-            <span className="text-[12px] tabular-nums text-gray-400">
+            <span className="text-[12px] tabular-nums text-text-muted">
               {formatInboxDate(item.createdAt)}
             </span>
           </div>
@@ -115,7 +115,7 @@ export function InboxActivityRow({
           onClick={() => onClear?.(item)}
           title={clearTitle}
           aria-label={clearTitle}
-          className="mt-0.5 shrink-0 rounded-md p-1 text-gray-300 transition hover:bg-gray-100 hover:text-gray-700 focus-visible:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40"
+          className="mt-0.5 shrink-0 rounded-md p-1 text-text-disabled transition hover:bg-surface-2 hover:text-text-secondary focus-visible:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40"
         >
           <ClearIcon className="h-4 w-4" />
         </button>

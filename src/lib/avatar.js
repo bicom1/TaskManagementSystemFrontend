@@ -1,16 +1,18 @@
 /** Deterministic avatar colors — a muted, jewel-neutral set that
- *  stays legible under white text and never shouts. */
+ *  stays legible under white text and never shouts.
+ *  Every entry keeps white initials at WCAG AA (≥ 4.5:1); several were
+ *  deepened slightly to get there. Order matters: it maps people to colors. */
 const AVATAR_COLORS = [
   '#6f64c4', // iris
   '#4f6f8f', // slate blue
-  '#3f8a7d', // muted teal
-  '#a56a5b', // clay
-  '#8a7a5c', // olive taupe
+  '#3b8074', // muted teal
+  '#9e6657', // clay
+  '#827356', // olive taupe
   '#7a5c8a', // muted plum
-  '#5b7a9d', // steel blue
-  '#9d6b6b', // dusty rose
-  '#5f8a6a', // sage
-  '#b08a4a', // ochre
+  '#587698', // steel blue
+  '#986868', // dusty rose
+  '#567e60', // sage
+  '#8f703c', // ochre
   '#6b7280', // slate
   '#7d6a9c', // lavender grey
 ];

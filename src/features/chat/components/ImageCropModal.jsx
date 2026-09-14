@@ -68,7 +68,7 @@ export function ImageCropModal({ open, imageSrc, fileName, onClose, onCropped })
       size="lg"
     >
       <div className="space-y-4">
-        <div className="relative h-72 w-full overflow-hidden rounded-xl bg-ink/90">
+        <div className="relative h-72 w-full overflow-hidden rounded-xl bg-ink/90 dark:bg-black/90">
           {imageSrc ? (
             <Cropper
               image={imageSrc}

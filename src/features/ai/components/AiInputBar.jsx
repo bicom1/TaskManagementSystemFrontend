@@ -26,7 +26,7 @@ export function AiInputBar({ value, onChange, onSubmit, placeholder = '', disabl
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-3xl rounded-[28px] border border-gray-200 bg-white shadow-[0_8px_40px_rgba(0,0,0,0.08)]',
+        'mx-auto w-full max-w-3xl rounded-[28px] border border-border-subtle bg-surface-0 shadow-[0_8px_40px_rgba(0,0,0,0.08)]',
         className
       )}
     >
@@ -39,7 +39,7 @@ export function AiInputBar({ value, onChange, onSubmit, placeholder = '', disabl
           onKeyDown={handleKeyDown}
           disabled={disabled}
           placeholder={placeholder}
-          className="w-full resize-none bg-transparent text-[15px] text-gray-900 outline-none placeholder:text-gray-400"
+          className="w-full resize-none bg-transparent text-[15px] text-text-primary outline-none placeholder:text-text-muted"
         />
       </div>
 
@@ -47,14 +47,14 @@ export function AiInputBar({ value, onChange, onSubmit, placeholder = '', disabl
         <div className="flex items-center gap-1">
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary hover:bg-surface-2"
             title="Attach"
           >
             <Plus className="h-4 w-4" />
           </button>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle px-3 py-1.5 text-[12px] font-medium text-text-secondary hover:bg-surface-1"
           >
             <Zap className="h-3.5 w-3.5 text-amber-500" />
             Skills
@@ -66,16 +66,16 @@ export function AiInputBar({ value, onChange, onSubmit, placeholder = '', disabl
             <button
               type="button"
               onClick={() => setModelOpen((o) => !o)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-gray-50"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle px-3 py-1.5 text-[12px] font-medium text-text-secondary hover:bg-surface-1"
             >
               <BrainLogo size={16} />
               {selected.label}
-              <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+              <ChevronDown className="h-3.5 w-3.5 text-text-muted" />
             </button>
             {modelOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setModelOpen(false)} />
-                <div className="absolute bottom-full right-0 z-50 mb-1 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+                <div className="absolute bottom-full right-0 z-50 mb-1 w-48 overflow-hidden rounded-xl border border-border-subtle bg-surface-0 py-1 shadow-lg">
                   {AI_MODELS.map((m) => (
                     <button
                       key={m.id}
@@ -85,12 +85,12 @@ export function AiInputBar({ value, onChange, onSubmit, placeholder = '', disabl
                         setModelOpen(false);
                       }}
                       className={cn(
-                        'flex w-full flex-col px-3 py-2 text-left hover:bg-gray-50',
+                        'flex w-full flex-col px-3 py-2 text-left hover:bg-surface-1',
                         model === m.id && 'bg-brand-50'
                       )}
                     >
-                      <span className="text-[13px] font-semibold text-gray-900">{m.label}</span>
-                      <span className="text-[11px] text-gray-500">{m.desc}</span>
+                      <span className="text-[13px] font-semibold text-text-primary">{m.label}</span>
+                      <span className="text-[11px] text-text-secondary">{m.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -99,7 +99,7 @@ export function AiInputBar({ value, onChange, onSubmit, placeholder = '', disabl
           </div>
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary hover:bg-surface-2"
             title="Voice input"
           >
             <Mic className="h-4 w-4" />

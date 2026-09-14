@@ -27,8 +27,8 @@ export function DeleteProjectModal({ project, open, onClose, onDeleted }) {
       badge="Permanent action"
       tone="danger"
     >
-      <div className="mb-3 flex items-start gap-3 rounded-xl border border-red-200/80 bg-gradient-to-br from-red-50/90 to-white p-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+      <div className="mb-3 flex items-start gap-3 rounded-xl border border-danger-border bg-gradient-to-br from-danger-bg to-surface-0 p-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400">
           <AlertTriangle className="h-4 w-4" />
         </span>
         <div className="min-w-0">

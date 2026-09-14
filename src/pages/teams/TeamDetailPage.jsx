@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/Label';
 import { LoadingScreen, EmptyState } from '@/components/ui/Spinner';
 import { canInvite, DEPARTMENT_CODE_LABELS, getRoleLabel } from '@/lib/roles';
 import { useAuthStore } from '@/store/authStore';
+import { readableTextOn } from '@/lib/contrast';
 
 export default function TeamDetailPage() {
   const { teamId } = useParams();
@@ -180,8 +181,8 @@ export default function TeamDetailPage() {
                 className="flex items-start gap-3 rounded-xl border border-hairline bg-paper p-4 text-left hover:border-ink/20 hover:bg-cloud/40"
               >
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white"
-                  style={{ backgroundColor: project.color || '#292524' }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white dark:ring-1 dark:ring-inset dark:ring-white/15"
+                  style={{ backgroundColor: project.color || '#292524', color: readableTextOn(project.color || '#292524') }}
                 >
                   {(project.icon || project.name?.[0] || 'P').toString().slice(0, 1)}
                 </span>
@@ -219,7 +220,7 @@ export default function TeamDetailPage() {
             <div key={person._id} className="relative">
               <PersonCard person={person} onClick={setSelected} />
               {person._isLead && (
-                <span className="absolute left-2 top-2 rounded bg-ink/80 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                <span className="absolute left-2 top-2 rounded bg-ink/80 px-1.5 py-0.5 text-[10px] font-bold text-white dark:bg-black/80">
                   Lead
                 </span>
               )}

@@ -177,7 +177,8 @@ function RailButton({ item, active, badge, onClick }) {
       <span
         className={cn(
           'text-[9.5px] font-medium tracking-[0.02em] transition-colors duration-150',
-          active ? 'text-zinc-100' : 'text-zinc-500 group-hover:text-zinc-300'
+          // zinc-400: 9.5px labels on the rail need AA contrast (zinc-500 was 4.1:1)
+          active ? 'text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-200'
         )}
       >
         {label}
@@ -231,7 +232,7 @@ export function IconRail({ activeSection, onSectionClick, onInviteClick }) {
           <span className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-150 group-hover:bg-white/[0.05]">
             <UserPlus className="h-[18px] w-[18px] text-zinc-500 transition-colors duration-150 group-hover:text-zinc-200" strokeWidth={1.8} />
           </span>
-          <span className="text-[9.5px] font-medium tracking-[0.02em] text-zinc-500 transition-colors duration-150 group-hover:text-zinc-300">
+          <span className="text-[9.5px] font-medium tracking-[0.02em] text-zinc-400 transition-colors duration-150 group-hover:text-zinc-200">
             Invite
           </span>
         </button>

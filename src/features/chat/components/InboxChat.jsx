@@ -13,15 +13,18 @@ import {
   X,
   FileText,
   ExternalLink,
+  Eye,
+  Loader2,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { useAuthStore } from '@/store/authStore';
-import { getRoleLabel } from '@/lib/roles';
+import { getRoleLabel, normalizeRole, ROLES } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/UserAvatar';
 import { PresenceIndicator, PresenceAvatarDot } from '@/features/presence/PresenceIndicator';
 import { usePresenceQuery } from '@/features/presence/usePresence';
 import { ChatImage, FileThumb } from '@/features/chat/components/ChatImage';
+import { MessageMeta, FailedMessageActions } from '@/features/chat/components/MessageStatus';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingScreen } from '@/components/ui/Spinner';
@@ -37,6 +40,7 @@ import {
   useStartTeamChat,
   useStartDepartmentChat,
   useSendChatMessage,
+  useDiscardFailedMessage,
   useMarkConversationRead,
   useLiveChat,
   emitChatTyping,
@@ -71,10 +75,84 @@ function formatMsgTime(dateStr) {
   return format(d, 'MMM d, h:mm a');
 }
 
+/**
+ * A direct message the current user can read but is not part of. Only a Super
+ * Admin can open these (oversight), and the API refuses their messages there.
+ */
+function isObservedDm(conversation, currentUserId) {
+  if (conversation?.type !== 'dm') return false;
+  return !(conversation.participants || []).some(
+    (p) => String(p?._id || p) === String(currentUserId)
+  );
+}
+
+/**
+ * Your own DM with this person. "Any DM this person is in" is not the same
+ * thing for a Super Admin, who can see other pairs' chats: picking Dev Maaz
+ * opened Umair ↔ Dev Maaz instead of a chat with Dev Maaz.
+ */
+function isMyDmWith(conversation, currentUserId, personId) {
+  if (conversation?.type !== 'dm') return false;
+  const ids = (conversation.participants || []).map((p) => String(p?._id || p));
+  return ids.includes(String(currentUserId)) && ids.includes(String(personId));
+}
+
+function isParticipant(conversation, currentUserId) {
+  return (conversation?.participants || []).some(
+    (p) => String(p?._id || p) === String(currentUserId)
+  );
+}
+
+/** Placeholder previews the API writes when a chat is created — not real messages. */
+const SYSTEM_PREVIEWS = new Set([
+  'Conversation started',
+  'Team chat started',
+  'Department group created',
+]);
+
+function realPreview(conversation) {
+  const text = conversation?.lastMessagePreview;
+  return text && !SYSTEM_PREVIEWS.has(text) ? text : '';
+}
+
+/** When a conversation last had a real message (0 if never) — drives "recent first". */
+function activityTime(conversation) {
+  if (!conversation?.lastMessageAt || !realPreview(conversation)) return 0;
+  return new Date(conversation.lastMessageAt).getTime() || 0;
+}
+
+const byRecentActivity = (a, b) => activityTime(b) - activityTime(a);
+
+/** "Superadmin · Superadmin · UI/UX" → "Superadmin · UI/UX": role and job title often repeat. */
+function joinDistinct(parts) {
+  const seen = new Set();
+  return parts
+    .filter((part) => {
+      const key = String(part || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .join(' · ');
+}
+
+/** "Hamza Umar ↔ ANEEQ BHI" — both sides of a DM. */
+function dmPairLabel(conversation) {
+  return (conversation?.participants || [])
+    .map((p) => p?.name)
+    .filter(Boolean)
+    .join(' ↔ ');
+}
+
 function conversationTitle(conversation, currentUserId) {
   if (!conversation) return 'Chat';
   if (conversation.title) return conversation.title;
   if (conversation.type === 'dm') {
+    // "The participant who isn't me" is meaningless when neither is you — it just
+    // picked the first name, so another pair's chat looked like your own.
+    if (isObservedDm(conversation, currentUserId)) {
+      return dmPairLabel(conversation) || 'Direct message';
+    }
     const other = (conversation.participants || []).find(
       (p) => String(p._id) !== String(currentUserId)
     );
@@ -97,13 +175,14 @@ function conversationTitle(conversation, currentUserId) {
 
 function conversationSubtitle(conversation, currentUserId) {
   if (conversation?.type === 'dm') {
+    if (isObservedDm(conversation, currentUserId)) {
+      return 'Private conversation between two members · read only';
+    }
     const other = (conversation.participants || []).find(
       (p) => String(p._id) !== String(currentUserId)
     );
     if (!other) return '';
-    return [getRoleLabel(other.role), other.jobTitle, other.department?.name]
-      .filter(Boolean)
-      .join(' · ');
+    return joinDistinct([getRoleLabel(other.role), other.jobTitle, other.department?.name]);
   }
   if (conversation?.type === 'team') {
     const n = conversation.participants?.length || 0;
@@ -257,7 +336,10 @@ export function InboxChat() {
   const [linkDraft, setLinkDraft] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
   const [linkOpen, setLinkOpen] = useState(false);
-  const [pendingGroupTitle, setPendingGroupTitle] = useState('');
+  // Title to show while a just-opened group loads. Keyed to that conversation:
+  // unkeyed, it outlived the group and every DM opened afterwards showed the
+  // group's name in its header.
+  const [pendingTitle, setPendingTitle] = useState({ id: '', title: '' });
 
   const bottomRef = useRef(null);
   const messagesScrollRef = useRef(null);
@@ -270,7 +352,6 @@ export function InboxChat() {
     if (c.type === 'department') return `dept:${String(c.department?._id || c.department || c._id)}`;
     return String(c._id);
   });
-  const chatUnread = conversationsData?.unread ?? 0;
 
   const { data: messagesData, isLoading: messagesLoading, isError: messagesError, error: messagesErr, refetch: refetchMessages } =
     useConversationMessages(activeId);
@@ -279,12 +360,18 @@ export function InboxChat() {
   const hasMoreMessages = Boolean(messagesData?.pagination?.hasMore);
   const oldestMessageId = messages[0]?._id;
 
-  const { data: people = [], isFetching: peopleLoading } = useChatPeople(
-    peopleQuery,
-    sidebarMode === 'people' || Boolean(peopleQuery.trim())
-  );
+  const { data: directory, isLoading: directoryLoading } = useChatDirectory(true);
+  const searching = Boolean(peopleQuery.trim());
 
-  const { data: directory } = useChatDirectory(true);
+  // Browsing uses the directory (everyone); the search endpoint is only for queries.
+  const { data: searchResults = [], isFetching: searchLoading } = useChatPeople(
+    peopleQuery,
+    searching || (sidebarMode === 'people' && !directory?.people)
+  );
+  const people = searching || !directory?.people
+    ? searchResults
+    : directory.people.filter((p) => String(p._id) !== String(userId));
+  const peopleLoading = searching ? searchLoading : directoryLoading || (!directory?.people && searchLoading);
   const myTeams = uniqueById(directory?.myTeams ?? directory?.teams ?? []);
   const departments = uniqueById(directory?.departmentGroups ?? directory?.departments ?? []);
   const limits = directory?.limits || {
@@ -300,29 +387,75 @@ export function InboxChat() {
   const sendMessage = useSendChatMessage(activeId);
   const markRead = useMarkConversationRead();
 
-  const teamChats = useMemo(
-    () => conversations.filter((c) => c.type === 'team'),
+  const discardFailed = useDiscardFailedMessage();
+  const [openingGroupKey, setOpeningGroupKey] = useState('');
+  const isSuperAdmin = normalizeRole(user?.role) === ROLES.SUPERADMIN;
+
+  // Chats = direct messages. Your own first; for a Super Admin, other members'
+  // DMs follow in their own read-only section. Groups live only in the Groups tab.
+  const myDmChats = useMemo(
+    () => conversations.filter((c) => c.type === 'dm' && !isObservedDm(c, userId)).sort(byRecentActivity),
+    [conversations, userId]
+  );
+  const observedDmChats = useMemo(
+    () => conversations.filter((c) => isObservedDm(c, userId)).sort(byRecentActivity),
+    [conversations, userId]
+  );
+  const groupConversations = useMemo(
+    () => conversations.filter((c) => c.type !== 'dm'),
     [conversations]
   );
-  const dmChats = useMemo(
-    () => conversations.filter((c) => c.type === 'dm'),
-    [conversations]
-  );
+  const dmUnread = myDmChats.filter((c) => c.unread).length;
+  const groupUnread = groupConversations.filter((c) => c.unread).length;
+
+  const departmentConversation = (deptId) =>
+    groupConversations.find(
+      (c) => c.type === 'department' && String(c.department?._id || c.department) === String(deptId)
+    );
+  const teamConversation = (teamId) =>
+    groupConversations.find(
+      (c) => c.type === 'team' && String(c.team?._id || c.team) === String(teamId)
+    );
+  // A Super Admin can open every team channel; everyone else sees their own teams.
+  const teamChannels = uniqueById(isSuperAdmin ? directory?.teams ?? myTeams : myTeams);
+  const otherChannels = groupConversations.filter((c) => c.type === 'task' || c.type === 'project');
+
+  // Your latest real message with each person, so People lists recent chats first.
+  const lastChatWith = useMemo(() => {
+    const map = new Map();
+    for (const c of myDmChats) {
+      const other = (c.participants || []).find((p) => String(p._id) !== String(userId));
+      const at = activityTime(c);
+      if (other?._id && at > (map.get(String(other._id))?.at || 0)) {
+        map.set(String(other._id), { at, conversation: c });
+      }
+    }
+    return map;
+  }, [myDmChats, userId]);
+
+  const uniquePeople = uniqueById(people);
+  const recentPeople = uniquePeople
+    .filter((p) => lastChatWith.has(String(p._id)))
+    .sort((a, b) => lastChatWith.get(String(b._id)).at - lastChatWith.get(String(a._id)).at);
+  const otherPeople = uniquePeople.filter((p) => !lastChatWith.has(String(p._id)));
 
   const presenceIds = useMemo(() => {
     const ids = new Set();
-    for (const c of conversations) {
-      if (c.type !== 'dm') continue;
+    for (const c of myDmChats) {
       for (const p of c.participants || []) {
         const id = String(p._id || p);
         if (id && id !== String(userId)) ids.add(id);
       }
     }
-    for (const p of people || []) {
-      if (p?._id) ids.add(String(p._id));
+    // People now lists the whole directory; ask for presence only while it's on
+    // screen (the server looks offline users up one by one).
+    if (sidebarMode === 'people' || searching) {
+      for (const p of people || []) {
+        if (p?._id) ids.add(String(p._id));
+      }
     }
     return [...ids];
-  }, [conversations, people, userId]);
+  }, [myDmChats, people, userId, sidebarMode, searching]);
   usePresenceQuery(presenceIds);
 
   const onTyping = useCallback(
@@ -339,8 +472,7 @@ export function InboxChat() {
   const openConversation = useCallback(
     (id, meta = {}) => {
       setActiveId(id);
-      if (meta.title) setPendingGroupTitle(meta.title);
-      else if (!id) setPendingGroupTitle('');
+      setPendingTitle({ id: id ? String(id) : '', title: meta.title || '' });
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
@@ -373,6 +505,7 @@ export function InboxChat() {
   const { data: fetchedConversation } = useConversation(
     activeId && !activeConversationFromList ? activeId : null
   );
+  const pendingGroupTitle = pendingTitle.id === String(activeId) ? pendingTitle.title : '';
   const activeConversation = useMemo(() => {
     const base = activeConversationFromList || fetchedConversation || null;
     if (!base) {
@@ -389,6 +522,10 @@ export function InboxChat() {
     }
     return base;
   }, [activeConversationFromList, fetchedConversation, activeId, pendingGroupTitle]);
+
+  // Super Admin reading someone else's DM: the API rejects messages there, so the
+  // composer is replaced with an explanation rather than offered and then failing.
+  const activeIsObserved = isObservedDm(activeConversation, userId);
 
   const mentionCandidates = useMemo(() => {
     const participants = activeConversation?.participants || [];
@@ -411,11 +548,7 @@ export function InboxChat() {
 
   useEffect(() => {
     if (!dmUserId || String(dmUserId) === String(userId)) return;
-    const existing = conversations.find(
-      (c) =>
-        c.type === 'dm' &&
-        (c.participants || []).some((p) => String(p._id) === String(dmUserId))
-    );
+    const existing = conversations.find((c) => isMyDmWith(c, userId, dmUserId));
     if (existing) {
       setActiveId(existing._id);
       return;
@@ -446,19 +579,16 @@ export function InboxChat() {
 
   useEffect(() => {
     if (!activeId) return;
-    markRead.mutate(activeId);
+    // Reading someone else's DM doesn't make it "read" — it was never yours.
+    if (!activeIsObserved) markRead.mutate(activeId);
     scrollMessagesToBottom(true);
   }, [activeId, messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** WhatsApp-style: tap a person → open their DM; stay on People tab */
+  /** WhatsApp-style: tap a person → open your DM with them; stay on People tab */
   const handleStartDm = (person) => {
     if (!person?._id || startDm.isPending) return;
     const otherId = String(person._id);
-    const existing = conversations.find(
-      (c) =>
-        c.type === 'dm' &&
-        (c.participants || []).some((p) => String(p._id) === otherId)
-    );
+    const existing = conversations.find((c) => isMyDmWith(c, userId, otherId));
     if (existing?._id) {
       openConversation(existing._id, { sidebarMode: 'people' });
       return;
@@ -470,42 +600,38 @@ export function InboxChat() {
     });
   };
 
+  // Groups you're already in open straight away. Otherwise the API adds you
+  // (and syncs the roster) first — the row shows a spinner meanwhile.
   const handleOpenTeamChat = (team) => {
-    const title = team?.name || 'Team chat';
-    const existing = conversations.find(
-      (c) =>
-        c.type === 'team' && String(c.team?._id || c.team) === String(team._id)
-    );
-    if (existing) {
-      openConversation(existing._id, {
-        title: existing.title || title,
-        sidebarMode: 'groups',
-      });
+    if (!team?._id || openingGroupKey) return;
+    const title = team.name || 'Team chat';
+    const existing = teamConversation(team._id);
+    if (existing && isParticipant(existing, userId)) {
+      openConversation(existing._id, { title: existing.title || title, sidebarMode: 'groups' });
       return;
     }
+    setOpeningGroupKey(`team:${team._id}`);
     startTeam.mutate(team._id, {
       onSuccess: (c) =>
-        openConversation(c._id, { title: c?.title || title, sidebarMode: 'groups' }),
+        c?._id && openConversation(c._id, { title: c.title || title, sidebarMode: 'groups' }),
+      onSettled: () => setOpeningGroupKey(''),
     });
   };
 
   /** Open department group with its real name (WhatsApp-style). */
   const handleOpenDepartmentGroup = (dept) => {
-    if (!dept?._id || startDept.isPending) return;
+    if (!dept?._id || openingGroupKey) return;
     const title = dept.name || 'Department group';
-    setPendingGroupTitle(title);
-
-    // Always sync roster via API so every member is in the group, then open.
+    const existing = departmentConversation(dept._id);
+    if (existing && isParticipant(existing, userId)) {
+      openConversation(existing._id, { title: existing.title || title, sidebarMode: 'groups' });
+      return;
+    }
+    setOpeningGroupKey(`dept:${dept._id}`);
     startDept.mutate(dept._id, {
-      onSuccess: (c) => {
-        if (c?._id) {
-          openConversation(c._id, {
-            title: c.title || title,
-            sidebarMode: 'groups',
-          });
-        }
-      },
-      onError: (err) => toastError(err, 'Could not open department group'),
+      onSuccess: (c) =>
+        c?._id && openConversation(c._id, { title: c.title || title, sidebarMode: 'groups' }),
+      onSettled: () => setOpeningGroupKey(''),
     });
   };
 
@@ -637,6 +763,9 @@ export function InboxChat() {
     }
 
     sendMessage.mutate({
+      conversationId: activeId,
+      // Lets a brand-new chat appear in the list with its first message.
+      conversation: activeConversationFromList || fetchedConversation || undefined,
       body: text,
       mentions: mentionIds,
       shareLinks: pendingLinks,
@@ -648,15 +777,233 @@ export function InboxChat() {
     setPendingLinks([]);
   };
 
+  const retrySend = (message) => {
+    if (!message?.sendPayload) return;
+    const conversationId = String(message.conversation || activeId);
+    sendMessage.mutate({
+      ...message.sendPayload,
+      conversationId,
+      conversation: activeConversationFromList || fetchedConversation || undefined,
+      retryOf: message._id,
+    });
+  };
+
   const canSend =
     Boolean(draft.trim()) || pendingFiles.length > 0 || pendingLinks.length > 0;
 
-  const listForSidebar =
-    sidebarMode === 'chats'
-      ? conversations
-      : sidebarMode === 'groups'
-        ? conversations.filter((c) => c.type === 'department' || c.type === 'team')
-        : [];
+  const renderChatRow = (c) => {
+    const title = conversationTitle(c, userId);
+    const observed = isObservedDm(c, userId);
+    // For a chat you're not in there is no single "other" person — showing one
+    // face and one presence dot is what made it look like your own chat.
+    const other = observed
+      ? null
+      : (c.participants || []).find((p) => String(p._id) !== String(userId));
+    const active = String(c._id) === String(activeId);
+    return (
+      <li key={c._id}>
+        <button
+          type="button"
+          onClick={() => openConversation(c._id)}
+          className={cn(
+            'flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left transition',
+            active ? 'bg-paper shadow-sm ring-1 ring-hairline' : 'hover:bg-paper/70',
+            c.unread && !active && 'bg-primary-soft/20'
+          )}
+        >
+          {observed ? (
+            <span className="relative mt-0.5 h-9 w-9 shrink-0" aria-hidden>
+              {(c.participants || []).slice(0, 2).map((p, i) => (
+                <UserAvatar
+                  key={p._id || i}
+                  user={p}
+                  name={p.name}
+                  size="xs"
+                  className={cn(
+                    'absolute h-6 w-6 ring-2 ring-paper',
+                    i === 0 ? 'left-0 top-0' : 'bottom-0 right-0'
+                  )}
+                />
+              ))}
+            </span>
+          ) : (
+            <span className="relative mt-0.5 shrink-0">
+              <UserAvatar user={other} name={title} size="md" className="h-9 w-9" />
+              <PresenceAvatarDot
+                userId={other?._id}
+                person={other}
+                className="h-2.5 w-2.5 ring-2 ring-paper"
+              />
+            </span>
+          )}
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center justify-between gap-2">
+              <span
+                className={cn('truncate text-sm text-ink', c.unread ? 'font-semibold' : 'font-medium')}
+                title={title}
+              >
+                {title}
+              </span>
+              {c.lastMessageAt && (
+                <span className="shrink-0 text-[10px] text-graphite">
+                  {formatMsgTime(c.lastMessageAt)}
+                </span>
+              )}
+            </span>
+            <span className="mt-0.5 line-clamp-1 text-xs text-graphite">
+              {realPreview(c) || conversationSubtitle(c, userId)}
+            </span>
+            {other ? (
+              <PresenceIndicator userId={other._id} person={other} className="mt-0.5" />
+            ) : null}
+            {observed ? (
+              <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-graphite">
+                <Eye className="h-3 w-3" />
+                Read only
+              </span>
+            ) : null}
+          </span>
+          {c.unread && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+        </button>
+      </li>
+    );
+  };
+
+  const renderGroupRow = ({ key, name, fallbackMeta, conv, icon: Icon, kind, onOpen }) => {
+    const active = conv && String(conv._id) === String(activeId);
+    const opening = openingGroupKey === key;
+    const unread = Boolean(conv?.unread) && !active;
+    const preview = realPreview(conv);
+    return (
+      <li key={key}>
+        <button
+          type="button"
+          disabled={Boolean(openingGroupKey)}
+          onClick={onOpen}
+          aria-busy={opening}
+          className={cn(
+            'flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left transition disabled:cursor-wait',
+            active ? 'bg-paper shadow-sm ring-1 ring-hairline' : 'hover:bg-paper/70',
+            unread && 'bg-primary-soft/20',
+            openingGroupKey && !opening && 'opacity-60'
+          )}
+        >
+          <span
+            className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink text-on-ink"
+            title={kind}
+            aria-label={kind}
+          >
+            {opening ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center justify-between gap-2">
+              <span
+                className={cn('truncate text-sm text-ink', unread ? 'font-semibold' : 'font-medium')}
+                title={name}
+              >
+                {name}
+              </span>
+              {preview && conv?.lastMessageAt ? (
+                <span className="shrink-0 text-[10px] text-graphite">
+                  {formatMsgTime(conv.lastMessageAt)}
+                </span>
+              ) : null}
+            </span>
+            <span className="mt-0.5 line-clamp-1 text-xs text-graphite">
+              {opening ? 'Opening…' : preview || fallbackMeta}
+            </span>
+          </span>
+          {unread && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+        </button>
+      </li>
+    );
+  };
+
+  const renderPersonRow = (person) => {
+    const recent = lastChatWith.get(String(person._id));
+    const hasChat = Boolean(recent) || myDmChats.some((c) => isMyDmWith(c, userId, person._id));
+    const active = recent && String(recent.conversation._id) === String(activeId);
+    return (
+      <li key={person._id}>
+        <button
+          type="button"
+          disabled={startDm.isPending}
+          onClick={() => handleStartDm(person)}
+          className={cn(
+            'flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition disabled:opacity-60',
+            active ? 'bg-paper shadow-sm ring-1 ring-hairline' : 'hover:bg-paper',
+            recent?.conversation.unread && !active && 'bg-primary-soft/20'
+          )}
+        >
+          <UserAvatar user={person} size="md" className="h-8 w-8 text-[11px]" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium text-ink" title={person.name}>
+              {person.name}
+            </span>
+            <span className="block truncate text-[11px] text-graphite">
+              {joinDistinct([getRoleLabel(person.role), person.jobTitle, person.department?.name])}
+            </span>
+            <PresenceIndicator userId={person._id} person={person} className="mt-0.5" />
+          </span>
+          <span className="flex shrink-0 flex-col items-end gap-0.5">
+            {recent ? (
+              <span className="text-[10px] text-graphite">
+                {formatMsgTime(recent.conversation.lastMessageAt)}
+              </span>
+            ) : null}
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+              {recent?.conversation.unread && !active ? (
+                <span className="h-2 w-2 rounded-full bg-primary" aria-label="Unread" />
+              ) : null}
+              {hasChat ? 'Open' : 'Chat'}
+            </span>
+          </span>
+        </button>
+      </li>
+    );
+  };
+
+  // One list, most recent activity first — department groups and team channels
+  // are told apart by their icon. Groups with no messages yet follow, A–Z.
+  const groupRows = [
+    ...departments.map((dept) => {
+      const conv = departmentConversation(dept._id);
+      const count = conv?.participants?.length || dept.memberCount || 0;
+      return {
+        key: `dept:${dept._id}`,
+        name: dept.name,
+        fallbackMeta: `Department group${count ? ` · ${count} member${count === 1 ? '' : 's'}` : ''}`,
+        conv,
+        icon: Building2,
+        kind: 'Department group',
+        onOpen: () => handleOpenDepartmentGroup(dept),
+      };
+    }),
+    ...teamChannels.map((team) => ({
+      key: `team:${team._id}`,
+      name: team.name,
+      fallbackMeta: `Team channel · ${team.department?.name || 'lead & members'}`,
+      conv: teamConversation(team._id),
+      icon: Hash,
+      kind: 'Team channel',
+      onOpen: () => handleOpenTeamChat(team),
+    })),
+    ...otherChannels.map((c) => ({
+      key: `conv:${c._id}`,
+      name: conversationTitle(c, userId),
+      fallbackMeta: conversationSubtitle(c, userId),
+      conv: c,
+      icon: Hash,
+      kind: conversationSubtitle(c, userId),
+      onOpen: () => openConversation(c._id, { sidebarMode: 'groups' }),
+    })),
+  ].sort((a, b) => byRecentActivity(a.conv, b.conv) || String(a.name).localeCompare(String(b.name)));
+
+  const groupsTabHeader = (label) => (
+    <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+      {label}
+    </p>
+  );
 
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift">
@@ -670,9 +1017,9 @@ export function InboxChat() {
           </div>
           <div className="flex gap-1 rounded-xl bg-cloud p-1">
             {[
-              { id: 'chats', label: 'Chats', icon: MessageSquare },
-              { id: 'groups', label: 'Groups', icon: Building2 },
-              { id: 'people', label: 'People', icon: Users },
+              { id: 'chats', label: 'Chats', icon: MessageSquare, unread: dmUnread },
+              { id: 'groups', label: 'Groups', icon: Building2, unread: groupUnread },
+              { id: 'people', label: 'People', icon: Users, unread: 0 },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -690,9 +1037,9 @@ export function InboxChat() {
               >
                 <tab.icon className="h-3.5 w-3.5" />
                 {tab.label}
-                {tab.id === 'chats' && chatUnread > 0 ? (
-                  <span className="rounded-md bg-primary px-1.5 py-0.5 text-[10px] text-on-ink">
-                    {chatUnread}
+                {tab.unread > 0 ? (
+                  <span className="rounded-md bg-primary px-1.5 py-0.5 text-[10px] text-white">
+                    {tab.unread}
                   </span>
                 ) : null}
               </button>
@@ -714,234 +1061,86 @@ export function InboxChat() {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {sidebarMode === 'people' || peopleQuery.trim() ? (
-            <div className="p-2">
-              <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
-                {peopleQuery.trim() ? 'Search results' : 'People'}
-              </p>
-              {peopleLoading && (
-                <p className="px-2 py-3 text-xs text-graphite">Searching…</p>
-              )}
-              {!peopleLoading && people.length === 0 && (
+            <div className="space-y-2 p-1.5">
+              {peopleLoading && uniquePeople.length === 0 ? (
                 <p className="px-2 py-3 text-xs text-graphite">
-                  {peopleQuery.trim()
-                    ? 'No matching members found.'
-                    : 'Type a name to find someone and open chat.'}
+                  {searching ? 'Searching…' : 'Loading people…'}
                 </p>
-              )}
-              <ul className="space-y-0.5">
-                {people
-                  .filter(
-                    (p, i, arr) =>
-                      arr.findIndex((x) => String(x._id) === String(p._id)) === i
-                  )
-                  .map((person) => {
-                    const hasChat = dmChats.some((c) =>
-                      (c.participants || []).some(
-                        (p) => String(p._id) === String(person._id)
-                      )
-                    );
-                    return (
-                      <li key={person._id}>
-                        <button
-                          type="button"
-                          disabled={startDm.isPending}
-                          onClick={() => handleStartDm(person)}
-                          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition hover:bg-paper disabled:opacity-60"
-                        >
-                          <UserAvatar
-                            user={person}
-                            size="md"
-                            className="h-8 w-8 text-[11px]"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-ink">
-                              {person.name}
-                            </span>
-                            <span className="block truncate text-[11px] text-graphite">
-                              {[
-                                getRoleLabel(person.role),
-                                person.jobTitle,
-                                person.department?.name,
-                              ]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            </span>
-                            <PresenceIndicator
-                              userId={person._id}
-                              person={person}
-                              className="mt-0.5"
-                            />
-                          </span>
-                          <span className="shrink-0 text-[11px] font-medium text-primary">
-                            {hasChat ? 'Open' : 'Chat'}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-              </ul>
+              ) : null}
+              {!peopleLoading && uniquePeople.length === 0 ? (
+                <p className="px-2 py-3 text-xs text-graphite">
+                  {searching ? 'No matching members found.' : 'No one else is in this workspace yet.'}
+                </p>
+              ) : null}
+              {recentPeople.length > 0 ? (
+                <div>
+                  {groupsTabHeader(searching ? 'Recent chats · matching' : 'Recent chats')}
+                  <ul className="space-y-0.5">{recentPeople.map(renderPersonRow)}</ul>
+                </div>
+              ) : null}
+              {otherPeople.length > 0 ? (
+                <div>
+                  {groupsTabHeader(
+                    searching ? (recentPeople.length ? 'Other matches' : 'Search results') : 'All people'
+                  )}
+                  <ul className="space-y-0.5">{otherPeople.map(renderPersonRow)}</ul>
+                </div>
+              ) : null}
             </div>
           ) : sidebarMode === 'groups' ? (
-            <div className="space-y-3 p-2">
-              <div>
-                <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
-                  Department groups
+            <div className="p-1.5">
+              {groupRows.length === 0 ? (
+                <p className="px-2 py-3 text-xs text-graphite">
+                  Join a department to open its group chat — everyone in that department is included.
                 </p>
-                {departments.length === 0 ? (
-                  <p className="px-2 py-3 text-xs text-graphite">
-                    Join a department to open its group chat — everyone in that department is included.
-                  </p>
-                ) : (
-                  <ul className="space-y-0.5">
-                    {departments.map((dept) => (
-                      <li key={dept._id}>
-                        <button
-                          type="button"
-                          disabled={startDept.isPending}
-                          onClick={() => handleOpenDepartmentGroup(dept)}
-                          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-paper disabled:opacity-60"
-                        >
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-on-ink">
-                            <Building2 className="h-4 w-4" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-ink">
-                              {dept.name}
-                            </span>
-                            <span className="block truncate text-[11px] text-graphite">
-                              Group ·{' '}
-                              {dept.memberCount > 0
-                                ? `${dept.memberCount} members`
-                                : 'All department members'}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              {myTeams.length > 0 && (
-                <div>
-                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
-                    Team channels
-                  </p>
-                  <ul className="space-y-0.5">
-                    {myTeams.map((team) => (
-                      <li key={team._id}>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenTeamChat(team)}
-                          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-paper"
-                        >
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cloud text-ink">
-                            <Hash className="h-4 w-4" />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-ink">
-                              {team.name}
-                            </span>
-                            <span className="block truncate text-[11px] text-graphite">
-                              {team.department?.name || 'Team'} · lead &amp; members
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              ) : (
+                <>
+                  {groupsTabHeader('Groups & channels')}
+                  <ul className="space-y-0.5">{groupRows.map(renderGroupRow)}</ul>
+                </>
               )}
             </div>
           ) : convLoading ? (
             <div className="p-6">
               <LoadingScreen />
             </div>
-          ) : listForSidebar.length === 0 ? (
+          ) : myDmChats.length === 0 && observedDmChats.length === 0 ? (
             <div className="space-y-3 p-6 text-center text-sm text-graphite">
               <p>No chats yet.</p>
               <Button type="button" variant="outline" size="sm" onClick={() => setSidebarMode('people')}>
                 Message a person
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setSidebarMode('groups')}>
-                Open department group
-              </Button>
             </div>
           ) : (
-            <ul className="p-1.5">
-              {(sidebarMode === 'chats' ? conversations : listForSidebar).map((c) => {
-                const title = conversationTitle(c, userId);
-                const other =
-                  c.type === 'dm'
-                    ? (c.participants || []).find((p) => String(p._id) !== String(userId))
-                    : null;
-                const active = String(c._id) === String(activeId);
-                return (
-                  <li key={c._id}>
-                    <button
-                      type="button"
-                      onClick={() => openConversation(c._id)}
-                      className={cn(
-                        'flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left transition',
-                        active ? 'bg-paper shadow-sm ring-1 ring-hairline' : 'hover:bg-paper/70',
-                        c.unread && !active && 'bg-primary-soft/20'
-                      )}
-                    >
-                      {c.type === 'dm' ? (
-                        <span className="relative mt-0.5 shrink-0">
-                          <UserAvatar
-                            user={other}
-                            name={title}
-                            size="md"
-                            className="h-9 w-9"
-                          />
-                          <PresenceAvatarDot
-                            userId={other?._id}
-                            person={other}
-                            className="h-2.5 w-2.5 ring-2 ring-paper"
-                          />
-                        </span>
-                      ) : (
-                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/90 text-on-ink">
-                          {c.type === 'department' ? (
-                            <Building2 className="h-4 w-4" />
-                          ) : (
-                            <Hash className="h-4 w-4" />
-                          )}
-                        </span>
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center justify-between gap-2">
-                          <span className="truncate text-sm font-medium text-ink">{title}</span>
-                          {c.lastMessageAt && (
-                            <span className="shrink-0 text-[10px] text-graphite">
-                              {formatMsgTime(c.lastMessageAt)}
-                            </span>
-                          )}
-                        </span>
-                        <span className="mt-0.5 line-clamp-1 text-xs text-graphite">
-                          {c.lastMessagePreview || conversationSubtitle(c, userId)}
-                        </span>
-                        {c.type === 'dm' && other ? (
-                          <PresenceIndicator
-                            userId={other._id}
-                            person={other}
-                            className="mt-0.5"
-                          />
-                        ) : null}
-                        {c.type === 'team' || c.type === 'department' ? (
-                          <span className="mt-0.5 inline-block text-[10px] font-medium uppercase tracking-wide text-graphite/80">
-                            {c.type === 'department' ? 'Group' : 'Team'}
-                          </span>
-                        ) : null}
-                      </span>
-                      {c.unread && (
-                        <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="p-1.5">
+              {observedDmChats.length > 0 ? groupsTabHeader('Your chats') : null}
+              {myDmChats.length > 0 ? (
+                <ul>{myDmChats.map(renderChatRow)}</ul>
+              ) : (
+                <p className="px-2 pb-2 text-xs text-graphite">
+                  You haven&apos;t messaged anyone yet.{' '}
+                  <button
+                    type="button"
+                    onClick={() => setSidebarMode('people')}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    Find a person
+                  </button>
+                </p>
+              )}
+              {observedDmChats.length > 0 ? (
+                <div className="mt-2 border-t border-hairline pt-2">
+                  <p className="flex items-center gap-1.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+                    <Eye className="h-3.5 w-3.5" />
+                    Other members&apos; chats
+                  </p>
+                  <p className="px-2 pb-1 text-[11px] text-graphite">
+                    Visible to you as Superadmin. You can read these, not reply.
+                  </p>
+                  <ul>{observedDmChats.map(renderChatRow)}</ul>
+                </div>
+              ) : null}
+            </div>
           )}
         </div>
 
@@ -976,16 +1175,24 @@ export function InboxChat() {
               </Button>
             </div>
             <p className="max-w-sm text-[11px] text-graphite">
-              Recent DMs: {dmChats.length} · Groups: {departments.length}
+              Recent DMs: {myDmChats.length} · Groups: {departments.length}
             </p>
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <header className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline bg-paper px-4 py-3">
               <div className="min-w-0">
-                <h2 className="truncate text-[15px] font-semibold tracking-tight text-ink">
-                  {conversationTitle(activeConversation, userId)}
-                </h2>
+                <div className="flex min-w-0 items-center gap-2">
+                  <h2 className="truncate text-[15px] font-semibold tracking-tight text-ink">
+                    {conversationTitle(activeConversation, userId)}
+                  </h2>
+                  {activeIsObserved ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-hairline bg-cloud px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-graphite">
+                      <Eye className="h-3 w-3" />
+                      Read only
+                    </span>
+                  ) : null}
+                </div>
                 <p className="truncate text-xs text-graphite">
                   {conversationSubtitle(activeConversation, userId)}
                   {activeConversation?.type === 'team' ||
@@ -1000,7 +1207,7 @@ export function InboxChat() {
                     : ''}
                   {typingUser ? ' · typing…' : ''}
                 </p>
-                {activeConversation?.type === 'dm' ? (
+                {activeConversation?.type === 'dm' && !activeIsObserved ? (
                   <PresenceIndicator
                     userId={
                       (activeConversation.participants || []).find(
@@ -1071,45 +1278,54 @@ export function InboxChat() {
                         />
                         <div
                           className={cn(
-                            'max-w-[min(78%,28rem)] px-3.5 py-2.5 text-sm shadow-soft-lift',
-                            mine
-                              ? 'rounded-2xl rounded-tr-md bg-primary text-on-ink'
-                              : 'rounded-2xl rounded-tl-md border border-hairline bg-paper text-ink'
+                            'flex min-w-0 max-w-[min(78%,28rem)] flex-col',
+                            mine ? 'items-end' : 'items-start'
                           )}
                         >
-                          {!mine && (
-                            <p className="mb-0.5 text-[11px] font-semibold opacity-80">
-                              {m.from?.name}
-                              {m.from?.jobTitle ? ` · ${m.from.jobTitle}` : ''}
-                            </p>
-                          )}
-                          <p className="whitespace-pre-wrap break-words">
-                            {renderBodyWithMentions(m.body, m.mentions, mine)}
-                          </p>
-                          <MessageAttachments attachments={m.attachments || []} mine={mine} />
-                          {(m.shareLinks || []).map((link, idx) => (
-                            <a
-                              key={idx}
-                              href={normalizeHref(link.url)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={cn(
-                                'mt-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs underline-offset-2 hover:underline',
-                                mine ? 'bg-white/10' : 'bg-cloud'
-                              )}
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              {link.label || link.url}
-                            </a>
-                          ))}
-                          <p
+                          <div
                             className={cn(
-                              'mt-1 text-[10px]',
-                              mine ? 'text-on-ink/60' : 'text-graphite'
+                              'max-w-full px-3.5 py-2.5 text-sm shadow-soft-lift transition-opacity',
+                              mine
+                                ? 'rounded-2xl rounded-tr-md bg-primary text-white'
+                                : 'rounded-2xl rounded-tl-md border border-hairline bg-paper text-ink',
+                              m.pending && 'opacity-70',
+                              m.failed && 'ring-2 ring-danger-500 ring-offset-1 ring-offset-cloud'
                             )}
                           >
-                            {formatMsgTime(m.createdAt)}
-                          </p>
+                            {!mine && (
+                              <p className="mb-0.5 text-[11px] font-semibold opacity-80">
+                                {m.from?.name}
+                                {m.from?.jobTitle ? ` · ${m.from.jobTitle}` : ''}
+                              </p>
+                            )}
+                            <p className="whitespace-pre-wrap break-words">
+                              {renderBodyWithMentions(m.body, m.mentions, mine)}
+                            </p>
+                            <MessageAttachments attachments={m.attachments || []} mine={mine} />
+                            {(m.shareLinks || []).map((link, idx) => (
+                              <a
+                                key={idx}
+                                href={normalizeHref(link.url)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={cn(
+                                  'mt-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs underline-offset-2 hover:underline',
+                                  mine ? 'bg-white/10' : 'bg-cloud'
+                                )}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                {link.label || link.url}
+                              </a>
+                            ))}
+                            <MessageMeta message={m} mine={mine} time={formatMsgTime(m.createdAt)} />
+                          </div>
+                          {mine ? (
+                            <FailedMessageActions
+                              message={m}
+                              onRetry={m.sendPayload ? () => retrySend(m) : undefined}
+                              onDiscard={() => discardFailed(activeId, m._id)}
+                            />
+                          ) : null}
                         </div>
                       </div>
                     );
@@ -1119,6 +1335,20 @@ export function InboxChat() {
               )}
             </div>
 
+            {messagesError ? null : activeIsObserved ? (
+              <footer className="shrink-0 border-t border-hairline bg-cloud/60 px-4 py-3">
+                <p className="flex items-start gap-2 text-xs leading-relaxed text-graphite">
+                  <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    You&apos;re viewing a private conversation between{' '}
+                    <span className="font-medium text-ink">
+                      {dmPairLabel(activeConversation)}
+                    </span>
+                    . Only they can send messages here.
+                  </span>
+                </p>
+              </footer>
+            ) : (
             <footer className="relative shrink-0 border-t border-hairline bg-paper p-3.5">
               {mentionOpen && mentionCandidates.length > 0 && (
                 <div className="absolute bottom-full left-3 right-3 mb-1 max-h-48 overflow-y-auto rounded-lg border border-hairline bg-paper shadow-lg">
@@ -1204,7 +1434,7 @@ export function InboxChat() {
                 </div>
               )}
 
-              <div className="flex items-end gap-2 rounded-xl border border-hairline bg-cloud/50 p-2 focus-within:border-primary/30 focus-within:bg-paper focus-within:ring-2 focus-within:ring-primary/10">
+              <div className="flex items-end gap-2 rounded-xl border border-hairline bg-cloud/50 p-2 transition focus-within:border-primary focus-within:bg-paper focus-within:ring-4 focus-within:ring-primary/10">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1246,7 +1476,9 @@ export function InboxChat() {
                     }}
                     rows={2}
                     placeholder="Write a message… paste images/links · @mention · attach"
-                    className="w-full resize-none bg-transparent px-1 py-1.5 text-sm text-ink outline-none placeholder:text-graphite"
+                    // outline-none! — the composer box shows focus. Without "!" the global
+                    // :focus-visible ring (index.css, unlayered) outlined this field inside it.
+                    className="w-full resize-none bg-transparent px-1 py-1.5 text-sm text-ink outline-none! placeholder:text-graphite"
                   />
                 </div>
                 <Button
@@ -1263,6 +1495,7 @@ export function InboxChat() {
                 </Button>
               </div>
             </footer>
+            )}
           </div>
         )}
       </section>

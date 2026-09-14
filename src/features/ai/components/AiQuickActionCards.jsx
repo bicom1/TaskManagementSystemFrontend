@@ -19,11 +19,11 @@ export function AiQuickActionCards({ onSelect, className }) {
             key={action.id}
             type="button"
             onClick={() => onSelect(action.prompt)}
-            className="group rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-left shadow-sm transition hover:border-brand-300 hover:shadow-md"
+            className="group rounded-2xl border border-border-subtle bg-surface-0 px-4 py-3.5 text-left shadow-sm transition hover:border-brand-300 hover:shadow-md"
           >
-            <Icon className="mb-2 h-4 w-4 text-gray-500 group-hover:text-brand-600" />
-            <p className="text-[13px] font-semibold text-gray-900">{action.title}</p>
-            <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-snug text-gray-500">
+            <Icon className="mb-2 h-4 w-4 text-text-secondary group-hover:text-brand-600" />
+            <p className="text-[13px] font-semibold text-text-primary">{action.title}</p>
+            <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-snug text-text-secondary">
               {action.prompt.slice(0, 48)}…
             </p>
           </button>

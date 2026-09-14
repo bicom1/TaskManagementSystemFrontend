@@ -169,7 +169,7 @@ function ExpandableNavItem({ to, label, icon, badge, defaultOpen = false, childr
           aria-expanded={open}
           aria-label={open ? `Hide ${label}` : `Show ${label}`}
           title={open ? `Hide ${label}` : `Show ${label}`}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-muted transition hover:bg-surface-2 hover:text-text-secondary"
         >
           {open ? (
             <ChevronUp className="h-3.5 w-3.5" />
@@ -179,7 +179,7 @@ function ExpandableNavItem({ to, label, icon, badge, defaultOpen = false, childr
         </button>
       </div>
       {open && (
-        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-gray-200 pl-2">{children}</div>
+        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-border-subtle pl-2">{children}</div>
       )}
     </div>
   );
@@ -206,7 +206,7 @@ function CollapsibleSection({ title, defaultOpen = true, children }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted hover:bg-surface-2 hover:text-text-secondary"
           aria-label={open ? `Collapse ${title}` : `Expand ${title}`}
         >
           {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -247,7 +247,7 @@ function SidebarProjectsList({ projects, limit }) {
             />
           ))
         ) : (
-          <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No projects yet</p>
+          <p className="px-2.5 py-1.5 text-[12px] text-text-muted">No projects yet</p>
         )}
       </div>
 
@@ -307,7 +307,7 @@ function HomeView({
         <button
           type="button"
           onClick={handleAddProject}
-          className="flex items-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-2.5 py-1 text-[12px] font-semibold text-white transition-colors hover:bg-black"
+          className="flex items-center gap-1.5 rounded-lg bg-text-primary px-2.5 py-1 text-[12px] font-semibold text-surface-0 transition-colors hover:bg-ink-deep"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>Create</span>
@@ -348,7 +348,7 @@ function HomeView({
           <button
             type="button"
             onClick={handleAddProject}
-            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-500 hover:bg-[#f4f5f7] hover:text-gray-900 transition-colors"
+            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-text-secondary hover:bg-surface-2 hover:text-text-primary transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Add Project</span>
@@ -376,7 +376,7 @@ function HomeView({
               />
             ))
           ) : (
-            <p className="px-2.5 py-1.5 text-[12px] text-gray-400">No teams yet</p>
+            <p className="px-2.5 py-1.5 text-[12px] text-text-muted">No teams yet</p>
           )}
         </ExpandableNavItem>
       </div>
@@ -408,7 +408,7 @@ function AIView() {
           <button
             type="button"
             onClick={handleNewChat}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-2 hover:text-text-primary"
             title="New chat"
           >
             <SquarePen className="h-4 w-4" />
@@ -428,7 +428,7 @@ function AIView() {
             label="Skills"
             icon={Zap}
             badge="Beta"
-            badgeColor="bg-amber-50 text-amber-700"
+            badgeColor="bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"
           />
           <ClickUpNavItem to="/ai/analytics" label="Analytics" icon={BarChart2} />
           <ClickUpNavItem to="/ai/connections" label="Connections" icon={Link2} />
@@ -440,7 +440,7 @@ function AIView() {
           <ClickUpNavItem
             to="/ai/agents/new"
             label="Create Agent"
-            iconNode={<Glasses className="h-4 w-4 text-violet-600" />}
+            iconNode={<Glasses className="h-4 w-4 text-violet-600 dark:text-violet-400" />}
           />
           <ClickUpNavItem
             to="/ai/agents"
@@ -479,7 +479,7 @@ function AIView() {
       </div>
 
       {/* Usage footer */}
-      <div className="shrink-0 space-y-2 border-t border-gray-200 bg-gray-50/70 px-4 py-3">
+      <div className="shrink-0 space-y-2 border-t border-border-subtle bg-surface-1/70 px-4 py-3">
         <AiUsageRing
           value={brainUses}
           max={Math.max(brainUses, 20)}
@@ -539,11 +539,11 @@ function TeamsView({ teamsData, usersData }) {
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 text-center shadow-2xs">
-          <div className="mx-auto mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-500">
+        <div className="rounded-xl border border-border-subtle bg-surface-0 p-5 text-center shadow-2xs">
+          <div className="mx-auto mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-500">
             <Users className="h-4 w-4" />
           </div>
-          <p className="text-[12px] text-gray-500 leading-relaxed">
+          <p className="text-[12px] text-text-secondary leading-relaxed">
             Once you are added to a Team you will see it here
           </p>
         </div>
@@ -567,7 +567,7 @@ function DashboardView({ onCollapse, onCreateClick, onAddProject, projects, user
           <button
             type="button"
             onClick={onCollapse}
-            className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            className="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-surface-2 hover:text-text-secondary"
             title="Collapse sidebar"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -575,7 +575,7 @@ function DashboardView({ onCollapse, onCreateClick, onAddProject, projects, user
           <button
             type="button"
             onClick={handleAddProject}
-            className="flex h-6 w-6 items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-100"
+            className="flex h-6 w-6 items-center justify-center rounded border border-border-subtle text-text-secondary hover:bg-surface-2"
             title="Add project"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -604,17 +604,17 @@ function DashboardView({ onCollapse, onCreateClick, onAddProject, projects, user
       {projects.length > 0 ? (
         <SidebarProjectsList projects={projects} />
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 text-center shadow-2xs">
+        <div className="rounded-xl border border-border-subtle bg-surface-0 p-5 text-center shadow-2xs">
           <div className="mx-auto mb-2 flex h-6 w-6 items-center justify-center text-amber-400">
             <Star className="h-4 w-4 fill-amber-400" />
           </div>
-          <p className="text-[12px] text-gray-500 leading-relaxed">
+          <p className="text-[12px] text-text-secondary leading-relaxed">
             Create a project to see it here
           </p>
           <button
             type="button"
             onClick={handleAddProject}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-black"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-text-primary px-3 py-1.5 text-[12px] font-semibold text-surface-0 hover:bg-ink-deep"
           >
             <Plus className="h-3.5 w-3.5" />
             Add Project

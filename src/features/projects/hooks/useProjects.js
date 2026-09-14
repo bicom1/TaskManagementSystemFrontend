@@ -100,6 +100,12 @@ export function useDeleteProject() {
       queryClient.invalidateQueries({ queryKey: [KEY] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      // The server removes notifications about the project's tasks. The badge and
+      // the inbox task feed use their own keys, so refresh those too or the old
+      // count lingers until the next 30s poll.
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['inbox-live-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
       const name = data?.name ? `"${data.name}"` : 'Project';
       toastSuccess(`Project ${name} deleted`);
     },

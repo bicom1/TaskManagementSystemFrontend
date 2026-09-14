@@ -37,7 +37,7 @@ export function PresenceIndicator({
         ? 'bg-amber-400'
         : status === 'invited'
           ? 'bg-sky-400'
-          : 'bg-gray-900';
+          : 'bg-gray-900 dark:bg-text-muted';
 
   const label =
     status === 'online'
@@ -83,8 +83,8 @@ export function PresenceAvatarDot({ userId, person, className }) {
   return (
     <span
       className={cn(
-        'absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-white',
-        online ? 'bg-emerald-500' : 'bg-gray-900',
+        'absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-surface-0',
+        online ? 'bg-emerald-500' : 'bg-gray-900 dark:bg-text-muted',
         className
       )}
       title={title}

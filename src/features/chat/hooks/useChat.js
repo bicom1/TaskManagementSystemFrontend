@@ -8,7 +8,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { playMessageNotifySound } from '../../../lib/notifySound';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { getActiveChatId, setActiveChatId } from '../chatActiveStore';
-import { toastError } from '@/lib/toast';
+import { getErrorMessage, toastError } from '@/lib/toast';
 import { isDuplicateEvent } from '@/lib/socketDedupe';
 
 export const CHAT_CONVERSATIONS_KEY = 'chat-conversations';
@@ -97,11 +97,17 @@ export function useLoadOlderMessages(conversationId) {
   });
 }
 
+/** The start endpoints return the full conversation — cache it so the header renders at once. */
+function seedConversation(queryClient, conversation) {
+  if (conversation?._id) queryClient.setQueryData(['chat-conversation', conversation._id], conversation);
+}
+
 export function useStartDm() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userId) => chatApi.startDm(userId),
-    onSuccess: () => {
+    onSuccess: (conversation) => {
+      seedConversation(queryClient, conversation);
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
     },
     onError: (error) => {
@@ -114,7 +120,8 @@ export function useStartTeamChat() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (teamId) => chatApi.startTeamChat(teamId),
-    onSuccess: () => {
+    onSuccess: (conversation) => {
+      seedConversation(queryClient, conversation);
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
     },
     onError: (error) => {
@@ -127,7 +134,8 @@ export function useStartDepartmentChat() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (departmentId) => chatApi.startDepartmentChat(departmentId),
-    onSuccess: () => {
+    onSuccess: (conversation) => {
+      seedConversation(queryClient, conversation);
       queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
       queryClient.invalidateQueries({ queryKey: ['chat-directory'] });
     },
@@ -147,11 +155,120 @@ export function useProjectChannel(projectId) {
   });
 }
 
-export function useSendChatMessage(conversationId) {
+/** Same wording the API stores as lastMessagePreview (chat.service previewFromMessage). */
+function previewFor({ body, files = [], shareLinks = [] } = {}) {
+  const text = String(body || '').trim();
+  if (text) return text.slice(0, 240);
+  if (files.length) {
+    const kind = String(files[0].type || '').startsWith('image/') ? 'image' : 'file';
+    return files.length > 1
+      ? `Shared ${files.length} ${kind === 'image' ? 'images' : 'files'}`
+      : `Shared ${kind}: ${files[0].name || 'attachment'}`;
+  }
+  if (shareLinks.length) {
+    return `Shared a link: ${shareLinks[0].label || shareLinks[0].url}`.slice(0, 240);
+  }
+  return 'New message';
+}
+
+const idOf = (value) => String(value?._id || value || '');
+
+/**
+ * Apply a change to one conversation in the cached chat list, optionally moving
+ * it to the top. Returns false when the conversation isn't cached (the caller
+ * should refetch). Without this, a chat only reordered once the full list had
+ * been refetched — seconds after the message was already on screen.
+ */
+function patchConversationList(queryClient, conversationId, patch, { toTop = false, fallback } = {}) {
+  let found = false;
+  queryClient.setQueryData([CHAT_CONVERSATIONS_KEY], (old) => {
+    if (!old?.data) return old;
+    const rows = old.data;
+    const idx = rows.findIndex((c) => idOf(c) === String(conversationId));
+    let updated;
+    if (idx >= 0) {
+      found = true;
+      updated = { ...rows[idx], ...patch };
+    } else if (fallback) {
+      // A brand-new chat (first message) isn't in the list yet.
+      found = true;
+      updated = { ...fallback, ...patch };
+    } else {
+      return old;
+    }
+    const rest = idx >= 0 ? rows.filter((_, i) => i !== idx) : rows;
+    const data = toTop
+      ? [updated, ...rest]
+      : idx >= 0
+        ? rows.map((c, i) => (i === idx ? updated : c))
+        : [updated, ...rest];
+    return { ...old, data, unread: data.filter((c) => c.unread).length };
+  });
+  return found;
+}
+
+function removeCachedMessage(queryClient, conversationId, messageId) {
+  queryClient.setQueryData([CHAT_MESSAGES_KEY, conversationId], (old) => {
+    if (!old?.data) return old;
+    const target = old.data.find((m) => String(m._id) === String(messageId));
+    (target?.attachments || []).forEach((a) => {
+      if (a.localPreview && String(a.url).startsWith('blob:')) URL.revokeObjectURL(a.url);
+    });
+    return { ...old, data: old.data.filter((m) => String(m._id) !== String(messageId)) };
+  });
+}
+
+/** Drop a message that failed to send (the "Remove" action). */
+export function useDiscardFailedMessage() {
+  const queryClient = useQueryClient();
+  return (conversationId, messageId) => removeCachedMessage(queryClient, conversationId, messageId);
+}
+
+/**
+ * Keep the chat list in step with a message that just arrived over the socket:
+ * preview, time, position and unread dot, without waiting for a refetch.
+ */
+function applyLiveMessageToList(queryClient, { conversationId, at, preview, by, participantIds }) {
+  const me = useAuthStore.getState().user?._id;
+  const fromMe = idOf(by) === String(me);
+  const viewing = getActiveChatId() === String(conversationId);
+  const iAmIn = participantIds ? participantIds.map(String).includes(String(me)) : true;
+  const cached = queryClient
+    .getQueryData([CHAT_CONVERSATIONS_KEY])
+    ?.data?.find((c) => idOf(c) === String(conversationId));
+  const patch = { lastMessageAt: at, lastMessagePreview: preview, lastMessageBy: by };
+  // Never un-read a chat on someone else's message; only flag it when it's for you.
+  if (!fromMe && iAmIn && !viewing) patch.unread = true;
+  // Out-of-order delivery must not move an older message above a newer one.
+  if (cached?.lastMessageAt && new Date(cached.lastMessageAt) > new Date(at)) return;
+  if (patchConversationList(queryClient, conversationId, patch, { toTop: true })) return;
+  if (!queryClient.getQueryData([CHAT_CONVERSATIONS_KEY])) return; // list not loaded yet
+
+  // A chat that isn't listed yet (someone's first message). Fetch just that one
+  // conversation — both socket events for the message share the request — rather
+  // than reloading the whole list, which is the slow endpoint.
+  queryClient
+    .fetchQuery({
+      queryKey: ['chat-conversation', String(conversationId)],
+      queryFn: () => chatApi.getConversation(conversationId),
+      staleTime: 5_000,
+    })
+    .then((conversation) =>
+      patchConversationList(queryClient, conversationId, patch, { toTop: true, fallback: conversation })
+    )
+    .catch(() => queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] }));
+}
+
+export function useSendChatMessage(defaultConversationId) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload) => chatApi.sendMessage(conversationId, payload),
-    onMutate: async (payload) => {
+    // conversationId travels with each send, so switching chats while a message
+    // is in flight can't file it (or its failure) under the wrong conversation.
+    mutationFn: ({ conversationId = defaultConversationId, conversation: _c, retryOf: _r, ...payload }) =>
+      chatApi.sendMessage(conversationId, payload),
+    onMutate: async (vars) => {
+      const { conversationId = defaultConversationId, conversation, retryOf, ...payload } = vars;
+      if (retryOf) removeCachedMessage(queryClient, conversationId, retryOf);
       const files = payload?.files || [];
       const attachments = files.map((file) => {
         const previewUrl = URL.createObjectURL(file);
@@ -166,6 +283,7 @@ export function useSendChatMessage(conversationId) {
       });
       const user = useAuthStore.getState().user;
       const clientId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const createdAt = new Date().toISOString();
       const optimistic = {
         _id: clientId,
         clientId,
@@ -175,9 +293,11 @@ export function useSendChatMessage(conversationId) {
         shareLinks: payload?.shareLinks || [],
         mentions: payload?.mentions || [],
         from: user,
-        createdAt: new Date().toISOString(),
+        createdAt,
         conversation: conversationId,
         type: 'chat',
+        // Kept so a failed message can be retried exactly as written.
+        sendPayload: payload,
       };
 
       queryClient.setQueryData([CHAT_MESSAGES_KEY, conversationId], (old) => {
@@ -185,10 +305,25 @@ export function useSendChatMessage(conversationId) {
         return { ...old, data: [...(old.data || []), optimistic] };
       });
 
-      return { clientId, previewUrls: attachments.map((a) => a.previewUrl || a.url) };
+      // A refetch already in flight would land after this and put the chat back
+      // where it was, so stop it; onSettled refetches the real list.
+      await queryClient.cancelQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
+      patchConversationList(
+        queryClient,
+        conversationId,
+        {
+          lastMessageAt: createdAt,
+          lastMessagePreview: previewFor(payload),
+          lastMessageBy: user ? { _id: user._id, name: user.name, avatarUrl: user.avatarUrl } : null,
+          unread: false,
+        },
+        { toTop: true, fallback: conversation }
+      );
+
+      return { clientId, conversationId, previewUrls: attachments.map((a) => a.previewUrl || a.url) };
     },
-    onSuccess: (message, _payload, ctx) => {
-      queryClient.setQueryData([CHAT_MESSAGES_KEY, conversationId], (old) => {
+    onSuccess: (message, _vars, ctx) => {
+      queryClient.setQueryData([CHAT_MESSAGES_KEY, ctx.conversationId], (old) => {
         if (!old) return { data: [message], pagination: {} };
         const merged = mergeServerMessage(message, ctx);
         const withoutDup = (old.data || []).filter(
@@ -198,20 +333,32 @@ export function useSendChatMessage(conversationId) {
         );
         return { ...old, data: [...withoutDup, merged] };
       });
-      queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
+      patchConversationList(queryClient, ctx.conversationId, { lastMessageAt: message.createdAt });
     },
-    onError: (error, _payload, ctx) => {
-      queryClient.setQueryData([CHAT_MESSAGES_KEY, conversationId], (old) => {
-        if (!old) return old;
+    onError: (error, _vars, ctx) => {
+      if (!ctx) return;
+      const reason = getErrorMessage(error, 'Check your connection and try again.');
+      // Keep the message on screen, clearly marked, instead of silently removing
+      // it — the user can see what didn't go through and retry it.
+      queryClient.setQueryData([CHAT_MESSAGES_KEY, ctx.conversationId], (old) => {
+        if (!old?.data) return old;
         return {
           ...old,
-          data: (old.data || []).filter((m) => String(m._id) !== String(ctx?.clientId)),
+          data: old.data.map((m) =>
+            String(m._id) === String(ctx.clientId)
+              ? { ...m, pending: false, failed: true, error: reason }
+              : m
+          ),
         };
       });
-      (ctx?.previewUrls || []).forEach((url) => {
-        if (url && String(url).startsWith('blob:')) URL.revokeObjectURL(url);
-      });
-      toastError(error, 'Failed to send');
+      // The failure is shown inline in the open chat; only toast when the user
+      // has moved to a different one and would otherwise never see it.
+      if (getActiveChatId() !== String(ctx.conversationId)) {
+        toastError(error, 'A message could not be sent', { id: `chat-send-failed:${ctx.clientId}` });
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
     },
   });
 }
@@ -239,8 +386,11 @@ export function useMarkConversationRead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id) => chatApi.markRead(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
+    // Clear the dot in place. This runs whenever a message lands in the open chat;
+    // refetching the whole list each time raced with sends — a refetch that started
+    // before your message was saved came back without it and dropped the chat down.
+    onMutate: (id) => {
+      patchConversationList(queryClient, id, { unread: false });
     },
   });
 }
@@ -264,7 +414,17 @@ export function useLiveChatNotifications() {
       const convId = String(message.conversation?._id || message.conversation || '');
       if (!convId) return;
 
-      queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
+      // Move the chat to the top right away, without reloading the list.
+      applyLiveMessageToList(queryClient, {
+        conversationId: convId,
+        at: message.createdAt,
+        preview: previewFor({
+          body: message.body,
+          files: (message.attachments || []).map((a) => ({ type: a.fileType, name: a.fileName })),
+          shareLinks: message.shareLinks,
+        }),
+        by: message.from,
+      });
       // Do not append here — useLiveChat owns the thread cache (avoids duplicate bubbles).
 
       // One toast and one sound per message, however many times it is delivered.
@@ -292,8 +452,20 @@ export function useLiveChatNotifications() {
       });
     };
 
-    const onConversation = () => {
-      queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
+    // Also reaches a Super Admin for chats they aren't in (oversight room).
+    const onConversation = (conversation) => {
+      const convId = idOf(conversation);
+      if (!convId || !conversation?.lastMessageAt) {
+        queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
+        return;
+      }
+      applyLiveMessageToList(queryClient, {
+        conversationId: convId,
+        at: conversation.lastMessageAt,
+        preview: conversation.lastMessagePreview,
+        by: conversation.lastMessageBy,
+        participantIds: conversation.participantIds,
+      });
     };
 
     socket.on('chat:message', onMessage);
@@ -343,8 +515,9 @@ export function useLiveChat(activeConversationId, { onTyping } = {}) {
           };
         }
         const fromId = String(message.from?._id || message.from || '');
+        // Only a message still sending can be the one the server just confirmed.
         const pendingIdx = rows.findIndex(
-          (m) => m.pending && String(m.from?._id || m.from || '') === fromId
+          (m) => m.pending && !m.failed && String(m.from?._id || m.from || '') === fromId
         );
         if (pendingIdx >= 0) {
           const pending = rows[pendingIdx];
@@ -356,12 +529,8 @@ export function useLiveChat(activeConversationId, { onTyping } = {}) {
         }
         return { ...old, data: [...rows, message] };
       });
-
-      queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
-    };
-
-    const onConversation = () => {
-      queryClient.invalidateQueries({ queryKey: [CHAT_CONVERSATIONS_KEY] });
+      // The chat list itself is kept current by useLiveChatNotifications (always
+      // mounted in the shell) — refetching it here on every message was redundant.
     };
 
     const onTypingEvent = (payload) => {
@@ -371,12 +540,10 @@ export function useLiveChat(activeConversationId, { onTyping } = {}) {
     };
 
     socket.on('chat:message', onMessage);
-    socket.on('chat:conversation', onConversation);
     socket.on('message:typing', onTypingEvent);
 
     return () => {
       socket.off('chat:message', onMessage);
-      socket.off('chat:conversation', onConversation);
       socket.off('message:typing', onTypingEvent);
     };
   }, [queryClient, onTyping, activeConversationId, token]);

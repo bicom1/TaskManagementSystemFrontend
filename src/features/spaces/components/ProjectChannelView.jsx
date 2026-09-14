@@ -29,6 +29,7 @@ import { Modal } from '@/components/ui/Modal';
 import { InviteModal } from '@/components/InviteModal';
 import { cn } from '@/lib/utils';
 import { ChatImage, FileThumb } from '@/features/chat/components/ChatImage';
+import { MessageMeta, FailedMessageActions } from '@/features/chat/components/MessageStatus';
 import {
   CHAT_LIMITS,
   isImageFile,
@@ -37,6 +38,7 @@ import {
 import {
   emitChatTyping,
   useConversationMessages,
+  useDiscardFailedMessage,
   useLiveChat,
   useMarkConversationRead,
   useProjectChannel,
@@ -81,6 +83,7 @@ export function ProjectChannelView({
   const { data: messagesRes } = useConversationMessages(conversationId);
   const messages = messagesRes?.data || [];
   const sendMessage = useSendChatMessage(conversationId);
+  const discardFailed = useDiscardFailedMessage();
   const markRead = useMarkConversationRead();
   const addMember = useAddProjectMember();
 
@@ -213,7 +216,7 @@ export function ProjectChannelView({
                   onClick={onTrackTasks}
                   className="group flex w-full items-center gap-4 rounded-2xl border border-primary-soft bg-primary-soft/70 px-4 py-3.5 text-left transition hover:border-primary/30 hover:bg-primary-soft"
                 >
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary text-on-ink shadow-soft-lift transition group-hover:scale-[1.03]">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary text-white shadow-soft-lift transition group-hover:scale-[1.03]">
                     <CheckSquare className="h-5 w-5" />
                   </span>
                   <span className="min-w-0">
@@ -249,7 +252,7 @@ export function ProjectChannelView({
                   onClick={() => navigate('/home/meetings')}
                   className="group flex w-full items-center gap-4 rounded-2xl border border-hairline bg-fog/80 px-4 py-3.5 text-left transition hover:border-steel hover:bg-fog"
                 >
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-deep text-on-ink transition group-hover:scale-[1.03]">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-deep text-white transition group-hover:scale-[1.03]">
                     <Phone className="h-5 w-5" />
                   </span>
                   <span className="min-w-0">
@@ -289,55 +292,73 @@ export function ProjectChannelView({
                       )}
                       <div
                         className={cn(
-                          'max-w-[min(78%,28rem)] px-3.5 py-2.5 text-sm shadow-soft-lift',
-                          mine
-                            ? 'rounded-2xl rounded-tr-md bg-primary text-on-ink'
-                            : 'rounded-2xl rounded-tl-md border border-hairline bg-paper text-ink'
+                          'flex min-w-0 max-w-[min(78%,28rem)] flex-col',
+                          mine ? 'items-end' : 'items-start'
                         )}
                       >
-                        {!mine && (
-                          <p className="mb-1 text-[11px] font-semibold text-charcoal">
-                            {m.from?.name}
-                          </p>
-                        )}
-                        {m.body ? (
-                          <p className="whitespace-pre-wrap break-words leading-relaxed">
-                            {m.body}
-                          </p>
-                        ) : null}
-                        {(m.attachments || []).map((file) =>
-                          isImageFile({ type: file.fileType, name: file.fileName }) ? (
-                            <ChatImage
-                              key={file.url}
-                              src={file.url}
-                              previewUrl={file.previewUrl}
-                              alt={file.fileName || ''}
-                              className="mt-2 max-h-56 max-w-full rounded-lg object-cover"
-                            />
-                          ) : (
-                            <a
-                              key={file.url}
-                              href={normalizeHref(file.url)}
-                              className={cn(
-                                'mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium underline-offset-2 hover:underline',
-                                mine ? 'bg-white/15' : 'bg-cloud text-primary'
-                              )}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <Link2 className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{file.fileName}</span>
-                            </a>
-                          )
-                        )}
-                        <p
+                        <div
                           className={cn(
-                            'mt-1.5 text-[10px] tabular-nums',
-                            mine ? 'text-on-ink/55' : 'text-graphite'
+                            'max-w-full px-3.5 py-2.5 text-sm shadow-soft-lift transition-opacity',
+                            mine
+                              ? 'rounded-2xl rounded-tr-md bg-primary text-white'
+                              : 'rounded-2xl rounded-tl-md border border-hairline bg-paper text-ink',
+                            m.pending && 'opacity-70',
+                            m.failed && 'ring-2 ring-danger-500 ring-offset-1'
                           )}
                         >
-                          {formatMsgTime(m.createdAt)}
-                        </p>
+                          {!mine && (
+                            <p className="mb-1 text-[11px] font-semibold text-charcoal">
+                              {m.from?.name}
+                            </p>
+                          )}
+                          {m.body ? (
+                            <p className="whitespace-pre-wrap break-words leading-relaxed">
+                              {m.body}
+                            </p>
+                          ) : null}
+                          {(m.attachments || []).map((file) =>
+                            isImageFile({ type: file.fileType, name: file.fileName }) ? (
+                              <ChatImage
+                                key={file.url}
+                                src={file.url}
+                                previewUrl={file.previewUrl}
+                                alt={file.fileName || ''}
+                                className="mt-2 max-h-56 max-w-full rounded-lg object-cover"
+                              />
+                            ) : (
+                              <a
+                                key={file.url}
+                                href={normalizeHref(file.url)}
+                                className={cn(
+                                  'mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium underline-offset-2 hover:underline',
+                                  mine ? 'bg-white/15' : 'bg-cloud text-primary'
+                                )}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Link2 className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{file.fileName}</span>
+                              </a>
+                            )
+                          )}
+                          <MessageMeta
+                            message={m}
+                            mine={mine}
+                            time={formatMsgTime(m.createdAt)}
+                            className="mt-1.5"
+                          />
+                        </div>
+                        {mine ? (
+                          <FailedMessageActions
+                            message={m}
+                            onRetry={
+                              m.sendPayload
+                                ? () => sendMessage.mutate({ ...m.sendPayload, retryOf: m._id })
+                                : undefined
+                            }
+                            onDiscard={() => discardFailed(conversationId, m._id)}
+                          />
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -362,7 +383,7 @@ export function ProjectChannelView({
               </span>
               <button
                 type="button"
-                className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-on-ink/75 transition hover:bg-white/10 hover:text-on-ink"
+                className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-on-ink/75 transition hover:bg-surface-0/10 hover:text-on-ink"
                 onClick={() => setBannerOpen(false)}
               >
                 Dismiss
@@ -370,7 +391,7 @@ export function ProjectChannelView({
             </div>
           )}
 
-          <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15">
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-hairline bg-paper shadow-soft-lift transition focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10">
             <textarea
               value={draft}
               onChange={(e) => {
@@ -385,7 +406,9 @@ export function ProjectChannelView({
               }}
               rows={2}
               placeholder="+ Mention @Brain to create, find, ask anything."
-              className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 text-sm leading-relaxed text-ink outline-none placeholder:text-graphite"
+              // outline-none! — the box around it shows focus (see the global
+              // :focus-visible ring in index.css, which plain outline-none can't override).
+              className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 text-sm leading-relaxed text-ink outline-none! placeholder:text-graphite"
             />
 
             {pendingFiles.length > 0 && (

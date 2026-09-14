@@ -37,7 +37,7 @@ export function RenameProjectModal({ project, open, onClose }) {
       tone="brand"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="rounded-xl border border-hairline/80 bg-gradient-to-br from-white to-surface-1/80 p-3">
+        <div className="rounded-xl border border-hairline/80 bg-gradient-to-br from-surface-0 to-surface-1/80 p-3">
           <div className="space-y-1.5">
             <Label htmlFor="rename-project">Project name</Label>
             <Input

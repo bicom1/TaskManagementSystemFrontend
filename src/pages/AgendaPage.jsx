@@ -371,7 +371,7 @@ export default function AgendaPage() {
 
         <div className="relative mx-auto mt-8 max-w-2xl">
           <div className="rounded-2xl bg-gradient-to-r from-brand-300 via-brand-200 to-brand-300 p-px shadow-xs">
-            <div className="rounded-[15px] bg-white px-4 pb-3 pt-4 text-left">
+            <div className="rounded-[15px] bg-surface-0 px-4 pb-3 pt-4 text-left">
               <textarea
                 ref={textareaRef}
                 rows={3}
@@ -448,7 +448,7 @@ export default function AgendaPage() {
               key={pill}
               type="button"
               onClick={() => runPrompt(pill)}
-              className="max-w-full truncate rounded-full border border-[var(--color-border-subtle)] bg-white px-3.5 py-2 text-left text-[13px] text-[var(--color-text-secondary)] shadow-xs transition hover:border-[var(--color-border-base)] hover:bg-[var(--color-surface-1)]"
+              className="max-w-full truncate rounded-full border border-[var(--color-border-subtle)] bg-surface-0 px-3.5 py-2 text-left text-[13px] text-[var(--color-text-secondary)] shadow-xs transition hover:border-[var(--color-border-base)] hover:bg-[var(--color-surface-1)]"
             >
               {pill}
             </button>
@@ -456,7 +456,7 @@ export default function AgendaPage() {
         </div>
 
         {answer && (
-          <div className="mx-auto mt-5 max-w-2xl rounded-2xl border border-hairline bg-white p-4 text-left shadow-xs">
+          <div className="mx-auto mt-5 max-w-2xl rounded-2xl border border-hairline bg-surface-0 p-4 text-left shadow-xs">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">
               AI answer
             </p>
@@ -490,7 +490,7 @@ export default function AgendaPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-white shadow-xs">
+        <div className="overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-surface-0 shadow-xs">
           <div className="grid lg:grid-cols-2">
             <div className="flex flex-col justify-center border-b border-[var(--color-border-subtle)] px-8 py-10 lg:border-b-0 lg:border-r">
               <p className="text-xs font-semibold uppercase tracking-wide text-graphite">
@@ -524,7 +524,7 @@ export default function AgendaPage() {
                             {m.team?.name ? ` · ${m.team.name}` : ''}
                           </p>
                         </div>
-                        <span className="shrink-0 text-xs font-medium text-teal-700">
+                        <span className="shrink-0 text-xs font-medium text-teal-700 dark:text-teal-300">
                           {minutesLabel(m.startsAt)}
                         </span>
                       </button>
@@ -566,7 +566,7 @@ export default function AgendaPage() {
             </div>
 
             <div className="relative min-h-[320px] bg-[var(--color-surface-1)] p-4">
-              <div className="overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-white shadow-xs">
+              <div className="overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-surface-0 shadow-xs">
                 <div className="flex items-center gap-2 border-b border-[var(--color-border-subtle)] px-3 py-2.5">
                   {previewMeeting ? (
                     <>
@@ -638,12 +638,12 @@ export default function AgendaPage() {
                                 key={m._id}
                                 type="button"
                                 onClick={() => setSelected(m)}
-                                className="absolute left-2 right-3 top-10 rounded-md border border-teal-200 bg-teal-50 px-2 py-1.5 text-left shadow-xs transition hover:bg-teal-100"
+                                className="absolute left-2 right-3 top-10 rounded-md border border-teal-200 dark:border-teal-500/30 bg-teal-50 dark:bg-teal-500/10 px-2 py-1.5 text-left shadow-xs transition hover:bg-teal-100 dark:hover:bg-teal-500/15"
                               >
-                                <p className="truncate text-xs font-semibold text-teal-900">
+                                <p className="truncate text-xs font-semibold text-teal-900 dark:text-teal-200">
                                   {m.title}
                                 </p>
-                                <p className="text-[10px] text-teal-800">
+                                <p className="text-[10px] text-teal-800 dark:text-teal-200">
                                   {format(start, 'MMM d · h:mm a')} – {format(end, 'h:mm a')}
                                 </p>
                               </button>
@@ -663,10 +663,10 @@ export default function AgendaPage() {
                             type="button"
                             onClick={() => setSelected(m)}
                             style={{ top: `${top}%`, height: `${height}%` }}
-                            className="absolute left-2 right-3 overflow-hidden rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-left shadow-xs transition hover:bg-teal-100"
+                            className="absolute left-2 right-3 overflow-hidden rounded-md border border-teal-200 dark:border-teal-500/30 bg-teal-50 dark:bg-teal-500/10 px-2 py-1 text-left shadow-xs transition hover:bg-teal-100 dark:hover:bg-teal-500/15"
                           >
-                            <p className="truncate text-xs font-semibold text-teal-900">{m.title}</p>
-                            <p className="text-[10px] text-teal-800">
+                            <p className="truncate text-xs font-semibold text-teal-900 dark:text-teal-200">{m.title}</p>
+                            <p className="text-[10px] text-teal-800 dark:text-teal-200">
                               {format(start, 'h:mm a')} – {format(end, 'h:mm a')}
                             </p>
                           </button>
@@ -691,7 +691,7 @@ export default function AgendaPage() {
                 </div>
 
                 {previewMeeting && (
-                  <div className="m-3 flex items-center gap-2 rounded-lg border border-[var(--color-border-subtle)] bg-white px-3 py-2 shadow-xs">
+                  <div className="m-3 flex items-center gap-2 rounded-lg border border-[var(--color-border-subtle)] bg-surface-0 px-3 py-2 shadow-xs">
                     <div
                       className={cn(
                         'flex h-7 w-7 items-center justify-center rounded text-[10px] font-bold text-white',
@@ -783,7 +783,7 @@ export default function AgendaPage() {
                   }}
                   className="flex w-full items-start gap-3 rounded-xl border border-hairline px-3 py-3 text-left hover:bg-cloud"
                 >
-                  <Video className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
+                  <Video className="mt-0.5 h-4 w-4 shrink-0 text-teal-700 dark:text-teal-300" />
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-ink">{m.title}</p>
                     <p className="text-sm text-graphite">
@@ -796,7 +796,7 @@ export default function AgendaPage() {
                         .join(' · ')}
                     </p>
                   </div>
-                  <span className="text-xs font-medium text-teal-700">{minutesLabel(m.startsAt)}</span>
+                  <span className="text-xs font-medium text-teal-700 dark:text-teal-300">{minutesLabel(m.startsAt)}</span>
                 </button>
               </li>
             ))}

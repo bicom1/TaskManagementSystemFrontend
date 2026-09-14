@@ -5,6 +5,7 @@ import {
   isYesterday,
   subDays,
 } from 'date-fns';
+import { entityHref } from '@/features/notifications/notificationLinks';
 import { notificationKey, taskFeedKey } from './inboxTriageStore';
 import { STATUS_LABELS } from '@/features/tasks/api/taskApi';
 import { formatTaskTitle } from '@/features/tasks/taskTitle';
@@ -30,7 +31,7 @@ const TASK_ACTIVITY_TYPES = new Set([
 ]);
 
 const STATUS_COLORS = {
-  backlog: 'bg-gray-400',
+  backlog: 'bg-text-muted',
   todo: 'bg-slate-400',
   in_progress: 'bg-blue-500',
   in_review: 'bg-violet-500',
@@ -93,7 +94,11 @@ export function buildInboxFeedItem(notification, taskMap = {}, overrides = {}, p
       ? taskMap[String(notification.entityId)]
       : null;
 
-  const taskId = task?._id || notification.entityId;
+  // Only a Task notification's entityId is a task id. Falling back to entityId for
+  // every type turned team and project ids into bogus task links
+  // (/all-tasks?task=<team id>), so non-task notifications never reached their page.
+  const taskId =
+    task?._id || (notification.entityType === 'Task' ? notification.entityId : null);
   const projectId = task?.project?._id || task?.project || null;
   const projectName = task?.project?.name || null;
   const taskTitle = task
@@ -159,9 +164,7 @@ export function buildInboxFeedItem(notification, taskMap = {}, overrides = {}, p
       ? `/projects/${projectId}?task=${taskId}`
       : taskId
         ? `/all-tasks?task=${taskId}`
-        : notification.entityType === 'Project' && notification.entityId
-          ? `/projects/${notification.entityId}`
-          : null;
+        : entityHref(notification.entityType, notification.entityId);
 
   return {
     id: notification._id,

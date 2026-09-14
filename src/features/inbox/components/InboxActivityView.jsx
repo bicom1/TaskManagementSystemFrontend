@@ -50,7 +50,7 @@ function TimeGroup({ label, items, onOpen, onClear, clearTitle, clearVariant }) 
   if (!items.length) return null;
   return (
     <div>
-      <p className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+      <p className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
         {label}
       </p>
       {items.map((item) => (
@@ -221,8 +221,8 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
 
   return (
     <>
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex shrink-0 items-center gap-0 overflow-x-auto border-b border-gray-200 px-1 pt-1">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-0 shadow-sm">
+        <div className="flex shrink-0 items-center gap-0 overflow-x-auto border-b border-border-subtle px-1 pt-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const stats = tabStats[tab.id] || { total: 0, unread: 0 };
@@ -243,8 +243,8 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                 className={cn(
                   'relative flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-[13px] font-semibold transition',
                   isActive
-                    ? 'border-gray-900 text-gray-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-text-primary text-text-primary'
+                    : 'border-transparent text-text-secondary hover:text-text-secondary'
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -255,7 +255,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                       'rounded-md px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
                       tab.id === 'primary'
                         ? 'bg-brand-100 text-brand-700'
-                        : 'bg-gray-100 text-gray-600'
+                        : 'bg-surface-2 text-text-secondary'
                     )}
                   >
                     {badge}
@@ -266,7 +266,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
           })}
         </div>
 
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-subtle px-3 py-2">
           <div className="flex items-center gap-2">
             <div className="relative">
               <Button
@@ -282,7 +282,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
               {filterOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} />
-                  <div className="absolute left-0 top-full z-50 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                  <div className="absolute left-0 top-full z-50 mt-1 w-44 rounded-lg border border-border-subtle bg-surface-0 py-1 shadow-lg">
                     {[
                       { id: 'tasks', label: 'Tasks only' },
                       { id: 'all', label: 'All activity' },
@@ -295,7 +295,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                           setFilterOpen(false);
                         }}
                         className={cn(
-                          'block w-full px-3 py-2 text-left text-[13px] hover:bg-gray-50',
+                          'block w-full px-3 py-2 text-left text-[13px] hover:bg-surface-1',
                           taskFilter === opt.id && 'font-semibold text-brand-600'
                         )}
                       >
@@ -306,9 +306,9 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
                 </>
               )}
             </div>
-            {tasksLoading && <span className="text-[11px] text-gray-400">Loading tasks…</span>}
+            {tasksLoading && <span className="text-[11px] text-text-muted">Loading tasks…</span>}
             {activeStats.tasks > 0 && (
-              <span className="text-[11px] text-gray-500">
+              <span className="text-[11px] text-text-secondary">
                 {activeStats.tasks} task{activeStats.tasks === 1 ? '' : 's'}
               </span>
             )}
@@ -318,7 +318,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-surface-2 hover:text-text-secondary"
               title="Customize Inbox"
             >
               <Settings className="h-4 w-4" />
@@ -417,7 +417,7 @@ export function InboxActivityView({ bucket: bucketProp, repliesOnly = false }) {
         )}
 
         {activeBucket === 'other' && visible.length > 0 && (
-          <div className="shrink-0 border-t border-gray-100 px-4 py-2 text-[11px] text-gray-400">
+          <div className="shrink-0 border-t border-border-subtle px-4 py-2 text-[11px] text-text-muted">
             {visible.length} items in Other ·{' '}
             <button
               type="button"

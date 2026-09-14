@@ -126,7 +126,7 @@ export default function HomePage() {
             user={user}
             size="lg"
             rounded="xl"
-            className="ring-1 ring-black/5"
+            className="ring-1 ring-black/5 dark:ring-white/10"
           />
           <div>
             <div className="flex flex-wrap items-center gap-2.5">

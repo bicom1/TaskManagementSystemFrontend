@@ -12,17 +12,17 @@ const TONE_STYLES = {
   amber: {
     glow: '#fbbf24',
     glowSecondary: 'radial-gradient(circle, var(--color-brand-300), transparent 70%)',
-    badge: 'border-amber-200/70 bg-amber-50/90 text-amber-700',
+    badge: 'border-warning-border bg-warning-bg text-warning-text',
   },
   emerald: {
     glow: '#34d399',
     glowSecondary: 'radial-gradient(circle, #a7f3d0, transparent 70%)',
-    badge: 'border-emerald-200/70 bg-emerald-50/90 text-emerald-700',
+    badge: 'border-success-border bg-success-bg text-success-text',
   },
   danger: {
     glow: '#f87171',
     glowSecondary: 'radial-gradient(circle, #fecaca, transparent 70%)',
-    badge: 'border-red-200/70 bg-red-50/90 text-red-700',
+    badge: 'border-danger-border bg-danger-bg text-danger-text',
   },
 };
 
@@ -83,7 +83,7 @@ export function Modal({
     <button
       type="button"
       onClick={onClose}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-hairline bg-white/80 text-graphite shadow-sm transition hover:bg-cloud hover:text-ink"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-hairline bg-surface-0/80 text-graphite shadow-sm transition hover:bg-cloud hover:text-ink"
       aria-label="Close"
     >
       <X className="h-4 w-4" />
@@ -106,11 +106,11 @@ export function Modal({
       {isPremium && (
         <>
           <div
-            className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full opacity-40 blur-3xl"
+            className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full opacity-40 blur-3xl dark:opacity-20"
             style={{ background: `radial-gradient(circle, ${toneStyle.glow}, transparent 70%)` }}
           />
           <div
-            className="pointer-events-none absolute -left-8 bottom-0 h-24 w-24 rounded-full opacity-30 blur-2xl"
+            className="pointer-events-none absolute -left-8 bottom-0 h-24 w-24 rounded-full opacity-30 blur-2xl dark:opacity-15"
             style={{ background: toneStyle.glowSecondary }}
           />
         </>
@@ -173,7 +173,7 @@ export function Modal({
         'relative z-10 flex w-full flex-col overflow-hidden',
         'max-h-[min(880px,calc(100vh-2rem))]',
         isPremium
-          ? 'rounded-[22px] border border-white/60 bg-paper shadow-[0_24px_80px_rgba(15,15,19,0.22)] animate-scale-in'
+          ? 'rounded-[22px] border border-white/60 bg-paper shadow-[0_24px_80px_rgba(15,15,19,0.22)] animate-scale-in dark:border-white/10 dark:shadow-[0_24px_80px_rgba(0,0,0,0.6)]'
           : 'rounded-2xl border border-border-subtle bg-surface-0 shadow-[var(--shadow-2xl)] animate-[scaleIn_150ms_cubic-bezier(0.34,1.4,0.64,1)_both]',
         sizeClasses[size],
         className
@@ -188,13 +188,13 @@ export function Modal({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
         <div
-          className="absolute inset-0 bg-[rgba(8,8,12,0.55)] backdrop-blur-[6px]"
+          className="absolute inset-0 bg-[rgba(8,8,12,0.55)] backdrop-blur-[6px] dark:bg-[rgba(0,0,0,0.65)]"
           onClick={onClose}
           aria-hidden
         />
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           <div
-            className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full opacity-25 blur-[100px]"
+            className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full opacity-25 blur-[100px] dark:opacity-10"
             style={{ background: toneStyle.glow }}
           />
         </div>
@@ -206,7 +206,7 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div
-        className="absolute inset-0 bg-[rgba(19,19,24,0.42)] backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[rgba(19,19,24,0.42)] backdrop-blur-[2px] dark:bg-[rgba(0,0,0,0.6)]"
         onClick={onClose}
         aria-hidden
       />

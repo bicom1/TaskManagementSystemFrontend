@@ -13,7 +13,7 @@ export default function RegisterPage() {
         <div className="flex h-9 items-center bg-ink px-3 text-[12px] text-on-ink sm:px-4 sm:text-[13px]">
           <div className="mx-auto flex w-full max-w-[1366px] items-center justify-between gap-2">
             <span className="font-medium tracking-wide">BIWORKSPACE</span>
-            <span className="hidden text-steel xs:inline sm:inline">
+            <span className="hidden text-on-ink/70 xs:inline sm:inline">
               Plan, track, and ship work together
             </span>
           </div>
@@ -49,7 +49,7 @@ export default function RegisterPage() {
 
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-border-subtle" />
-                <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-disabled">
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                   or
                 </span>
                 <div className="h-px flex-1 bg-border-subtle" />

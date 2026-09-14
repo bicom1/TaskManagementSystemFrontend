@@ -21,7 +21,7 @@ function MessageBubble({ role, content, user }) {
           'max-w-[min(640px,85%)] rounded-2xl px-4 py-3 text-[14px] leading-relaxed',
           isUser
             ? 'bg-brand-600 text-white'
-            : 'border border-gray-200 bg-white text-gray-800 shadow-sm'
+            : 'border border-border-subtle bg-surface-0 text-text-primary shadow-sm'
         )}
       >
         <p className="whitespace-pre-wrap">{content}</p>
@@ -49,11 +49,11 @@ export function AiChatThread({ messages, isThinking, className }) {
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50">
               <BrainLogo size={20} />
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+            <div className="rounded-2xl border border-border-subtle bg-surface-0 px-4 py-3 shadow-sm">
               <span className="inline-flex gap-1">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-text-muted [animation-delay:0ms]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-text-muted [animation-delay:150ms]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-text-muted [animation-delay:300ms]" />
               </span>
             </div>
           </div>

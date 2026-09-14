@@ -7,7 +7,25 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <meta name="description" content="BIWORKSPACE — Plan, track, and ship work together. A premium task management platform for modern teams." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f6f6f7" />
     <title>BIWORKSPACE</title>
+    <!-- Apply the saved theme before first paint, so dark mode never flashes white.
+         Keep in sync with src/lib/theme.js (same storage key and rules). -->
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem('bw-theme');
+          if (pref !== 'light' && pref !== 'dark') pref = 'system';
+          var dark = pref === 'dark' ||
+            (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          if (dark) root.classList.add('dark');
+          root.style.colorScheme = dark ? 'dark' : 'light';
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#0f0f13' : '#f6f6f7');
+        } catch (e) {}
+      })();
+    </script>
     <link
       rel="icon"
       type="image/svg+xml"

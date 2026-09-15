@@ -1,27 +1,99 @@
-import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { toast } from 'sonner';
 import { userApi } from '@/features/users/api/userApi';
 import { BrandLogo } from '@/components/BrandLogo';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import {
   GoogleAuthButton,
   storeInviteToken,
+  readInviteToken,
   clearInviteToken,
 } from '@/features/auth/components/GoogleAuthButton';
 import { getGoogleErrorToast } from '@/features/auth/googleErrors';
 import { getRoleLabel } from '@/lib/roles';
 import { LoadingScreen } from '@/components/ui/Spinner';
 
+const COMPANY_WEBMAIL_DOMAIN = 'bicommunications.net';
+
+function isCompanyWebmailEmail(email) {
+  return String(email || '')
+    .trim()
+    .toLowerCase()
+    .endsWith(`@${COMPANY_WEBMAIL_DOMAIN}`);
+}
+
+function readTokenFromSearch(params) {
+  return String(params.get('token') || params.get('inviteToken') || '').trim();
+}
+
+const passwordAcceptSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Must contain an uppercase letter')
+      .regex(/[0-9]/, 'Must contain a number'),
+    confirmPassword: z.string().min(1, 'Confirm your password'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+/**
+ * Invite accept page.
+ * @bicommunications.net → Complete registration (password) → Sign in → dashboard
+ * Other emails → Continue with Google
+ *
+ * Open via: /accept-invite?token=… (email + share link)
+ */
 export default function AcceptInvitePage() {
+  const navigate = useNavigate();
   const [params, setSearchParams] = useSearchParams();
-  const token = params.get('token') || '';
+
+  const token = useMemo(() => {
+    const fromUrl = readTokenFromSearch(params);
+    if (fromUrl) return fromUrl;
+    return String(readInviteToken() || '').trim();
+  }, [params]);
+
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const isPasswordInvite =
+    preview?.inviteMode === 'password' ||
+    preview?.authProvider === 'local' ||
+    isCompanyWebmailEmail(preview?.email);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(passwordAcceptSchema),
+    defaultValues: { password: '', confirmPassword: '' },
+  });
 
   useEffect(() => {
-    if (token) storeInviteToken(token);
-  }, [token]);
+    const fromUrl = readTokenFromSearch(params);
+    if (fromUrl) {
+      storeInviteToken(fromUrl);
+      return;
+    }
+    const stored = String(readInviteToken() || '').trim();
+    if (stored) {
+      setSearchParams({ token: stored }, { replace: true });
+    }
+  }, [params, setSearchParams]);
 
   useEffect(() => {
     const googleError = params.get('googleError');
@@ -41,23 +113,58 @@ export default function AcceptInvitePage() {
 
   useEffect(() => {
     if (!token) {
-      setError('Missing invite token. Open the invite link from your email or Superadmin.');
+      setError(
+        'Open the full invite link from your email or the shared invite (it must include ?token=).'
+      );
       setLoading(false);
       return;
     }
+
+    let cancelled = false;
+    setLoading(true);
+    storeInviteToken(token);
+
     userApi
       .previewInvite(token)
       .then((data) => {
+        if (cancelled) return;
         setPreview(data);
         setError(null);
       })
       .catch((err) => {
+        if (cancelled) return;
         setError(err?.response?.data?.message || 'Invite link is invalid or expired');
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
   const invitedEmail = preview?.email || '';
+  const invitedRole = preview?.role || '';
+
+  const onAcceptPassword = async (values) => {
+    if (!token || submitting) return;
+    setSubmitting(true);
+    try {
+      await userApi.acceptInvite({
+        token,
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+      });
+      clearInviteToken();
+      toast.success('Account ready — sign in with your email and password');
+      navigate(`/login?email=${encodeURIComponent(invitedEmail)}`, { replace: true });
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not create account');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -87,14 +194,20 @@ export default function AcceptInvitePage() {
             <div className="flex flex-col items-center px-7 pb-5 pt-7 text-center">
               <BrandLogo asLink={false} size="md" className="justify-center" />
               <h1 className="voice-line mt-5 text-[24px] text-text-primary">
-                {error ? 'Invite unavailable' : 'Accept invite'}
+                {error
+                  ? 'Invite unavailable'
+                  : isPasswordInvite
+                    ? 'Complete registration'
+                    : 'Accept invite'}
               </h1>
               {!error && (
                 <p className="mt-1.5 max-w-[300px] text-[13px] text-text-muted">
                   Welcome{preview?.name ? `, ${preview.name}` : ''}. Your invite
-                  {preview?.role ? ` as ${getRoleLabel(preview.role)}` : ''}
-                  {preview?.department?.name ? ` in ${preview.department.name}` : ''} is ready —
-                  continue with Google to join.
+                  {invitedRole ? ` as ${getRoleLabel(invitedRole)}` : ''}
+                  {preview?.department?.name ? ` in ${preview.department.name}` : ''} is ready
+                  {isPasswordInvite
+                    ? ' — set a password to join.'
+                    : ' — continue with Google to join.'}
                 </p>
               )}
             </div>
@@ -106,17 +219,77 @@ export default function AcceptInvitePage() {
                 <div className="space-y-4 text-center">
                   <p className="text-sm text-bloom-coral">{error}</p>
                   <p className="text-[13px] text-text-muted">
-                    Ask your Superadmin for a new invite link. Then open that link and continue
-                    with Google — do not use the password form on the login page.
+                    Ask your Superadmin for a new invite, then open the full link from your email or
+                    the shared invite (must include <span className="font-medium">?token=</span>).
                   </p>
-                  {token ? (
-                    <GoogleAuthButton
-                      label="Try Continue with Google"
-                      inviteToken={token}
-                      loginHint={invitedEmail}
-                    />
-                  ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => navigate('/login')}
+                  >
+                    Go to sign in
+                  </Button>
                 </div>
+              ) : isPasswordInvite ? (
+                <form onSubmit={handleSubmit(onAcceptPassword)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-email">Email</Label>
+                    <Input
+                      id="invite-email"
+                      type="email"
+                      value={invitedEmail}
+                      readOnly
+                      disabled
+                      className="bg-surface-1 text-text-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-role">Role</Label>
+                    <Input
+                      id="invite-role"
+                      value={getRoleLabel(invitedRole) || invitedRole || '—'}
+                      readOnly
+                      disabled
+                      className="bg-surface-1 text-text-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-password">Password</Label>
+                    <PasswordInput
+                      id="invite-password"
+                      autoComplete="new-password"
+                      {...register('password')}
+                    />
+                    {errors.password && (
+                      <p className="text-sm text-bloom-coral">{errors.password.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-confirm">Confirm password</Label>
+                    <PasswordInput
+                      id="invite-confirm"
+                      autoComplete="new-password"
+                      {...register('confirmPassword')}
+                    />
+                    {errors.confirmPassword && (
+                      <p className="text-sm text-bloom-coral">{errors.confirmPassword.message}</p>
+                    )}
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={submitting}>
+                    {submitting ? 'Creating account…' : 'Create account & continue'}
+                  </Button>
+
+                  <p className="text-center text-[12px] leading-relaxed text-text-muted">
+                    After this you will sign in with{' '}
+                    <span className="font-medium text-text-secondary">{invitedEmail}</span> and your
+                    new password. Email and role cannot be changed.
+                  </p>
+                </form>
               ) : (
                 <>
                   <div className="space-y-2">
@@ -137,11 +310,10 @@ export default function AcceptInvitePage() {
                   <p className="text-center text-[12px] leading-relaxed text-text-muted">
                     Invited members must sign in with Google using{' '}
                     <span className="font-medium text-text-secondary">{invitedEmail}</span>.
-                    You will not be sent to a password login.
                     {preview?.expiresAt ? (
                       <>
                         {' '}
-                        This invite link expires in {preview.expiresInMinutes ?? 5} minutes from
+                        This invite link expires in {preview.expiresInMinutes ?? 10} minutes from
                         when it was created.
                       </>
                     ) : null}
@@ -152,7 +324,7 @@ export default function AcceptInvitePage() {
               <p className="pt-1 text-center text-[12px] text-text-muted">
                 Already joined?{' '}
                 <Link
-                  to="/login"
+                  to={invitedEmail ? `/login?email=${encodeURIComponent(invitedEmail)}` : '/login'}
                   className="font-medium text-primary hover:underline"
                   onClick={() => clearInviteToken()}
                 >

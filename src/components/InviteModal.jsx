@@ -282,13 +282,21 @@ export function InviteModal({
           email: values.email,
           name: values.name || data?.user?.name,
           inviteToken: data?.inviteToken,
+          // Always share /accept-invite?token=… (.net → password registration page)
           acceptUrl:
             data?.inviteToken
               ? `${window.location.origin}/accept-invite?token=${data.inviteToken}`
-              : data?.acceptUrl,
+              : data?.acceptUrl || null,
           loginUrl: data?.loginUrl || `${window.location.origin}/login`,
           expiresAt: data?.expiresAt || null,
-          expiresInMinutes: data?.expiresInMinutes ?? 5,
+          expiresInMinutes: data?.expiresInMinutes ?? 10,
+          inviteMode:
+            data?.inviteMode ||
+            (String(values.email || '')
+              .toLowerCase()
+              .endsWith('@bicommunications.net')
+              ? 'password'
+              : 'google'),
           emailSent: data?.emailSent,
           emailError: data?.emailError,
           emailTo: data?.emailTo || values.email,
@@ -325,17 +333,33 @@ export function InviteModal({
   };
 
   const emailInviteWhatsAppText = result
-    ? [
-        `You're invited to BIWORKSPACE by ${inviterName}.`,
-        ``,
-        result.acceptUrl ? `Accept invite & sign in with Google: ${result.acceptUrl}` : null,
-        `Or open login → Continue with Google: ${result.loginUrl}`,
-        `Google email must be: ${result.email}`,
-        ``,
-        `Invited accounts sign in with Google only (no password). Link expires in ${result.expiresInMinutes ?? 5} minutes.`,
-      ]
-        .filter(Boolean)
-        .join('\n')
+    ? result.inviteMode === 'password'
+      ? [
+          `You're invited to BIWORKSPACE by ${inviterName}.`,
+          ``,
+          result.acceptUrl ? `Accept invitation & set password: ${result.acceptUrl}` : null,
+          `Then sign in: ${result.loginUrl}`,
+          `Email: ${result.email}`,
+          ``,
+          `Set a password on the invite page, then sign in with email + password. Link expires in ${
+            result.expiresInMinutes ?? 10
+          } minutes.`,
+        ]
+          .filter(Boolean)
+          .join('\n')
+      : [
+          `You're invited to BIWORKSPACE by ${inviterName}.`,
+          ``,
+          result.acceptUrl ? `Accept invite & sign in with Google: ${result.acceptUrl}` : null,
+          `Or open login → Continue with Google: ${result.loginUrl}`,
+          `Google email must be: ${result.email}`,
+          ``,
+          `Invited accounts sign in with Google only (no password). Link expires in ${
+            result.expiresInMinutes ?? 10
+          } minutes.`,
+        ]
+          .filter(Boolean)
+          .join('\n')
     : '';
 
   return (
@@ -355,9 +379,19 @@ export function InviteModal({
           <div className="rounded-xl border border-primary-soft bg-primary-soft/30 p-4">
             <p className="text-sm font-medium text-ink">Invite ready for {result.name || result.email}</p>
             <p className="mt-2 text-sm leading-relaxed text-graphite">
-              Send them this invite link. They open it and tap{' '}
-              <span className="font-medium text-ink">Continue with Google</span> using{' '}
-              <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
+              {result.inviteMode === 'password' ? (
+                <>
+                  Send them this invite link. They open it, set a password for{' '}
+                  <span className="font-medium text-ink">{result.emailTo || result.email}</span>, then
+                  sign in with email and password.
+                </>
+              ) : (
+                <>
+                  Send them this invite link. They open it and tap{' '}
+                  <span className="font-medium text-ink">Continue with Google</span> using{' '}
+                  <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
+                </>
+              )}
               {result.teamId ? ' They were also added to the selected team.' : ''}
             </p>
             {result.emailNote ? (
@@ -391,9 +425,19 @@ export function InviteModal({
                   </Button>
                 </div>
                 <p className="text-xs leading-relaxed text-graphite">
-                  Open this link → Continue with Google as{' '}
-                  <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
-                  Password login will not work for invited members.
+                  {result.inviteMode === 'password' ? (
+                    <>
+                      Open this link → create a password for{' '}
+                      <span className="font-medium text-ink">{result.emailTo || result.email}</span>
+                      → then sign in on the login page with that email and password.
+                    </>
+                  ) : (
+                    <>
+                      Open this link → Continue with Google as{' '}
+                      <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
+                      Password login will not work for this invite.
+                    </>
+                  )}
                 </p>
                 <p
                   className={`text-xs font-medium ${
@@ -404,18 +448,32 @@ export function InviteModal({
                         : 'text-ink'
                   }`}
                 >
-                  {linkSecondsLeft == null
-                    ? `This invite link expires in ${result.expiresInMinutes ?? 5} minutes.`
-                    : linkSecondsLeft === 0
-                      ? 'This invite link has expired. Create a new invite.'
-                      : `Link expires in ${Math.floor(linkSecondsLeft / 60)}:${String(
-                          linkSecondsLeft % 60
-                        ).padStart(2, '0')} (valid for ${result.expiresInMinutes ?? 5} minutes).`}
+                  {(() => {
+                    const mins = result.expiresInMinutes ?? 10;
+                    const ttlLabel =
+                      mins >= 1440
+                        ? `${Math.round(mins / 1440)} day${Math.round(mins / 1440) === 1 ? '' : 's'}`
+                        : `${mins} minute${mins === 1 ? '' : 's'}`;
+                    if (linkSecondsLeft == null) {
+                      return `This invite link expires in ${ttlLabel}.`;
+                    }
+                    if (linkSecondsLeft === 0) {
+                      return 'This invite link has expired. Create a new invite.';
+                    }
+                    if (linkSecondsLeft >= 86400) {
+                      const days = Math.floor(linkSecondsLeft / 86400);
+                      const hours = Math.floor((linkSecondsLeft % 86400) / 3600);
+                      return `Link expires in ${days}d ${hours}h (valid for ${ttlLabel}).`;
+                    }
+                    const mm = Math.floor(linkSecondsLeft / 60);
+                    const ss = String(linkSecondsLeft % 60).padStart(2, '0');
+                    return `Link expires in ${mm}:${ss} (valid for ${ttlLabel}).`;
+                  })()}
                 </p>
               </div>
             )}
             <p className="mt-2 text-xs text-graphite">
-              Google email:{' '}
+              {result.inviteMode === 'password' ? 'Email' : 'Google email'}:{' '}
               <span className="font-medium text-ink">{result.emailTo || result.email}</span>
             </p>
           </div>
@@ -435,15 +493,25 @@ export function InviteModal({
               className="flex-1"
               onClick={() =>
                 copyText(
-                  [
-                    result.acceptUrl
-                      ? `Accept & Google sign-in: ${result.acceptUrl}`
-                      : null,
-                    `Login → Continue with Google: ${result.loginUrl}`,
-                    `Google email: ${result.email}`,
-                  ]
-                    .filter(Boolean)
-                    .join('\n'),
+                  result.inviteMode === 'password'
+                    ? [
+                        result.acceptUrl
+                          ? `Accept invitation & set password: ${result.acceptUrl}`
+                          : null,
+                        `Then sign in: ${result.loginUrl}`,
+                        `Email: ${result.email}`,
+                      ]
+                        .filter(Boolean)
+                        .join('\n')
+                    : [
+                        result.acceptUrl
+                          ? `Accept & Google sign-in: ${result.acceptUrl}`
+                          : null,
+                        `Login → Continue with Google: ${result.loginUrl}`,
+                        `Google email: ${result.email}`,
+                      ]
+                        .filter(Boolean)
+                        .join('\n'),
                   'credentials'
                 )
               }

@@ -87,7 +87,8 @@ export default function LoginPage() {
                 <GoogleAuthButton label="Continue with Google" />
 
                 <p className="text-center text-[12px] leading-relaxed text-text-muted">
-                  Invited? Open your invite link, then continue with Google using the invited email.
+                  Invited with a company (@bicommunications.net) email? Open your invite link, set a
+                  password, then sign in here. Other invites: open the link and continue with Google.
                 </p>
 
                 {showInviteHint && (

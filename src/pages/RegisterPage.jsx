@@ -1,12 +1,34 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ChevronDecoration } from '@/components/layout/ChevronDecoration';
 import { GradientBlobs } from '@/components/layout/GradientBlobs';
 import { BrandLogo } from '@/components/BrandLogo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { GoogleAuthButton } from '@/features/auth/components/GoogleAuthButton';
+import { GoogleAuthButton, readInviteToken } from '@/features/auth/components/GoogleAuthButton';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 
+/**
+ * Open registration is invite-only.
+ * If a token is present (or stored), send the user to /accept-invite?token=…
+ * so they see Complete registration — never the "self-registration disabled" dead end.
+ */
 export default function RegisterPage() {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const token = String(
+    params.get('token') || params.get('inviteToken') || readInviteToken() || ''
+  ).trim();
+
+  useEffect(() => {
+    if (token) {
+      navigate(`/accept-invite?token=${encodeURIComponent(token)}`, { replace: true });
+    }
+  }, [token, navigate]);
+
+  if (token) {
+    return null;
+  }
+
   return (
     <PublicRoute>
       <div className="relative flex h-full min-h-0 flex-col overflow-y-auto bg-cloud">
@@ -30,21 +52,23 @@ export default function RegisterPage() {
                   Join BIWORKSPACE
                 </CardTitle>
                 <CardDescription className="mt-2">
-                  Workspace access is invite-only. Each person gets one account tied to their email.
+                  You join with an invite link from your Super Admin — not by opening this page
+                  alone.
                 </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-text-secondary">
-                Open self-registration is disabled. Use the invite link from your Super Admin, or sign
-                in if you already joined.
+                Open the invite from your email (Accept invitation) or the shared link from the
+                invite form. That link opens Complete registration so you can set a password, then
+                sign in.
               </div>
 
               <Link
-                to="/accept-invite"
+                to="/login"
                 className="flex w-full items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
               >
-                Accept invite
+                Go to sign in
               </Link>
 
               <div className="flex items-center gap-3">

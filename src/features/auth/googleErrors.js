@@ -7,6 +7,8 @@ const GOOGLE_ERROR_MESSAGES = {
   session: 'Signed in with Google but could not load your profile. Try again or use email login.',
   not_invited: 'You are not invited to this workspace.',
   invite_expired: 'Your invitation has expired. Ask your admin to send a new invite.',
+  password_invite:
+    'This invitation uses email and password. Open your invite link, set a password, then sign in.',
 };
 
 /** Rich toast copy for invite-gated Google sign-in */
@@ -20,6 +22,11 @@ const GOOGLE_ERROR_TOASTS = {
     title: 'Invitation expired',
     description:
       'Your invite link is no longer valid. Please ask your Super Admin to send a new invitation, then sign in with Google using the invited email address.',
+  },
+  password_invite: {
+    title: 'Set a password for this invite',
+    description:
+      'Company webmail invitations use email and password. Open your invite link, create a password, then sign in on the login page — do not use Continue with Google for this account.',
   },
   wrong_google_email: {
     title: 'Wrong Google account',
@@ -123,6 +130,10 @@ export function getGoogleErrorToast(code) {
 
   if (isInviteExpiredError(decoded)) {
     return GOOGLE_ERROR_TOASTS.invite_expired;
+  }
+
+  if (decoded === 'password_invite' || code === 'password_invite') {
+    return GOOGLE_ERROR_TOASTS.password_invite;
   }
 
   return { title: getGoogleErrorMessage(code) };

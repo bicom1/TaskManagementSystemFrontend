@@ -25,6 +25,19 @@ function buildWhatsAppUrl(text) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
+function formatInviteShareTtl(minutes) {
+  const mins = Number(minutes) || 24 * 60;
+  if (mins >= 1440) {
+    const days = Math.round(mins / 1440);
+    return `${days} day${days === 1 ? '' : 's'}`;
+  }
+  if (mins >= 60) {
+    const hours = Math.round(mins / 60);
+    return `${hours} hour${hours === 1 ? '' : 's'}`;
+  }
+  return `${mins} minute${mins === 1 ? '' : 's'}`;
+}
+
 export function InviteModal({
   open,
   onClose,
@@ -289,7 +302,7 @@ export function InviteModal({
             : data?.acceptUrl || null,
           loginUrl: data?.loginUrl || `${getPublicAppOrigin()}/login`,
           expiresAt: data?.expiresAt || null,
-          expiresInMinutes: data?.expiresInMinutes ?? 10,
+          expiresInMinutes: data?.expiresInMinutes ?? 24 * 60,
           inviteMode:
             data?.inviteMode ||
             (String(values.email || '')
@@ -342,8 +355,8 @@ export function InviteModal({
           `Email: ${result.email}`,
           ``,
           `Set a password on the invite page, then sign in with email + password. Link expires in ${
-            result.expiresInMinutes ?? 10
-          } minutes.`,
+            formatInviteShareTtl(result.expiresInMinutes ?? 24 * 60)
+          }.`,
         ]
           .filter(Boolean)
           .join('\n')
@@ -355,8 +368,8 @@ export function InviteModal({
           `Google email must be: ${result.email}`,
           ``,
           `Invited accounts sign in with Google only (no password). Link expires in ${
-            result.expiresInMinutes ?? 10
-          } minutes.`,
+            formatInviteShareTtl(result.expiresInMinutes ?? 24 * 60)
+          }.`,
         ]
           .filter(Boolean)
           .join('\n')
@@ -449,11 +462,8 @@ export function InviteModal({
                   }`}
                 >
                   {(() => {
-                    const mins = result.expiresInMinutes ?? 10;
-                    const ttlLabel =
-                      mins >= 1440
-                        ? `${Math.round(mins / 1440)} day${Math.round(mins / 1440) === 1 ? '' : 's'}`
-                        : `${mins} minute${mins === 1 ? '' : 's'}`;
+                    const mins = result.expiresInMinutes ?? 24 * 60;
+                    const ttlLabel = formatInviteShareTtl(mins);
                     if (linkSecondsLeft == null) {
                       return `This invite link expires in ${ttlLabel}.`;
                     }

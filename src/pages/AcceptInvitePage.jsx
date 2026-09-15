@@ -20,13 +20,6 @@ import { getGoogleErrorToast } from '@/features/auth/googleErrors';
 import { getRoleLabel } from '@/lib/roles';
 import { LoadingScreen } from '@/components/ui/Spinner';
 
-function isCompanyWebmailEmail(email) {
-  const normalized = String(email || '')
-    .trim()
-    .toLowerCase();
-  return normalized.endsWith('@bicommunications.net') || normalized.includes('@bicommunications.net');
-}
-
 function readTokenFromSearch(params) {
   return String(params.get('token') || params.get('inviteToken') || '').trim();
 }
@@ -47,8 +40,8 @@ const passwordAcceptSchema = z
 
 /**
  * Invite accept page (live + local).
- * @bicommunications.net → Complete registration (password) — NEVER Google
- * Other emails → Continue with Google
+ * All new invites → Complete registration (password + confirm).
+ * Existing logged-in Google users are unchanged (use Sign in).
  */
 export default function AcceptInvitePage() {
   const navigate = useNavigate();
@@ -70,13 +63,8 @@ export default function AcceptInvitePage() {
     .toLowerCase();
   const invitedRole = preview?.role || '';
 
-  // HARD RULE for live + local: company webmail = password registration page
-  const isPasswordInvite = Boolean(
-    preview &&
-      (preview.inviteMode === 'password' ||
-        preview.authProvider === 'local' ||
-        isCompanyWebmailEmail(invitedEmail))
-  );
+  // All successful invite previews show Complete registration (password form)
+  const isPasswordInvite = Boolean(preview);
 
   const {
     register,
@@ -132,19 +120,14 @@ export default function AcceptInvitePage() {
       .previewInvite(token)
       .then((data) => {
         if (cancelled) return;
-        // Normalize so .net always triggers password UI even if API is old
         const email = String(data?.email || '')
           .trim()
           .toLowerCase();
-        const passwordFlow =
-          data?.inviteMode === 'password' ||
-          data?.authProvider === 'local' ||
-          isCompanyWebmailEmail(email);
         setPreview({
           ...data,
           email,
-          inviteMode: passwordFlow ? 'password' : data?.inviteMode || 'google',
-          authProvider: passwordFlow ? 'local' : data?.authProvider,
+          inviteMode: 'password',
+          authProvider: 'local',
         });
         setError(null);
       })
@@ -234,12 +217,12 @@ export default function AcceptInvitePage() {
                 <div className="space-y-4 text-center">
                   <p className="text-sm text-bloom-coral">{error}</p>
                   <p className="text-[13px] text-text-muted">
-                    Ask your Superadmin for a new invite, then open the full link from your email or
-                    the shared invite (must include <span className="font-medium">?token=</span>).
+                    Ask your Superadmin to send a new invite. Open that new link to complete
+                    registration (set your password), then sign in. Existing accounts are unchanged —
+                    use Sign in if you already joined.
                   </p>
                   <Button
                     type="button"
-                    variant="outline"
                     className="w-full"
                     onClick={() => navigate('/login')}
                   >

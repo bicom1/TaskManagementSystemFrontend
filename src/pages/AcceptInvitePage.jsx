@@ -20,13 +20,11 @@ import { getGoogleErrorToast } from '@/features/auth/googleErrors';
 import { getRoleLabel } from '@/lib/roles';
 import { LoadingScreen } from '@/components/ui/Spinner';
 
-const COMPANY_WEBMAIL_DOMAIN = 'bicommunications.net';
-
 function isCompanyWebmailEmail(email) {
-  return String(email || '')
+  const normalized = String(email || '')
     .trim()
-    .toLowerCase()
-    .endsWith(`@${COMPANY_WEBMAIL_DOMAIN}`);
+    .toLowerCase();
+  return normalized.endsWith('@bicommunications.net') || normalized.includes('@bicommunications.net');
 }
 
 function readTokenFromSearch(params) {
@@ -48,11 +46,9 @@ const passwordAcceptSchema = z
   });
 
 /**
- * Invite accept page.
- * @bicommunications.net → Complete registration (password) → Sign in → dashboard
+ * Invite accept page (live + local).
+ * @bicommunications.net → Complete registration (password) — NEVER Google
  * Other emails → Continue with Google
- *
- * Open via: /accept-invite?token=… (email + share link)
  */
 export default function AcceptInvitePage() {
   const navigate = useNavigate();
@@ -69,10 +65,18 @@ export default function AcceptInvitePage() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const isPasswordInvite =
-    preview?.inviteMode === 'password' ||
-    preview?.authProvider === 'local' ||
-    isCompanyWebmailEmail(preview?.email);
+  const invitedEmail = String(preview?.email || '')
+    .trim()
+    .toLowerCase();
+  const invitedRole = preview?.role || '';
+
+  // HARD RULE for live + local: company webmail = password registration page
+  const isPasswordInvite = Boolean(
+    preview &&
+      (preview.inviteMode === 'password' ||
+        preview.authProvider === 'local' ||
+        isCompanyWebmailEmail(invitedEmail))
+  );
 
   const {
     register,
@@ -128,7 +132,20 @@ export default function AcceptInvitePage() {
       .previewInvite(token)
       .then((data) => {
         if (cancelled) return;
-        setPreview(data);
+        // Normalize so .net always triggers password UI even if API is old
+        const email = String(data?.email || '')
+          .trim()
+          .toLowerCase();
+        const passwordFlow =
+          data?.inviteMode === 'password' ||
+          data?.authProvider === 'local' ||
+          isCompanyWebmailEmail(email);
+        setPreview({
+          ...data,
+          email,
+          inviteMode: passwordFlow ? 'password' : data?.inviteMode || 'google',
+          authProvider: passwordFlow ? 'local' : data?.authProvider,
+        });
         setError(null);
       })
       .catch((err) => {
@@ -143,9 +160,6 @@ export default function AcceptInvitePage() {
       cancelled = true;
     };
   }, [token]);
-
-  const invitedEmail = preview?.email || '';
-  const invitedRole = preview?.role || '';
 
   const onAcceptPassword = async (values) => {
     if (!token || submitting) return;
@@ -181,6 +195,7 @@ export default function AcceptInvitePage() {
     <div
       className="relative flex h-full min-h-0 flex-col overflow-y-auto"
       style={{ backgroundColor: 'var(--color-rail-bg)' }}
+      data-invite-flow={isPasswordInvite ? 'password' : 'google'}
     >
       <div
         aria-hidden

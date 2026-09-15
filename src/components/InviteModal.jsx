@@ -19,6 +19,7 @@ import {
 } from '@/lib/roles';
 import { canInvite as canInviteByRole } from '@/lib/roles';
 import { getInvitableRoles, hasPermission, PERMISSIONS } from '@/lib/permissions';
+import { buildAcceptInviteUrl, getPublicAppOrigin } from '@/lib/publicAppUrl';
 
 function buildWhatsAppUrl(text) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
@@ -282,12 +283,11 @@ export function InviteModal({
           email: values.email,
           name: values.name || data?.user?.name,
           inviteToken: data?.inviteToken,
-          // Always share /accept-invite?token=… (.net → password registration page)
-          acceptUrl:
-            data?.inviteToken
-              ? `${window.location.origin}/accept-invite?token=${data.inviteToken}`
-              : data?.acceptUrl || null,
-          loginUrl: data?.loginUrl || `${window.location.origin}/login`,
+          // Live + local: always /accept-invite?token=… (.net → Complete registration)
+          acceptUrl: data?.inviteToken
+            ? buildAcceptInviteUrl(data.inviteToken)
+            : data?.acceptUrl || null,
+          loginUrl: data?.loginUrl || `${getPublicAppOrigin()}/login`,
           expiresAt: data?.expiresAt || null,
           expiresInMinutes: data?.expiresInMinutes ?? 10,
           inviteMode:

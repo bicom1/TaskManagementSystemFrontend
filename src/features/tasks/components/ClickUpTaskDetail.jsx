@@ -37,6 +37,7 @@ import {
   useTask,
   useTaskActivity,
   useUpdateTask,
+  useUploadTaskAttachment,
 } from '@/features/tasks/hooks/useTasks';
 import { useCreateComment, useTaskComments } from '@/features/comments/hooks/useComments';
 import {
@@ -50,6 +51,57 @@ import {
 } from '@/features/tasks/api/taskApi';
 import { SubtasksPanel } from '@/features/tasks/components/SubtasksPanel';
 import { readableTextOn } from '@/lib/contrast';
+
+/** Files attached to the task itself (comment files stay with their comment). */
+function TaskAttachments({ taskId, attachments = [], canEdit }) {
+  const upload = useUploadTaskAttachment(taskId);
+  const inputRef = useRef(null);
+  if (!attachments.length && !canEdit) return null;
+
+  return (
+    <section className="mt-6">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+          <Paperclip className="h-4 w-4 text-graphite" />
+          Attachments
+          {attachments.length > 0 && (
+            <span className="text-xs font-normal text-graphite">{attachments.length}</span>
+          )}
+        </h3>
+        {canEdit && (
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1"
+              disabled={upload.isPending}
+              onClick={() => inputRef.current?.click()}
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+              {upload.isPending ? 'Uploading…' : 'Attach file'}
+            </Button>
+            <input
+              ref={inputRef}
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) upload.mutate(file);
+                e.target.value = '';
+              }}
+            />
+          </>
+        )}
+      </div>
+      {attachments.length > 0 ? (
+        <CommentAttachments attachments={attachments} />
+      ) : (
+        <p className="text-xs text-graphite">No files attached.</p>
+      )}
+    </section>
+  );
+}
 
 function priorityFlagClass(priority) {
   if (priority === 'urgent') return 'text-danger-500';
@@ -701,9 +753,47 @@ export function ClickUpTaskDetail({
                 {/* Dates */}
                 <FieldRow icon={Calendar} label="Dates">
                   <div className="relative flex flex-wrap items-center gap-2 text-sm">
-                    <span className="rounded-md border border-dashed border-hairline px-2 py-1 text-graphite">
-                      Start
-                    </span>
+                    <button
+                      type="button"
+                      className={`rounded-md border px-2 py-1 hover:bg-cloud ${
+                        task.startDate
+                          ? 'border-hairline text-ink'
+                          : 'border-dashed border-hairline text-graphite'
+                      }`}
+                      onClick={() => setMenu((m) => (m === 'start' ? null : 'start'))}
+                    >
+                      {task.startDate
+                        ? format(new Date(task.startDate), 'MMM d, yyyy')
+                        : 'Start'}
+                    </button>
+                    <Popover open={menu === 'start'} onClose={() => setMenu(null)} className="left-0 top-full">
+                      <input
+                        type="date"
+                        className="w-full rounded-md border border-hairline px-2 py-1.5 text-xs"
+                        defaultValue={
+                          task.startDate ? format(new Date(task.startDate), 'yyyy-MM-dd') : ''
+                        }
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          patch({
+                            startDate: v ? new Date(`${v}T09:00:00`).toISOString() : null,
+                          });
+                          setMenu(null);
+                        }}
+                      />
+                      {task.startDate ? (
+                        <button
+                          type="button"
+                          className="mt-1 w-full rounded-md px-2 py-1.5 text-left text-xs text-graphite hover:bg-cloud"
+                          onClick={() => {
+                            patch({ startDate: null });
+                            setMenu(null);
+                          }}
+                        >
+                          Clear start date
+                        </button>
+                      ) : null}
+                    </Popover>
                     <span className="text-graphite">→</span>
                     <button
                       type="button"
@@ -904,6 +994,12 @@ export function ClickUpTaskDetail({
                   className="w-full resize-y rounded-lg border border-transparent bg-transparent px-0 py-2 text-sm text-ink outline-none placeholder:text-graphite/50 focus:border-hairline focus:px-3"
                 />
               </div>
+
+              <TaskAttachments
+                taskId={taskId}
+                attachments={task.attachments}
+                canEdit={canEditTask}
+              />
 
               {!isSubtask && (
                 <SubtasksPanel

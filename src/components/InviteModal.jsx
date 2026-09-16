@@ -19,7 +19,7 @@ import {
 } from '@/lib/roles';
 import { canInvite as canInviteByRole } from '@/lib/roles';
 import { getInvitableRoles, hasPermission, PERMISSIONS } from '@/lib/permissions';
-import { buildAcceptInviteUrl, getPublicAppOrigin } from '@/lib/publicAppUrl';
+import { buildAcceptInviteUrl, getPublicAppOrigin, toRegisterInviteUrl } from '@/lib/publicAppUrl';
 
 function buildWhatsAppUrl(text) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
@@ -296,20 +296,14 @@ export function InviteModal({
           email: values.email,
           name: values.name || data?.user?.name,
           inviteToken: data?.inviteToken,
-          // Live + local: always /accept-invite?token=… (.net → Complete registration)
-          acceptUrl: data?.inviteToken
-            ? buildAcceptInviteUrl(data.inviteToken)
-            : data?.acceptUrl || null,
-          loginUrl: data?.loginUrl || `${getPublicAppOrigin()}/login`,
+          // Always /register?token=… (never /accept-invite — old live build shows Google there)
+          acceptUrl: buildAcceptInviteUrl(
+            data?.inviteToken || toRegisterInviteUrl(data?.acceptUrl)
+          ),
+          loginUrl: `${getPublicAppOrigin()}/login`,
           expiresAt: data?.expiresAt || null,
           expiresInMinutes: data?.expiresInMinutes ?? 24 * 60,
-          inviteMode:
-            data?.inviteMode ||
-            (String(values.email || '')
-              .toLowerCase()
-              .endsWith('@bicommunications.net')
-              ? 'password'
-              : 'google'),
+          inviteMode: 'password',
           emailSent: data?.emailSent,
           emailError: data?.emailError,
           emailTo: data?.emailTo || values.email,
@@ -346,33 +340,19 @@ export function InviteModal({
   };
 
   const emailInviteWhatsAppText = result
-    ? result.inviteMode === 'password'
-      ? [
-          `You're invited to BIWORKSPACE by ${inviterName}.`,
-          ``,
-          result.acceptUrl ? `Accept invitation & set password: ${result.acceptUrl}` : null,
-          `Then sign in: ${result.loginUrl}`,
-          `Email: ${result.email}`,
-          ``,
-          `Set a password on the invite page, then sign in with email + password. Link expires in ${
-            formatInviteShareTtl(result.expiresInMinutes ?? 24 * 60)
-          }.`,
-        ]
-          .filter(Boolean)
-          .join('\n')
-      : [
-          `You're invited to BIWORKSPACE by ${inviterName}.`,
-          ``,
-          result.acceptUrl ? `Accept invite & sign in with Google: ${result.acceptUrl}` : null,
-          `Or open login → Continue with Google: ${result.loginUrl}`,
-          `Google email must be: ${result.email}`,
-          ``,
-          `Invited accounts sign in with Google only (no password). Link expires in ${
-            formatInviteShareTtl(result.expiresInMinutes ?? 24 * 60)
-          }.`,
-        ]
-          .filter(Boolean)
-          .join('\n')
+    ? [
+        `You're invited to BIWORKSPACE by ${inviterName}.`,
+        ``,
+        result.acceptUrl ? `Complete registration (set password): ${result.acceptUrl}` : null,
+        `Then sign in: ${result.loginUrl}`,
+        `Email: ${result.email}`,
+        ``,
+        `Set a password on the invite page, then sign in with email + password. Link expires in ${
+          formatInviteShareTtl(result.expiresInMinutes ?? 24 * 60)
+        }.`,
+      ]
+        .filter(Boolean)
+        .join('\n')
     : '';
 
   return (
@@ -503,25 +483,15 @@ export function InviteModal({
               className="flex-1"
               onClick={() =>
                 copyText(
-                  result.inviteMode === 'password'
-                    ? [
-                        result.acceptUrl
-                          ? `Accept invitation & set password: ${result.acceptUrl}`
-                          : null,
-                        `Then sign in: ${result.loginUrl}`,
-                        `Email: ${result.email}`,
-                      ]
-                        .filter(Boolean)
-                        .join('\n')
-                    : [
-                        result.acceptUrl
-                          ? `Accept & Google sign-in: ${result.acceptUrl}`
-                          : null,
-                        `Login → Continue with Google: ${result.loginUrl}`,
-                        `Google email: ${result.email}`,
-                      ]
-                        .filter(Boolean)
-                        .join('\n'),
+                  [
+                    result.acceptUrl
+                      ? `Complete registration (set password): ${result.acceptUrl}`
+                      : null,
+                    `Then sign in: ${result.loginUrl}`,
+                    `Email: ${result.email}`,
+                  ]
+                    .filter(Boolean)
+                    .join('\n'),
                   'credentials'
                 )
               }

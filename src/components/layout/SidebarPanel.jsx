@@ -292,6 +292,7 @@ function HomeView({
 }) {
   const handleAddProject = onAddProject || onCreateClick;
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
   const showAllTeams = canBrowseAllTeams(user);
 
   // Dynamic counts from live backend overview
@@ -306,7 +307,13 @@ function HomeView({
     <div className="flex-1 overflow-y-auto px-2.5 py-3 select-none">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between px-1">
-        <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)] tracking-[-0.01em]">Home</h2>
+        <button
+          type="button"
+          onClick={() => navigate('/home')}
+          className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-text-primary)] hover:text-brand-600"
+        >
+          Home
+        </button>
         <button
           type="button"
           onClick={handleAddProject}

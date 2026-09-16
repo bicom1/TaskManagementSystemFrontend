@@ -1,3 +1,5 @@
+import { normalizeRole, ROLES } from './roles';
+
 /**
  * Safe in-app path for post-login redirects (email deep links, etc.).
  * Only allows relative paths on this origin — never external URLs.
@@ -35,4 +37,15 @@ export function withNextParam(path, next) {
   if (!safe) return path;
   const sep = path.includes('?') ? '&' : '?';
   return `${path}${sep}next=${encodeURIComponent(safe)}`;
+}
+
+/** Superadmin lands on Home (org reports). Admin lands on /reports. Members land on Home. */
+export function getDefaultLandingPath(user) {
+  const role = normalizeRole(user?.role);
+  if (role === ROLES.ADMIN) return '/reports';
+  return '/home';
+}
+
+export function resolvePostLoginPath(user, next) {
+  return sanitizeNextPath(next) || getDefaultLandingPath(user);
 }

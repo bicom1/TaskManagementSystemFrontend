@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
    ============================================================ */
 
 export function getSectionFromPath(pathname) {
+  if (pathname === '/' || pathname === '/home') return 'home';
   if (pathname.startsWith('/inbox')) return 'home';
   if (
     pathname.startsWith('/home/agenda') ||
@@ -59,6 +60,8 @@ export function getSectionFromPath(pathname) {
  */
 const SECTION_PATHS = {
   home: [
+    '/',
+    '/home',
     '/inbox',
     '/home/my-tasks',
     '/home/assigned-comments',
@@ -114,7 +117,7 @@ export function storeSection(sectionId) {
 export function getSectionDefaultPath(sectionId, user = null) {
   const teamsHome = canBrowseAllTeams(user) ? '/teams/all' : '/teams/people';
   const map = {
-    home: '/',
+    home: '/home',
     planner: '/home/my-tasks?view=today',
     ai: '/ai',
     teams: teamsHome,
@@ -200,6 +203,10 @@ export function IconRail({ activeSection, onSectionClick, onInviteClick }) {
 
   const handleRailClick = (sectionId) => {
     onSectionClick(sectionId);
+    if (sectionId === 'home') {
+      navigate('/home');
+      return;
+    }
     // Only navigate when actually switching sections. Re-clicking the active
     // rail item just toggles the detail panel (handled by the parent) and must
     // not yank the user off their current sub-page.

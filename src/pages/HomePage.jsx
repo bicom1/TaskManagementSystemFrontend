@@ -22,7 +22,8 @@ import { CardGridSkeleton } from '@/components/ui/Spinner';
 import { UserAvatar } from '@/components/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
 import { getDashboardMeta } from '@/lib/permissions';
-import { getRoleLabel } from '@/lib/roles';
+import { getRoleLabel, normalizeRole, ROLES } from '@/lib/roles';
+import { ReportsDashboard } from '@/features/reports/components/ReportsDashboard';
 
 function greetingName(name) {
   return name?.split(' ')[0] || 'there';
@@ -49,6 +50,14 @@ function PanelLink({ children, onClick }) {
 }
 
 export default function HomePage() {
+  const role = useAuthStore((s) => s.user?.role);
+  if (normalizeRole(role) === ROLES.SUPERADMIN) {
+    return <ReportsDashboard variant="home" />;
+  }
+  return <MemberHomePage />;
+}
+
+function MemberHomePage() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const { data, isLoading, isFetching } = useHomeOverview();

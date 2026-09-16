@@ -5,7 +5,6 @@ import {
   LogOut,
   Menu,
   Plus,
-  Search,
   Settings,
   UserPlus,
   PanelLeftClose,
@@ -27,7 +26,7 @@ import { unlockNotifySound } from '@/lib/notifySound';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { canInvite, getRoleLabel } from '@/lib/roles';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { GlobalSearch } from '@/features/search/components/GlobalSearch';
 import { Modal } from '@/components/ui/Modal';
 import { UserAvatar } from '@/components/UserAvatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -64,7 +63,6 @@ export const TopBar = forwardRef(function TopBar(
   _ref
 ) {
   const [accountOpen, setAccountOpen] = useState(false);
-  const [search, setSearch] = useState('');
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const logout = useLogout();
@@ -171,17 +169,8 @@ export const TopBar = forwardRef(function TopBar(
         </div>
 
         {/* ── Center: Search Bar ── */}
-        <div className="relative mx-auto hidden w-full max-w-md flex-1 px-4 md:block">
-          <Search className="pointer-events-none absolute left-7 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
-          <Input
-            placeholder="Search tasks, spaces, people…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-8 rounded-lg border-transparent bg-surface-1 pl-8 pr-14 text-[12.5px] placeholder:text-text-muted hover:bg-surface-2 focus-visible:border-brand-400 focus-visible:bg-surface-0"
-          />
-          <kbd className="pointer-events-none absolute right-7 top-1/2 flex h-5 -translate-y-1/2 select-none items-center gap-0.5 rounded border border-border-subtle bg-surface-0 px-1.5 text-[10px] font-semibold text-text-muted">
-            ⌘K
-          </kbd>
+        <div className="relative mx-auto min-w-0 w-full max-w-md flex-1 px-2 md:px-4">
+          <GlobalSearch />
         </div>
 
         {/* ── Right Actions ── */}

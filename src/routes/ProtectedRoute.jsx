@@ -5,7 +5,7 @@ import { authApi } from '../features/auth/api/authApi';
 import { userApi } from '../features/users/api/userApi';
 import { hasPermission } from '../lib/permissions';
 import { clearTabSession, hasTabSession } from '../lib/tabSession';
-import { sanitizeNextPath, withNextParam } from '../lib/postLoginRedirect';
+import { sanitizeNextPath, withNextParam, getDefaultLandingPath } from '../lib/postLoginRedirect';
 
 async function hydrateSession(setAuth) {
   const { user: refreshedUser, accessToken } = await authApi.refresh();
@@ -90,11 +90,12 @@ export function ProtectedRoute({ children, allowedRoles, requiredPermission }) {
 
 export function PublicRoute({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const location = useLocation();
   if (isAuthenticated) {
     const params = new URLSearchParams(location.search || '');
     const next = sanitizeNextPath(params.get('next') || params.get('returnTo'));
-    return <Navigate to={next || '/'} replace />;
+    return <Navigate to={next || getDefaultLandingPath(user)} replace />;
   }
   return children;
 }

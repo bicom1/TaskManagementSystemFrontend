@@ -6,7 +6,7 @@ import { userApi } from '@/features/users/api/userApi';
 import { decodeOAuthProfile } from '@/features/auth/googleProfile';
 import { clearInviteToken } from '@/features/auth/components/GoogleAuthButton';
 import { LoadingScreen } from '@/components/ui/Spinner';
-import { readNextFromSearchParams } from '@/lib/postLoginRedirect';
+import { readNextFromSearchParams, resolvePostLoginPath } from '@/lib/postLoginRedirect';
 
 export default function GoogleCallbackPage() {
   const [params] = useSearchParams();
@@ -34,20 +34,22 @@ export default function GoogleCallbackPage() {
       }
 
       const baseUser = profile || { name: 'User' };
+      let loggedInUser = baseUser;
       setAuth(baseUser, accessToken);
       clearInviteToken();
 
       try {
         const full = await userApi.me({ skipAuthRefresh: true });
         if (cancelled) return;
-        setAuth({ ...baseUser, ...full }, accessToken);
+        loggedInUser = { ...baseUser, ...full };
+        setAuth(loggedInUser, accessToken);
       } catch {
         // Profile from OAuth redirect is enough to enter the app; permissions load later.
       }
 
       if (cancelled) return;
       toast.success(`Welcome${baseUser.name ? `, ${baseUser.name}` : ''}`);
-      navigate(next || '/', { replace: true });
+      navigate(resolvePostLoginPath(loggedInUser, next), { replace: true });
     }
 
     finish().catch(() => {

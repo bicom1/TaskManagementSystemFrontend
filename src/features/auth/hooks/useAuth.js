@@ -5,7 +5,7 @@ import { userApi } from '../../users/api/userApi';
 import { useAuthStore } from '../../../store/authStore';
 import { disconnectSocket } from '../../../api/socketClient';
 import { toastSuccess, toastError } from '@/lib/toast';
-import { readNextFromSearchParams } from '@/lib/postLoginRedirect';
+import { readNextFromSearchParams, resolvePostLoginPath } from '@/lib/postLoginRedirect';
 
 async function setAuthWithPermissions(setAuth, user, accessToken) {
   try {
@@ -27,9 +27,10 @@ export function useLogin() {
     mutationFn: (payload) => authApi.login(payload),
     onSuccess: async ({ user, accessToken }) => {
       await setAuthWithPermissions(setAuth, user, accessToken);
+      const latest = useAuthStore.getState().user || user;
       queryClient.invalidateQueries();
-      toastSuccess(`Welcome back, ${user.name}`);
-      navigate(readNextFromSearchParams(params) || '/', { replace: true });
+      toastSuccess(`Welcome back, ${latest.name || user.name}`);
+      navigate(resolvePostLoginPath(latest, readNextFromSearchParams(params)), { replace: true });
     },
     onError: (error) => {
       toastError(error, 'Invalid email or password');
@@ -46,7 +47,7 @@ export function useRegister() {
     onSuccess: ({ user, accessToken }) => {
       setAuth(user, accessToken);
       toastSuccess('Account created successfully');
-      navigate('/', { replace: true });
+      navigate(resolvePostLoginPath(user), { replace: true });
     },
     onError: (error) => {
       toastError(
@@ -69,7 +70,7 @@ export function useGoogleAuth() {
       setAuth(user, accessToken);
       queryClient.invalidateQueries();
       toastSuccess(`Welcome, ${user.name}`);
-      navigate(readNextFromSearchParams(params) || '/', { replace: true });
+      navigate(resolvePostLoginPath(user, readNextFromSearchParams(params)), { replace: true });
     },
     onError: (error) => {
       toastError(error, 'Google Sign-In failed');

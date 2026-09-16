@@ -58,6 +58,11 @@ export function AppShell() {
   }, [activeSection]);
 
   const handleSectionClick = (sectionId) => {
+    if (sectionId === 'home') {
+      setActiveSection('home');
+      setPanelOpen(true);
+      return;
+    }
     if (activeSection === sectionId) {
       setPanelOpen((prev) => !prev);
     } else {

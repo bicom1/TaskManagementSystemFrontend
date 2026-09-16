@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
     forgot.mutate(values, {
       onSuccess: (data) => {
         const payload = data?.data || data;
-        if (payload?.googleOnly || payload?.invitePending) {
+        if (payload?.googleOnly) {
           return;
         }
         setEmailTo(payload?.emailTo || values.email);

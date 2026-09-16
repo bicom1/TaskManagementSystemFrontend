@@ -23,7 +23,7 @@ export default function LoginPage() {
     const qs = new URLSearchParams();
     qs.set('token', token);
     qs.set('googleError', googleError);
-    navigate(`/accept-invite?${qs.toString()}`, { replace: true });
+    navigate(`/register?${qs.toString()}`, { replace: true });
   }, [navigate, params]);
 
   useEffect(() => {
@@ -84,18 +84,18 @@ export default function LoginPage() {
                   <div className="h-px flex-1 bg-border-subtle" />
                 </div>
 
-                <GoogleAuthButton label="Continue with Google" />
+                <GoogleAuthButton label="Continue with Google (Superadmin)" />
 
                 <p className="text-center text-[12px] leading-relaxed text-text-muted">
-                  Invited with a company (@bicommunications.net) email? Open your invite link, set a
-                  password, then sign in here. Other invites: open the link and continue with Google.
+                  Invited members: open your invite link, set a password on Complete registration,
+                  then sign in here with email and password. Google sign-in is for Superadmin only.
                 </p>
 
                 {showInviteHint && (
                   <>
                     <p className="text-center text-[12px] leading-relaxed text-text-muted">
-                      Google sign-in is available after your Super Admin invites you to this
-                      workspace.
+                      Ask your Super Admin to invite you. After you set a password from the invite
+                      link, sign in with email and password — not Google.
                     </p>
                     <p className="pt-1 text-center text-[13px] text-text-muted">
                       Need access?{' '}

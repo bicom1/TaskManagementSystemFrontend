@@ -9,6 +9,8 @@ const GOOGLE_ERROR_MESSAGES = {
   invite_expired: 'Your invitation has expired. Ask your admin to send a new invite.',
   password_invite:
     'This invitation uses email and password. Open your invite link, set a password, then sign in.',
+  google_superadmin_only:
+    'Only Superadmin can sign in with Google. Invited users must set a password from their invite link.',
 };
 
 /** Rich toast copy for invite-gated Google sign-in */
@@ -16,27 +18,32 @@ const GOOGLE_ERROR_TOASTS = {
   not_invited: {
     title: 'You need an invitation first',
     description:
-      'Ask your Super Admin to invite you to this workspace. Once invited, open the invite link and sign in with Google using the same email address they invited.',
+      'Ask your Super Admin to invite you. Open the invite link, set a password, then sign in with email and password.',
   },
   invite_expired: {
     title: 'Invitation expired',
     description:
-      'Your invite link is no longer valid. Please ask your Super Admin to send a new invitation, then sign in with Google using the invited email address.',
+      'Your invite link is no longer valid. Ask your Super Admin to send a new invitation, then set a password on Complete registration.',
   },
   password_invite: {
     title: 'Set a password for this invite',
     description:
-      'Company webmail invitations use email and password. Open your invite link, create a password, then sign in on the login page — do not use Continue with Google for this account.',
+      'Open your invite link, create a password on Complete registration, then sign in on the login page — do not use Continue with Google for invited accounts.',
+  },
+  google_superadmin_only: {
+    title: 'Google is for Superadmin only',
+    description:
+      'Invited members and admins sign in with email and password after completing registration from their invite link.',
   },
   wrong_google_email: {
     title: 'Wrong Google account',
     description:
-      'Use Continue with Google and choose the exact email from your invitation. A different Google account cannot accept this invite.',
+      'Use the Superadmin Google account. Invited users cannot join with Google.',
   },
   google_account_in_use: {
     title: 'Google account already in use',
     description:
-      'That Google account is already linked to another BIWORKSPACE user. Sign in with the Google account that matches your invited email.',
+      'That Google account is already linked to another BIWORKSPACE user.',
   },
 };
 
@@ -134,6 +141,14 @@ export function getGoogleErrorToast(code) {
 
   if (decoded === 'password_invite' || code === 'password_invite') {
     return GOOGLE_ERROR_TOASTS.password_invite;
+  }
+
+  if (
+    decoded === 'google_superadmin_only' ||
+    code === 'google_superadmin_only' ||
+    /Only Superadmin can sign in with Google/i.test(decoded)
+  ) {
+    return GOOGLE_ERROR_TOASTS.google_superadmin_only;
   }
 
   return { title: getGoogleErrorMessage(code) };

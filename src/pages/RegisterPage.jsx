@@ -3,14 +3,13 @@ import { ChevronDecoration } from '@/components/layout/ChevronDecoration';
 import { GradientBlobs } from '@/components/layout/GradientBlobs';
 import { BrandLogo } from '@/components/BrandLogo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { GoogleAuthButton, readInviteToken } from '@/features/auth/components/GoogleAuthButton';
+import { readInviteToken } from '@/features/auth/components/GoogleAuthButton';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 import AcceptInvitePage from '@/pages/AcceptInvitePage';
 
 /**
  * Open registration is invite-only.
- * With ?token= (email / share link) → same Complete registration form as /accept-invite.
- * Live + local both use /register?token=… so invite mail lands on the password form.
+ * With ?token= → Complete registration (password). No Google for invited users.
  */
 export default function RegisterPage() {
   const [params] = useSearchParams();
@@ -52,9 +51,9 @@ export default function RegisterPage() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-text-secondary">
-                Open the invite from your email (Accept invitation) or the shared link from the
-                invite form. That link opens Complete registration so you can set a password, then
-                sign in.
+                Open the invite from your email or the shared link. That opens Complete registration
+                so you can set a password, then sign in with email and password (your assigned role).
+                Google sign-in is for Superadmin only.
               </div>
 
               <Link
@@ -63,16 +62,6 @@ export default function RegisterPage() {
               >
                 Go to sign in
               </Link>
-
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-border-subtle" />
-                <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                  or
-                </span>
-                <div className="h-px flex-1 bg-border-subtle" />
-              </div>
-
-              <GoogleAuthButton label="Continue with Google" />
 
               <p className="text-center text-sm text-graphite">
                 Already have an account?{' '}

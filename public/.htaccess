@@ -31,10 +31,14 @@
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
   # ------------------------------------------------------------------
-  # 2b. Old invite links used /accept-invite — send them to /register
-  #     with the same ?token= so Complete registration still opens.
+  # 2b. Invite links with ?token= → static Complete registration page.
+  #     Works even if the main React bundle is stale on cPanel.
   # ------------------------------------------------------------------
-  RewriteRule ^accept-invite/?$ /register [R=302,L,QSA]
+  RewriteCond %{QUERY_STRING} (^|&)(token|inviteToken)=[^&]+ [NC]
+  RewriteRule ^register/?$ /complete-registration.html [L,QSA]
+
+  RewriteCond %{QUERY_STRING} (^|&)(token|inviteToken)=[^&]+ [NC]
+  RewriteRule ^accept-invite/?$ /complete-registration.html [L,QSA]
 
   # ------------------------------------------------------------------
   # 3. SPA routing: React Router owns the URL. Without this, refreshing on

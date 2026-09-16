@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Complete registration — BIWORKSPACE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f0f13;
+        --card: #18181f;
+        --border: #2a2a35;
+        --text: #f4f4f5;
+        --muted: #a1a1aa;
+        --brand: #7c3aed;
+        --brand-hover: #6d28d9;
+        --error: #f87171;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+      }
+      .card {
+        width: 100%;
+        max-width: 392px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+      }
+      .header {
+        padding: 28px 28px 20px;
+        text-align: center;
+      }
+      .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        font-size: 13px;
+      }
+      .logo-mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      h1 {
+        margin: 20px 0 8px;
+        font-family: Fraunces, Georgia, serif;
+        font-size: 24px;
+        font-weight: 500;
+      }
+      .subtitle {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 0 28px;
+      }
+      .body { padding: 24px 28px 28px; }
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 6px;
+      }
+      .field { margin-bottom: 16px; }
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #121218;
+        color: var(--text);
+        font: inherit;
+      }
+      input:disabled {
+        opacity: 0.85;
+        cursor: not-allowed;
+      }
+      .pw-wrap { position: relative; }
+      .pw-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .err { color: var(--error); font-size: 12px; margin-top: 6px; }
+      .banner { color: var(--error); font-size: 14px; text-align: center; margin-bottom: 12px; }
+      .hint { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.5; margin-top: 12px; }
+      button.primary {
+        width: 100%;
+        margin-top: 4px;
+        padding: 12px 16px;
+        border: none;
+        border-radius: 8px;
+        background: var(--brand);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.primary:hover:not(:disabled) { background: var(--brand-hover); }
+      button.primary:disabled { opacity: 0.6; cursor: wait; }
+      .footer {
+        text-align: center;
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 16px;
+      }
+      .footer a { color: #a78bfa; text-decoration: none; font-weight: 600; }
+      .loading { text-align: center; color: var(--muted); padding: 40px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="logo">
+          <span class="logo-mark">BI</span>
+          <span>BIWORKSPACE</span>
+        </div>
+        <h1 id="title">Complete registration</h1>
+        <p class="subtitle" id="subtitle">Loading your invitation…</p>
+      </div>
+      <div class="divider"></div>
+      <div class="body" id="content">
+        <div class="loading">Loading…</div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var ROLE_LABELS = {
+          SUPERADMIN: 'Superadmin',
+          SUPER_ADMIN: 'Superadmin',
+          ADMIN: 'Admin',
+          DEPT_HEAD: 'Admin',
+          TEAM_LEAD: 'Admin',
+          MEMBER: 'Member',
+          EMPLOYEE: 'Member',
+        };
+
+        var API_BASE =
+          location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000/api/v1'
+            : 'https://biworkspace-api.onrender.com/api/v1';
+
+        var params = new URLSearchParams(location.search);
+        var token = String(params.get('token') || params.get('inviteToken') || '').trim();
+
+        var titleEl = document.getElementById('title');
+        var subtitleEl = document.getElementById('subtitle');
+        var contentEl = document.getElementById('content');
+
+        function roleLabel(role) {
+          return ROLE_LABELS[String(role || '').toUpperCase()] || role || '—';
+        }
+
+        function escapeHtml(value) {
+          return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        }
+
+        function showError(message, showSignIn) {
+          titleEl.textContent = 'Invite unavailable';
+          subtitleEl.textContent = '';
+          contentEl.innerHTML =
+            '<p class="banner">' +
+            escapeHtml(message) +
+            '</p>' +
+            (showSignIn !== false
+              ? '<p class="hint">Ask your Superadmin to send a new invite, then open that link to set your password.</p>' +
+                '<button type="button" class="primary" onclick="location.href=\'/login\'">Go to sign in</button>' +
+                '<p class="footer">Already joined? <a href="/login">Sign in</a></p>'
+              : '');
+        }
+
+        function validatePassword(password, confirm) {
+          if (!password || password.length < 8) return 'Password must be at least 8 characters';
+          if (!/[A-Z]/.test(password)) return 'Must contain an uppercase letter';
+          if (!/[0-9]/.test(password)) return 'Must contain a number';
+          if (password !== confirm) return 'Passwords do not match';
+          return null;
+        }
+
+        function renderForm(preview) {
+          var email = String(preview.email || '').trim().toLowerCase();
+          var role = roleLabel(preview.role);
+          var dept = preview.department && preview.department.name ? preview.department.name : '';
+          var welcome = preview.name ? ', ' + preview.name : '';
+
+          titleEl.textContent = 'Complete registration';
+          subtitleEl.textContent =
+            'Welcome' +
+            welcome +
+            '. Your invite as ' +
+            role +
+            (dept ? ' in ' + dept : '') +
+            ' is ready — set a password to join.';
+
+          contentEl.innerHTML =
+            '<form id="reg-form">' +
+            '<div class="field"><label>Email</label><input type="email" value="' +
+            escapeHtml(email) +
+            '" disabled /></div>' +
+            '<div class="field"><label>Role</label><input value="' +
+            escapeHtml(role) +
+            '" disabled /></div>' +
+            '<div class="field"><label for="pw">Password</label><div class="pw-wrap"><input id="pw" type="password" autocomplete="new-password" required /><button type="button" class="pw-toggle" data-target="pw">Show</button></div><div class="err" id="pw-err"></div></div>' +
+            '<div class="field"><label for="cpw">Confirm password</label><div class="pw-wrap"><input id="cpw" type="password" autocomplete="new-password" required /><button type="button" class="pw-toggle" data-target="cpw">Show</button></div><div class="err" id="cpw-err"></div></div>' +
+            '<button type="submit" class="primary" id="submit-btn">Create account &amp; continue</button>' +
+            '<p class="hint">After this you will sign in with <strong>' +
+            escapeHtml(email) +
+            '</strong> and your new password. Email and role cannot be changed.</p>' +
+            '</form>' +
+            '<p class="footer">Already joined? <a href="/login">Sign in</a></p>';
+
+          contentEl.querySelectorAll('.pw-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var input = document.getElementById(btn.getAttribute('data-target'));
+              var show = input.type === 'password';
+              input.type = show ? 'text' : 'password';
+              btn.textContent = show ? 'Hide' : 'Show';
+            });
+          });
+
+          document.getElementById('reg-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var pw = document.getElementById('pw').value;
+            var cpw = document.getElementById('cpw').value;
+            var err = validatePassword(pw, cpw);
+            document.getElementById('pw-err').textContent = '';
+            document.getElementById('cpw-err').textContent = '';
+            if (err) {
+              document.getElementById('cpw-err').textContent = err;
+              return;
+            }
+            var btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Creating account…';
+            try {
+              var res = await fetch(API_BASE + '/users/invite/accept', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ token: token, password: pw, confirmPassword: cpw }),
+              });
+              var body = await res.json().catch(function () {
+                return {};
+              });
+              if (!res.ok) {
+                throw new Error(body.message || 'Could not create account');
+              }
+              location.href = '/login?email=' + encodeURIComponent(email);
+            } catch (submitErr) {
+              document.getElementById('cpw-err').textContent = submitErr.message || 'Could not create account';
+              btn.disabled = false;
+              btn.textContent = 'Create account & continue';
+            }
+          });
+        }
+
+        if (!token) {
+          showError('Open the full invite link from your email (it must include ?token=).');
+          return;
+        }
+
+        fetch(API_BASE + '/users/invite/preview?token=' + encodeURIComponent(token), {
+          headers: { Accept: 'application/json' },
+        })
+          .then(function (res) {
+            return res.json().then(function (body) {
+              if (!res.ok) throw new Error(body.message || 'Invite link is invalid or expired');
+              return body.data;
+            });
+          })
+          .then(renderForm)
+          .catch(function (err) {
+            showError(err.message || 'Invite link is invalid or expired');
+          });
+      })();
+    </script>
+  </body>
+</html>

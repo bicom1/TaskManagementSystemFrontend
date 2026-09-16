@@ -76,10 +76,15 @@ export default function LoginPage() {
               <div className="space-y-4 px-7 py-6">
                 <LoginForm />
 
+                <p className="rounded-lg border border-border-subtle bg-surface-1 px-3 py-2.5 text-center text-[12px] leading-relaxed text-text-muted">
+                  Invited with a company email (like @bicommunications.net)? Open your invite link,
+                  set a new password, then sign in here with that email and password.
+                </p>
+
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-border-subtle" />
                   <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                    or
+                    Super Admin
                   </span>
                   <div className="h-px flex-1 bg-border-subtle" />
                 </div>
@@ -87,23 +92,16 @@ export default function LoginPage() {
                 <GoogleAuthButton label="Continue with Google" />
 
                 <p className="text-center text-[12px] leading-relaxed text-text-muted">
-                  Invited with a company (@bicommunications.net) email? Open your invite link, set a
-                  password, then sign in here. Other invites: open the link and continue with Google.
+                  Google sign-in is only available to Super Admins.
                 </p>
 
                 {showInviteHint && (
-                  <>
-                    <p className="text-center text-[12px] leading-relaxed text-text-muted">
-                      Google sign-in is available after your Super Admin invites you to this
-                      workspace.
-                    </p>
-                    <p className="pt-1 text-center text-[13px] text-text-muted">
-                      Need access?{' '}
-                      <span className="text-text-secondary">
-                        Ask your Super Admin to send you a workspace invitation.
-                      </span>
-                    </p>
-                  </>
+                  <p className="pt-1 text-center text-[13px] text-text-muted">
+                    Need access?{' '}
+                    <span className="text-text-secondary">
+                      Ask your Super Admin to send you a workspace invitation.
+                    </span>
+                  </p>
                 )}
               </div>
             </div>

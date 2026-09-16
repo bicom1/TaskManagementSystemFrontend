@@ -303,13 +303,8 @@ export function InviteModal({
           loginUrl: data?.loginUrl || `${getPublicAppOrigin()}/login`,
           expiresAt: data?.expiresAt || null,
           expiresInMinutes: data?.expiresInMinutes ?? 24 * 60,
-          inviteMode:
-            data?.inviteMode ||
-            (String(values.email || '')
-              .toLowerCase()
-              .endsWith('@bicommunications.net')
-              ? 'password'
-              : 'google'),
+          // Every invite completes registration with a password
+          inviteMode: 'password',
           emailSent: data?.emailSent,
           emailError: data?.emailError,
           emailTo: data?.emailTo || values.email,
@@ -346,33 +341,19 @@ export function InviteModal({
   };
 
   const emailInviteWhatsAppText = result
-    ? result.inviteMode === 'password'
-      ? [
-          `You're invited to BIWORKSPACE by ${inviterName}.`,
-          ``,
-          result.acceptUrl ? `Accept invitation & set password: ${result.acceptUrl}` : null,
-          `Then sign in: ${result.loginUrl}`,
-          `Email: ${result.email}`,
-          ``,
-          `Set a password on the invite page, then sign in with email + password. Link expires in ${
-            formatInviteShareTtl(result.expiresInMinutes ?? 24 * 60)
-          }.`,
-        ]
-          .filter(Boolean)
-          .join('\n')
-      : [
-          `You're invited to BIWORKSPACE by ${inviterName}.`,
-          ``,
-          result.acceptUrl ? `Accept invite & sign in with Google: ${result.acceptUrl}` : null,
-          `Or open login → Continue with Google: ${result.loginUrl}`,
-          `Google email must be: ${result.email}`,
-          ``,
-          `Invited accounts sign in with Google only (no password). Link expires in ${
-            formatInviteShareTtl(result.expiresInMinutes ?? 24 * 60)
-          }.`,
-        ]
-          .filter(Boolean)
-          .join('\n')
+    ? [
+        `You're invited to BIWORKSPACE by ${inviterName}.`,
+        ``,
+        result.acceptUrl ? `Accept invitation & set password: ${result.acceptUrl}` : null,
+        `Then sign in: ${result.loginUrl}`,
+        `Email: ${result.email}`,
+        ``,
+        `Set a password on the invite page, then sign in with email + password. Link expires in ${
+          formatInviteShareTtl(result.expiresInMinutes ?? 24 * 60)
+        }.`,
+      ]
+        .filter(Boolean)
+        .join('\n')
     : '';
 
   return (
@@ -392,19 +373,9 @@ export function InviteModal({
           <div className="rounded-xl border border-primary-soft bg-primary-soft/30 p-4">
             <p className="text-sm font-medium text-ink">Invite ready for {result.name || result.email}</p>
             <p className="mt-2 text-sm leading-relaxed text-graphite">
-              {result.inviteMode === 'password' ? (
-                <>
-                  Send them this invite link. They open it, set a password for{' '}
-                  <span className="font-medium text-ink">{result.emailTo || result.email}</span>, then
-                  sign in with email and password.
-                </>
-              ) : (
-                <>
-                  Send them this invite link. They open it and tap{' '}
-                  <span className="font-medium text-ink">Continue with Google</span> using{' '}
-                  <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
-                </>
-              )}
+              Send them this invite link. They open it, set a password for{' '}
+              <span className="font-medium text-ink">{result.emailTo || result.email}</span>, then
+              sign in with email and password.
               {result.teamId ? ' They were also added to the selected team.' : ''}
             </p>
             {result.emailNote ? (
@@ -438,19 +409,9 @@ export function InviteModal({
                   </Button>
                 </div>
                 <p className="text-xs leading-relaxed text-graphite">
-                  {result.inviteMode === 'password' ? (
-                    <>
-                      Open this link → create a password for{' '}
-                      <span className="font-medium text-ink">{result.emailTo || result.email}</span>
-                      → then sign in on the login page with that email and password.
-                    </>
-                  ) : (
-                    <>
-                      Open this link → Continue with Google as{' '}
-                      <span className="font-medium text-ink">{result.emailTo || result.email}</span>.
-                      Password login will not work for this invite.
-                    </>
-                  )}
+                  Open this link → create a password for{' '}
+                  <span className="font-medium text-ink">{result.emailTo || result.email}</span>
+                  → then sign in on the login page with that email and password.
                 </p>
                 <p
                   className={`text-xs font-medium ${
@@ -483,7 +444,7 @@ export function InviteModal({
               </div>
             )}
             <p className="mt-2 text-xs text-graphite">
-              {result.inviteMode === 'password' ? 'Email' : 'Google email'}:{' '}
+              Email:{' '}
               <span className="font-medium text-ink">{result.emailTo || result.email}</span>
             </p>
           </div>
@@ -503,25 +464,15 @@ export function InviteModal({
               className="flex-1"
               onClick={() =>
                 copyText(
-                  result.inviteMode === 'password'
-                    ? [
-                        result.acceptUrl
-                          ? `Accept invitation & set password: ${result.acceptUrl}`
-                          : null,
-                        `Then sign in: ${result.loginUrl}`,
-                        `Email: ${result.email}`,
-                      ]
-                        .filter(Boolean)
-                        .join('\n')
-                    : [
-                        result.acceptUrl
-                          ? `Accept & Google sign-in: ${result.acceptUrl}`
-                          : null,
-                        `Login → Continue with Google: ${result.loginUrl}`,
-                        `Google email: ${result.email}`,
-                      ]
-                        .filter(Boolean)
-                        .join('\n'),
+                  [
+                    result.acceptUrl
+                      ? `Accept invitation & set password: ${result.acceptUrl}`
+                      : null,
+                    `Then sign in: ${result.loginUrl}`,
+                    `Email: ${result.email}`,
+                  ]
+                    .filter(Boolean)
+                    .join('\n'),
                   'credentials'
                 )
               }
@@ -547,7 +498,7 @@ export function InviteModal({
               ? `Inviting into ${scopedTeam?.name || 'this team'}. Department and team are set and can’t be changed.`
               : isDeptScoped
                 ? 'Inviting into this department. Department is set and can’t be changed.'
-                : 'Choose role (Superadmin, Admin, or Member), department, and type a team name. Invitees sign in with Google.'}
+                : 'Choose role (Superadmin, Admin, or Member), department, and type a team name. Invitees set a password from the invite link.'}
           </p>
 
           <div className="space-y-2">
@@ -560,8 +511,8 @@ export function InviteModal({
             />
             {errors.email && <p className="text-sm text-bloom-coral">{errors.email.message}</p>}
             <p className="text-xs text-graphite">
-              Invite email goes to this inbox only. They must accept with Google using the same
-              address.
+              Invite email goes to this inbox only. They open the link, set a password, then sign
+              in with this address.
             </p>
           </div>
 
@@ -610,7 +561,7 @@ export function InviteModal({
             <p className="text-xs text-graphite">
               {isInvitingSuperAdmin
                 ? 'Superadmin has org-wide access — department and team are not required.'
-                : 'Invitees sign in with Google using the invited email.'}
+                : 'Invitees sign in with the invited email and the password they set. Only Superadmins can also use Google.'}
             </p>
           </div>
 

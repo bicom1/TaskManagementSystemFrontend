@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import {
-  GoogleAuthButton,
   storeInviteToken,
   readInviteToken,
   clearInviteToken,
@@ -40,8 +39,8 @@ const passwordAcceptSchema = z
 
 /**
  * Invite accept page (live + local).
- * All new invites → Complete registration (password + confirm).
- * Existing logged-in Google users are unchanged (use Sign in).
+ * Every invite → Complete registration (password + confirm), then email + password sign-in.
+ * Google sign-in is reserved for Super Admins on the login page.
  */
 export default function AcceptInvitePage() {
   const navigate = useNavigate();
@@ -62,9 +61,6 @@ export default function AcceptInvitePage() {
     .trim()
     .toLowerCase();
   const invitedRole = preview?.role || '';
-
-  // All successful invite previews show Complete registration (password form)
-  const isPasswordInvite = Boolean(preview);
 
   const {
     register,
@@ -178,7 +174,7 @@ export default function AcceptInvitePage() {
     <div
       className="relative flex h-full min-h-0 flex-col overflow-y-auto"
       style={{ backgroundColor: 'var(--color-rail-bg)' }}
-      data-invite-flow={isPasswordInvite ? 'password' : 'google'}
+      data-invite-flow="password"
     >
       <div
         aria-hidden
@@ -192,20 +188,14 @@ export default function AcceptInvitePage() {
             <div className="flex flex-col items-center px-7 pb-5 pt-7 text-center">
               <BrandLogo asLink={false} size="md" className="justify-center" />
               <h1 className="voice-line mt-5 text-[24px] text-text-primary">
-                {error
-                  ? 'Invite unavailable'
-                  : isPasswordInvite
-                    ? 'Complete registration'
-                    : 'Accept invite'}
+                {error ? 'Invite unavailable' : 'Complete registration'}
               </h1>
               {!error && (
                 <p className="mt-1.5 max-w-[300px] text-[13px] text-text-muted">
                   Welcome{preview?.name ? `, ${preview.name}` : ''}. Your invite
                   {invitedRole ? ` as ${getRoleLabel(invitedRole)}` : ''}
-                  {preview?.department?.name ? ` in ${preview.department.name}` : ''} is ready
-                  {isPasswordInvite
-                    ? ' — set a password to join.'
-                    : ' — continue with Google to join.'}
+                  {preview?.department?.name ? ` in ${preview.department.name}` : ''} is ready —
+                  set a password to join.
                 </p>
               )}
             </div>
@@ -229,7 +219,7 @@ export default function AcceptInvitePage() {
                     Go to sign in
                   </Button>
                 </div>
-              ) : isPasswordInvite ? (
+              ) : (
                 <form onSubmit={handleSubmit(onAcceptPassword)} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="invite-email">Email</Label>
@@ -288,35 +278,6 @@ export default function AcceptInvitePage() {
                     new password. Email and role cannot be changed.
                   </p>
                 </form>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-disabled">
-                      Invited email — use this Google account
-                    </p>
-                    <p className="rounded-lg border border-border-subtle bg-surface-1 px-3 py-2.5 text-center text-[13px] font-semibold text-text-primary">
-                      {invitedEmail || '—'}
-                    </p>
-                  </div>
-
-                  <GoogleAuthButton
-                    label="Continue with Google to join"
-                    loginHint={invitedEmail}
-                    inviteToken={token}
-                  />
-
-                  <p className="text-center text-[12px] leading-relaxed text-text-muted">
-                    Invited members must sign in with Google using{' '}
-                    <span className="font-medium text-text-secondary">{invitedEmail}</span>.
-                    {preview?.expiresAt ? (
-                      <>
-                        {' '}
-                        This invite link expires in {preview.expiresInMinutes ?? 10} minutes from
-                        when it was created.
-                      </>
-                    ) : null}
-                  </p>
-                </>
               )}
 
               <p className="pt-1 text-center text-[12px] text-text-muted">

@@ -9,6 +9,8 @@ const GOOGLE_ERROR_MESSAGES = {
   invite_expired: 'Your invitation has expired. Ask your admin to send a new invite.',
   password_invite:
     'This invitation uses email and password. Open your invite link, set a password, then sign in.',
+  google_superadmin_only:
+    'Google sign-in is only available to Super Admins. Sign in with your email and password.',
 };
 
 /** Rich toast copy for invite-gated Google sign-in */
@@ -16,12 +18,17 @@ const GOOGLE_ERROR_TOASTS = {
   not_invited: {
     title: 'You need an invitation first',
     description:
-      'Ask your Super Admin to invite you to this workspace. Once invited, open the invite link and sign in with Google using the same email address they invited.',
+      'Ask your Super Admin to invite you to this workspace. Once invited, open the invite link, set a password, then sign in with that email and password.',
   },
   invite_expired: {
     title: 'Invitation expired',
     description:
-      'Your invite link is no longer valid. Please ask your Super Admin to send a new invitation, then sign in with Google using the invited email address.',
+      'Your invite link is no longer valid. Please ask your Super Admin to send a new invitation, then open the new link to set your password.',
+  },
+  google_superadmin_only: {
+    title: 'Google sign-in is for Super Admins only',
+    description:
+      'Sign in with your email and password. Invited recently? Open your invite link and set a password first. No password yet? Use "Forgot password?".',
   },
   password_invite: {
     title: 'Set a password for this invite',
@@ -80,11 +87,16 @@ function isWrongGoogleEmailError(decoded) {
   );
 }
 
-/** True when Google sign-in failed because the user is not invited / invite expired */
+function isSuperAdminOnlyError(decoded) {
+  return decoded === 'google_superadmin_only';
+}
+
+/** True when Google sign-in failed because the user is not invited / not allowed to use Google */
 export function isInviteGateError(code) {
   if (!code) return false;
   const decoded = decodeGoogleError(code);
   return (
+    isSuperAdminOnlyError(decoded) ||
     isNotInvitedError(decoded) ||
     isInviteExpiredError(decoded) ||
     isWrongGoogleEmailError(decoded)
@@ -101,6 +113,10 @@ export function getGoogleErrorToast(code) {
   }
 
   const decoded = decodeGoogleError(code);
+
+  if (isSuperAdminOnlyError(decoded)) {
+    return GOOGLE_ERROR_TOASTS.google_superadmin_only;
+  }
 
   if (isWrongGoogleEmailError(decoded)) {
     const match = decoded.match(/using\s+([^\s—-]+@[^\s—-]+)/i);

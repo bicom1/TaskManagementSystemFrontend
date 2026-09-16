@@ -3,7 +3,7 @@ import { ChevronDecoration } from '@/components/layout/ChevronDecoration';
 import { GradientBlobs } from '@/components/layout/GradientBlobs';
 import { BrandLogo } from '@/components/BrandLogo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { GoogleAuthButton, readInviteToken } from '@/features/auth/components/GoogleAuthButton';
+import { readInviteToken } from '@/features/auth/components/GoogleAuthButton';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 import AcceptInvitePage from '@/pages/AcceptInvitePage';
 
@@ -63,16 +63,6 @@ export default function RegisterPage() {
               >
                 Go to sign in
               </Link>
-
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-border-subtle" />
-                <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                  or
-                </span>
-                <div className="h-px flex-1 bg-border-subtle" />
-              </div>
-
-              <GoogleAuthButton label="Continue with Google" />
 
               <p className="text-center text-sm text-graphite">
                 Already have an account?{' '}

@@ -1,35 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/BrandLogo';
 import { LoginForm } from '@/features/auth/components/LoginForm';
-import {
-  GoogleAuthButton,
-  readInviteToken,
-} from '@/features/auth/components/GoogleAuthButton';
+import { GoogleAuthButton } from '@/features/auth/components/GoogleAuthButton';
 import { getGoogleErrorToast, isInviteGateError } from '@/features/auth/googleErrors';
 import { PublicRoute } from '@/routes/ProtectedRoute';
 
 export default function LoginPage() {
-  const navigate = useNavigate();
   const [params, setSearchParams] = useSearchParams();
   const [showInviteHint, setShowInviteHint] = useState(false);
 
-  // If Google OAuth bounced an invitee to /login, send them back to accept-invite
-  useEffect(() => {
-    const token = readInviteToken();
-    const googleError = params.get('googleError');
-    if (!token || !googleError) return;
-    const qs = new URLSearchParams();
-    qs.set('token', token);
-    qs.set('googleError', googleError);
-    navigate(`/register?${qs.toString()}`, { replace: true });
-  }, [navigate, params]);
-
+  // Google is Superadmin-only, so its errors always show here — never bounce to an invite page
   useEffect(() => {
     const googleError = params.get('googleError');
     if (!googleError) return;
-    if (readInviteToken()) return; // redirect effect handles invitees
 
     const inviteBlocked = isInviteGateError(googleError);
     setShowInviteHint(inviteBlocked);

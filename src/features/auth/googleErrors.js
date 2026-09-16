@@ -33,7 +33,7 @@ const GOOGLE_ERROR_TOASTS = {
   google_superadmin_only: {
     title: 'Google is for Superadmin only',
     description:
-      'Invited members and admins sign in with email and password after completing registration from their invite link.',
+      'Invited members and admins sign in with email and password after completing registration from their invite link. Joined with Google before? Use "Forgot password?" to set a password.',
   },
   wrong_google_email: {
     title: 'Wrong Google account',

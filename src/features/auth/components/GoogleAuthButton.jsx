@@ -40,7 +40,8 @@ export function GoogleAuthButton({
     const qs = new URLSearchParams();
     qs.set('clientUrl', window.location.origin);
     const hint = String(loginHint || '').trim().toLowerCase();
-    const token = String(inviteToken || readInviteToken() || '').trim();
+    // Only an explicit invite token — a leftover one from this tab must not hijack Superadmin Google sign-in
+    const token = String(inviteToken || '').trim();
     const next = sanitizeNextPath(params.get('next') || params.get('returnTo'));
     if (hint) qs.set('loginHint', hint);
     if (next) qs.set('next', next);

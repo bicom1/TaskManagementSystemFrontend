@@ -31,6 +31,12 @@
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
   # ------------------------------------------------------------------
+  # 2b. Old invite links used /accept-invite — send them to /register
+  #     with the same ?token= so Complete registration still opens.
+  # ------------------------------------------------------------------
+  RewriteRule ^accept-invite/?$ /register [R=302,L,QSA]
+
+  # ------------------------------------------------------------------
   # 3. SPA routing: React Router owns the URL. Without this, refreshing on
   #    /inbox or /projects/123 asks Apache for a file that does not exist
   #    and returns a 404.

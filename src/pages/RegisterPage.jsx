@@ -1,32 +1,25 @@
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronDecoration } from '@/components/layout/ChevronDecoration';
 import { GradientBlobs } from '@/components/layout/GradientBlobs';
 import { BrandLogo } from '@/components/BrandLogo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { GoogleAuthButton, readInviteToken } from '@/features/auth/components/GoogleAuthButton';
 import { PublicRoute } from '@/routes/ProtectedRoute';
+import AcceptInvitePage from '@/pages/AcceptInvitePage';
 
 /**
  * Open registration is invite-only.
- * If a token is present (or stored), send the user to /accept-invite?token=…
- * so they see Complete registration — never the "self-registration disabled" dead end.
+ * With ?token= (email / share link) → same Complete registration form as /accept-invite.
+ * Live + local both use /register?token=… so invite mail lands on the password form.
  */
 export default function RegisterPage() {
-  const navigate = useNavigate();
   const [params] = useSearchParams();
   const token = String(
     params.get('token') || params.get('inviteToken') || readInviteToken() || ''
   ).trim();
 
-  useEffect(() => {
-    if (token) {
-      navigate(`/accept-invite?token=${encodeURIComponent(token)}`, { replace: true });
-    }
-  }, [token, navigate]);
-
   if (token) {
-    return null;
+    return <AcceptInvitePage />;
   }
 
   return (

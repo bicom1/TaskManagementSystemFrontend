@@ -14,8 +14,12 @@ export function getPublicAppOrigin() {
   return 'https://bicomworkspace.com';
 }
 
+/**
+ * Invite email + share links → /register?token=…
+ * RegisterPage with a token renders Complete registration (same as /accept-invite).
+ */
 export function buildAcceptInviteUrl(token) {
   const raw = String(token || '').trim();
-  if (!raw) return `${getPublicAppOrigin()}/accept-invite`;
-  return `${getPublicAppOrigin()}/accept-invite?token=${encodeURIComponent(raw)}`;
+  if (!raw) return `${getPublicAppOrigin()}/register`;
+  return `${getPublicAppOrigin()}/register?token=${encodeURIComponent(raw)}`;
 }
